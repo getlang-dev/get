@@ -9,8 +9,12 @@
     "test": "pnpm compile && tsx src"
   },
   "dependencies": {
+    "acorn": "^8.11.3",
+    "acorn-globals": "^7.0.1",
+    "globals": "^15.4.0",
     "moo": "^0.5.2",
-    "nearley": "^2.20.1"
+    "nearley": "^2.20.1",
+    "prettier": "^3.3.2"
   },
   "devDependencies": {
     "@types/moo": "^0.5.9",
