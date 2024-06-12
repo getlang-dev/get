@@ -1,3 +1,3 @@
-<p align="center"><img src=".github/hero.png"></p>
+<p align="center"><img src="assets/hero.png"></p>
 
-Visit [https://getlang.dev](https://getlang.dev) to view the project documentation; along with examples, and a space to try your first Get query!
+Visit [getlang.dev](https://getlang.dev) to view examples, documentation, and a space to try your first Get query!

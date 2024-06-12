@@ -1,0 +1,27 @@
+{
+  "name": "@getlang/get",
+  "version": "0.0.1",
+  "license": "Apache-2.0",
+  "type": "module",
+  "scripts": {
+    "compile": "nearleyc src/parse/getlang.ne -o src/grammar.ts",
+    "railroad": "nearley-railroad src/parse/getlang.ne -o grammar.html && open grammar.html",
+    "test": "pnpm compile && tsx src"
+  },
+  "dependencies": {
+    "moo": "^0.5.2",
+    "nearley": "^2.20.1"
+  },
+  "devDependencies": {
+    "@types/moo": "^0.5.9",
+    "@types/nearley": "^2.11.5",
+    "@types/node": "^20.14.2",
+    "tsx": "^4.15.2"
+  },
+  "prettier": {
+    "semi": false,
+    "singleQuote": true,
+    "trailingComma": "es5",
+    "arrowParens": "avoid"
+  }
+}
