@@ -3,9 +3,12 @@ import grammar from './grammar'
 import lexer from './parse/lexer'
 import { desugar } from './ast/simplified'
 import { print } from './ast/print'
+import type { Program } from './ast/ast'
 import { execute as exec } from './execute/execute'
-import type * as http from './execute/net/http'
+import type { RequestFn } from './execute/net/http'
 import { SyntaxError, invariant } from './errors'
+
+export type { RequestFn }
 
 function parse(source: string) {
   const parser = new nearley.Parser(nearley.Grammar.fromCompiled(grammar))
@@ -29,7 +32,7 @@ function parse(source: string) {
 function execute(
   source: string,
   inputs: Record<string, unknown> = {},
-  requestFn?: http.RequestFn
+  requestFn?: RequestFn
 ) {
   const ast = parse(source)
   const simplified = desugar(ast)
@@ -37,4 +40,12 @@ function execute(
   return exec(simplified, inputs, requestFn)
 }
 
-export { parse, desugar, execute, print }
+function executeAST(
+  ast: Program,
+  inputs: Record<string, unknown> = {},
+  requestFn?: RequestFn
+) {
+  return exec(ast, inputs, requestFn)
+}
+
+export { parse, desugar, execute, print, executeAST }

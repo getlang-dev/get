@@ -13,15 +13,6 @@
     "noImplicitOverride": true,
     "declaration": true,
     "module": "preserve",
-    "noEmit": true,
     "lib": ["es2022"]
-  },
-  "references": [
-    {
-      "path": "./tsconfig.lib.json"
-    },
-    {
-      "path": "./tsconfig.spec.json"
-    }
-  ]
+  }
 }

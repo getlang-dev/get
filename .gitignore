@@ -3,3 +3,5 @@ node_modules
 
 src/grammar.ts
 grammar.html
+
+dist

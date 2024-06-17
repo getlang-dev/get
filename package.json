@@ -3,11 +3,16 @@
   "version": "0.0.1",
   "license": "Apache-2.0",
   "type": "module",
+  "main": "dist",
+  "files": [
+    "dist"
+  ],
   "scripts": {
     "compile": "nearleyc src/parse/getlang.ne -o src/grammar.ts",
     "railroad": "nearley-railroad src/parse/getlang.ne -o grammar.html && open grammar.html",
     "test": "pnpm compile && tsx src",
-    "typecheck": "tsc --noEmit -p tsconfig.lib.json"
+    "typecheck": "tsc --noEmit -p src",
+    "build": "tsc -p src"
   },
   "dependencies": {
     "acorn": "^8.12.0",
