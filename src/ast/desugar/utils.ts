@@ -1,7 +1,7 @@
+import type { Expr } from '../ast'
 import { NodeKind, t } from '../ast'
 
 type RequestStmt = ReturnType<typeof t.requestStmt>
-type TemplateExpr = ReturnType<typeof t.templateExpr>
 
 export function createToken(text: string, value = text) {
   return {
@@ -14,28 +14,29 @@ export function createToken(text: string, value = text) {
   }
 }
 
-function renderTemplate(template: TemplateExpr) {
-  let s = ''
-  for (const e of template.elements) {
-    if (e.kind !== NodeKind.LiteralExpr) {
-      return null
-    }
-    s += e.value.value
+function literalExpr(expr: Expr): string | null {
+  if (expr.kind === NodeKind.LiteralExpr) {
+    return expr.value.value
+  } else if (
+    expr.kind !== NodeKind.TemplateExpr ||
+    expr.elements.length !== 1
+  ) {
+    return null
+  } else {
+    return expr.elements[0] ? literalExpr(expr.elements[0]) : null
   }
-  return s
 }
 
 export function getContentMod(req: RequestStmt) {
   const accept = req.headers.find(
-    e => renderTemplate(e.key)?.toLowerCase() === 'accept'
+    e => literalExpr(e.key)?.toLowerCase() === 'accept'
   )
-  if (accept) {
-    const value = renderTemplate(accept.value)?.toLowerCase()
-    if (value === 'application/json') {
+  switch (accept && literalExpr(accept.value)?.toLowerCase()) {
+    case 'application/json':
       return 'json'
-    } else if (value === 'application/javascript') {
+    case 'application/javascript':
       return 'js'
-    }
+    default:
+      return 'html'
   }
-  return 'html'
 }

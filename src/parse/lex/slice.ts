@@ -1,3 +1,4 @@
+import { SyntaxError } from '../../errors'
 import { until } from './templates'
 
 const getSliceValue = (text: string, places = 1) => {
@@ -5,7 +6,7 @@ const getSliceValue = (text: string, places = 1) => {
   let lines = src.split('\n')
   const firstIdx = lines.findIndex(x => x.trim().length)
   if (firstIdx === -1) {
-    throw new Error('Slice must contain source')
+    throw new SyntaxError('Slice must contain source')
   }
   lines = lines.slice(firstIdx)
   const indent = lines[0]?.match(/^\s*/)?.[0].length || 0

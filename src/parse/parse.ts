@@ -1,4 +1,5 @@
 import { t, NodeKind } from '../ast/ast'
+import { SyntaxError } from '../errors'
 
 type PP = nearley.Postprocessor
 
@@ -31,6 +32,7 @@ export const inputDecl: PP = ([id, optional, maybeDefault]) => {
 
 export const request: PP = ([method, url, headerBlock, namedBlocks, body]) => {
   const headers = headerBlock?.[1] ?? []
+
   const blocks: any = {}
   namedBlocks
     .map((d: any) => d[1])
@@ -110,8 +112,6 @@ export const drillContext: PP = ([arrow, expr]) => {
   return t.drillExpr('context', expr, expand)
 }
 
-export const idRef: PP = ([, id]) => id
-
 export const identifier: PP = ([id]) => {
   return t.identifierExpr(id)
 }
@@ -131,7 +131,7 @@ export const template: PP = d => {
       case 'identifier':
         return t.identifierExpr(token)
       default:
-        throw new Error(`Unkown template element: ${token.type}`)
+        throw new SyntaxError(`Unkown template element: ${token.type}`)
     }
   })
 

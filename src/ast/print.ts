@@ -81,126 +81,77 @@ const printVisitor: ExhaustiveVisitor<Doc> = {
     return group(parts)
   },
 
-  AssignmentStmt: {
-    enter(node, _visit) {
-      const idTarget = unwrapHead(node.value).kind === NodeKind.IdentifierExpr
-      return {
-        ...node,
-        value: _visit(node.value),
-        $visitorInfo: {
-          idTarget,
-        },
-      }
-    },
-    exit(node) {
-      const { idTarget } = node.$visitorInfo
-      const parts: Doc[] = ['set ', node.name.value]
-      if (node.optional) {
-        parts.push('?')
-      }
-      const sep = idTarget ? ' = $' : ' = '
-      parts.push(sep, node.value)
-      return group(parts)
-    },
+  AssignmentStmt(node, orig) {
+    const idTarget = unwrapHead(orig.value).kind === NodeKind.IdentifierExpr
+    const parts: Doc[] = ['set ', node.name.value]
+    if (node.optional) {
+      parts.push('?')
+    }
+    const sep = idTarget ? ' = $' : ' = '
+    parts.push(sep, node.value)
+    return group(parts)
   },
 
-  ExtractStmt: {
-    enter(node, _visit) {
-      const head = unwrapHead(node.value)
-      const value = _visit(node.value)
-      return {
-        value,
-        $visitorInfo: { idHead: head.kind === NodeKind.IdentifierExpr },
-      }
-    },
-    exit(node) {
-      const punct = node.$visitorInfo.idHead ? ['$'] : []
-      return group(['extract ', ...punct, node.value])
-    },
+  ExtractStmt(node, orig) {
+    const head = unwrapHead(orig.value)
+    const punct = head.kind === NodeKind.IdentifierExpr ? ['$'] : []
+    return group(['extract ', ...punct, node.value])
   },
 
-  ObjectLiteralExpr: {
-    enter(node, _visit) {
-      const shorthand: string[] = []
-      const shouldBreak = node.entries.some(
-        e => unwrapTail(e.value).kind === NodeKind.TemplateExpr
-      )
+  ObjectLiteralExpr(node, orig) {
+    const shorthand: Doc[] = []
+    const shouldBreak = orig.entries.some(
+      e => unwrapTail(e.value).kind === NodeKind.TemplateExpr
+    )
+    const entries = node.entries.map((entry, i) => {
+      const origEntry = orig.entries[i]
+      if (!origEntry) {
+        throw new Error('Unmatched object literal entry')
+      }
+      const keyGroup: Doc[] = [entry.key]
+      if (entry.optional) {
+        keyGroup.push('?')
+      }
 
-      const entries = node.entries.map((e, i) => {
-        // key
-        const key = _visit(e.key)
-        const keyGroup: Doc[] = [key]
-        if (e.optional) {
-          keyGroup.push('?')
-        }
+      // seperator
+      keyGroup.push(': ')
 
-        // seperator
-        keyGroup.push(': ')
+      // value
+      const head = unwrapHead(origEntry.value)
+      let value = entry.value
+      if (head.kind === NodeKind.IdentifierExpr) {
+        value = ['$', value]
+      }
+      if (entry.key === entry.value) {
+        shorthand[i] = value
+      }
+      return { ...entry, key: keyGroup, value }
+    })
 
-        // value
-        const head = unwrapHead(e.value)
-        const rawValue = _visit(e.value)
-        let value = rawValue
-        if (head.kind === NodeKind.IdentifierExpr) {
-          value = ['$', value]
-        }
-        if (key === rawValue) {
-          shorthand[i] = value
-        }
-        return { ...e, key: keyGroup, value }
-      })
-
-      return { entries, $visitorInfo: { shouldBreak, shorthand } }
-    },
-    exit(node) {
-      const { shouldBreak, shorthand } = node.$visitorInfo
-      const inner = node.entries.map(
-        (e, i) => shorthand[i] || group([e.key, e.value])
-      )
-      const sep = ifBreak(line, [',', line])
-      return group(['{', indent([line, join(sep, inner)]), line, '}'], {
-        shouldBreak,
-      })
-    },
+    const inner = entries.map((e, i) => shorthand[i] || group([e.key, e.value]))
+    const sep = ifBreak(line, [',', line])
+    return group(['{', indent([line, join(sep, inner)]), line, '}'], {
+      shouldBreak,
+    })
   },
 
-  TemplateExpr: {
-    enter(node, _visit) {
-      const elements = node.elements.map(el => {
-        const { kind } = el
-        if (kind !== NodeKind.IdentifierExpr && kind !== NodeKind.LiteralExpr) {
-          throw new Error(`Unexpected template node: ${kind}`)
-        }
-        const isUrlComp = kind === NodeKind.IdentifierExpr && el.isUrlComponent
-        const doc = _visit(el)
-        if (typeof doc !== 'string') {
-          throw new Error(`Unexepected template element type: ${typeof doc}`)
-        }
-        return { doc, kind, isUrlComp }
-      })
-      return {
-        elements: elements.map((el, i) => {
-          if (el.kind === NodeKind.LiteralExpr) {
-            return el.doc
-          }
-          const nextEl = elements[i + 1]
-          let { doc } = el
-          if (nextEl?.kind === NodeKind.LiteralExpr && /^\w/.test(nextEl.doc)) {
-            if (el.isUrlComp) {
-              throw new Error(
-                `Malformed URL component identifier: ${nextEl.doc}`
-              )
-            }
-            // use ${id} syntax to delineate against next element in template
-            doc = `{${doc}}`
-          }
-          return el.isUrlComp ? `:${doc}` : `$${doc}`
-        }),
+  TemplateExpr(node, orig) {
+    return node.elements.map((el, i) => {
+      const origEl = orig.elements[i]
+      if (!origEl) {
+        throw new Error('Unmatched object literal entry')
+      } else if (origEl.kind === NodeKind.LiteralExpr) {
+        return el
+      } else if (origEl.kind !== NodeKind.IdentifierExpr) {
+        throw new Error(`Unexpected template node: ${origEl?.kind}`)
       }
-    },
-    exit(node) {
-      return node.elements
-    },
+      const nextEl = node.elements[i + 1]
+      if (typeof nextEl === 'string' && /^\w/.test(nextEl)) {
+        // use ${id} syntax to delineate against next element in template
+        el = `{${el}}`
+      }
+      return origEl.isUrlComponent ? `:${el}` : `$${el}`
+    })
   },
 
   LiteralExpr(node) {

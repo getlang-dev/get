@@ -1,18 +1,29 @@
 import moo from 'moo'
-import { ws, identifier, popAll } from './lex/shared'
+import { ws, identifier, identifierExpr, popAll } from './lex/shared'
 import { templateUntil, interpExpr } from './lex/templates'
 import { slice, slice_block } from './lex/slice'
 
 const verbs = ['GET', 'PUT', 'POST', 'PATCH', 'DELETE']
 const keywords = ['import', 'inputs', 'set']
 const requestBlockNames = ['query', 'cookies', 'json', 'form']
-const modifiers = ['html', 'json', 'js', 'cookies', 'resolve']
+const modifiers = [
+  'html',
+  'json',
+  'js',
+  'cookies',
+  'resolve',
+  'headers',
+  'cookies',
+]
 const keywordsObj = Object.fromEntries(keywords.map(k => [`kw_${k}`, k]))
 
 const exprOpeners = {
   lbrack: '{',
   lparent: '(',
-  ident: '$',
+  identifier_expr: {
+    match: identifierExpr,
+    value: (text: string) => text.slice(1),
+  },
   slice_block,
   slice,
   modifier: {
@@ -23,7 +34,7 @@ const exprOpeners = {
 
 const main = {
   ws,
-  comment: /##.*/,
+  comment: /--.*/,
   kw_extract: {
     match: /extract(?=\s)/,
     push: 'expr',

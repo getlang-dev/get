@@ -44,19 +44,19 @@ drill -> (%drill_arrow _):? expression {% p.drillContext %}
 ### EXPR
 expression -> (template | slice | modifier) {% p.idd %}
 expression -> (object | function | module_call) {% p.idd %}
-expression -> id_ref {% p.identifier %}
+expression -> id_expr {% p.identifier %}
 
 
 ### FUNCTIONS
 function -> "(" _ statements _ ")" {% p.fn %}
-module_call -> id_ref "(" (object _):? ")" {% p.moduleCall %}
+module_call -> id_expr "(" (object _):? ")" {% p.moduleCall %}
 
 
 ### OBJECT LITERALS
 object -> "{" _ (object_entry (_ ","):? _):* "}" {% p.object %}
 object_entry -> %identifier "?":? ":" _ drill {% p.objectEntry %}
 object_entry -> %identifier "?":? {% p.objectEntryShorthandDrill %}
-object_entry -> id_ref "?":? {% p.objectEntryShorthandIdent %}
+object_entry -> id_expr "?":? {% p.objectEntryShorthandIdent %}
 
 
 ### LITERALS
@@ -64,7 +64,7 @@ template -> (%literal | %interpvar | interp_expr):+ {% p.template %}
 interp_expr -> "${" _ %identifier _ "}" {% p.interpExpr %}
 slice -> %slice {% p.slice %}
 modifier -> %modifier {% p.modifier %}
-id_ref -> "$" %identifier {% p.idRef %}
+id_expr -> %identifier_expr {% id %}
 
 
 ### WHITESPACE

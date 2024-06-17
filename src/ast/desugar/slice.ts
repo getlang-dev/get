@@ -25,10 +25,6 @@ export const analyzeSlice = (source: string) => {
     .map(id => id.name)
     .filter(id => !browserGlobals.includes(id))
 
-  if (deps.includes('_context_')) {
-    throw new Error('Cannot access _context_ variable from within slice')
-  }
-
   if (deps.length) {
     const contextVars = deps.join(', ')
     const loadContext = `const { ${contextVars} } = context\n`

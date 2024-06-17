@@ -1,9 +1,11 @@
 import nearley from 'nearley'
 import grammar from './grammar'
 import lexer from './parse/lexer'
-import { desugar } from './ast/simplified.js'
-import type { Program } from './ast/ast'
+import { desugar } from './ast/simplified'
 import { print } from './ast/print'
+import { execute as exec } from './execute/execute'
+import type * as http from './execute/net/http'
+import { SyntaxError, invariant } from './errors'
 
 function parse(source: string) {
   const parser = new nearley.Parser(nearley.Grammar.fromCompiled(grammar))
@@ -19,24 +21,20 @@ function parse(source: string) {
   }
 
   const { results } = parser
-
-  if (results.length === 1) {
-    return results[0] as Program
-  } else if (!results.length) {
-    throw new SyntaxError('Unexpected end of input')
-  } else {
-    throw new Error('Ambiguous source')
-  }
+  invariant(results.length !== 0, new SyntaxError('Unexpected end of input'))
+  invariant(results.length === 1, new SyntaxError('Ambiguous source'))
+  return results[0]
 }
 
-const program = parse(`GET https://example.com\n\nextract { title }`)
+function execute(
+  source: string,
+  inputs: Record<string, unknown> = {},
+  requestFn?: http.RequestFn
+) {
+  const ast = parse(source)
+  const simplified = desugar(ast)
 
-console.log(JSON.stringify(program, null, 4))
-console.log('--------------')
-console.log(print(program))
+  return exec(simplified, inputs, requestFn)
+}
 
-const simplified = desugar(program)
-
-console.log(JSON.stringify(simplified, null, 4))
-console.log('--------------')
-console.log(print(simplified))
+export { parse, desugar, execute, print }

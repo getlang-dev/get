@@ -1,111 +1,170 @@
 import type { Node, Stmt, Expr } from './ast'
 import { NodeKind } from './ast'
 
-type Transform<T, OldT1, NewT1, OldT2, NewT2> = T extends OldT1
-  ? NewT1
-  : T extends OldT2
-    ? NewT2
-    : T extends Array<infer E>
-      ? Transform<E, OldT1, NewT1, OldT2, NewT2>[]
-      : T extends Record<string, unknown>
-        ? { [Key in keyof T]: Transform<T[Key], OldT1, NewT1, OldT2, NewT2> }
-        : T
+export const SKIP = { __skip: true }
 
-type TransformNode<T extends Node, ST, ET> = Omit<
-  {
-    [Key in keyof T]: Transform<T[Key], Stmt, ST, Expr, ET>
-  } & {
-    $visitorInfo?: any
-  },
-  'kind'
->
+type Control = typeof SKIP
 
-type EntryVisitor<N extends Node, ST, ET> = (
+type Transform<V, S, E> = V extends V
+  ? V extends Stmt
+    ? S
+    : V extends Expr
+      ? E
+      : { [K in keyof V]: Transform<V[K], S, E> }
+  : never
+
+type TransformNode<N extends Node, S, E> = {
+  [K in keyof N]: Transform<N[K], S, E>
+}
+
+type MaybePromise<T> = T | Promise<T>
+
+type NodeConfig<
+  N extends Node,
+  S,
+  E,
+  A extends boolean = false,
+  TN = TransformNode<N, S, E>,
+  XN = Transform<N, S, E>,
+  Visit = <C extends Node>(child: C) => Transform<C, S, E>,
+  EntryVisitor = (
+    node: N,
+    visit: Visit
+  ) => A extends true ? MaybePromise<TN | void | Control> : TN | void | Control,
+  ExitVisitor = (
+    node: TN,
+    originalNode: N
+  ) => A extends true ? MaybePromise<XN> : XN,
+  EntryExitVisitor = (
+    node: N,
+    visit: Visit
+  ) => A extends true ? MaybePromise<XN | Control> : XN | Control,
+> =
+  | ExitVisitor
+  | { enter?: EntryVisitor; exit?: ExitVisitor }
+  | { enter: EntryExitVisitor }
+
+interface NodeVisitor {
+  enter?: (node: Node, visit: (c: Node) => any) => any
+  exit?: (node: any, originalNode: Node) => any
+}
+
+// visitor types
+type ExhaustiveVisitor<
+  StmtT = Stmt,
+  ExprT = StmtT extends Stmt ? Expr : StmtT,
+> = {
+  [N in Node as N['kind']]: NodeConfig<N, StmtT, ExprT>
+}
+type PartialVisitor<StmtT = Stmt, ExprT = StmtT extends Stmt ? Expr : StmtT> = {
+  [N in Node as N['kind']]?: NodeConfig<N, StmtT, ExprT>
+}
+
+type AsyncExhaustiveVisitor<
+  StmtT = Stmt,
+  ExprT = StmtT extends Stmt ? Expr : StmtT,
+> = {
+  [N in Node as N['kind']]: NodeConfig<N, StmtT, ExprT, true>
+}
+
+type AsyncPartialVisitor<
+  StmtT = Stmt,
+  ExprT = StmtT extends Stmt ? Expr : StmtT,
+> = {
+  [N in Node as N['kind']]?: NodeConfig<N, StmtT, ExprT, true>
+}
+
+type Visitor<S, E> =
+  | ExhaustiveVisitor<S, E>
+  | PartialVisitor<S, E>
+  | AsyncExhaustiveVisitor<S, E>
+  | AsyncPartialVisitor<S, E>
+
+export function visit<N extends Node, S, E>(
   node: N,
-  visit: any
-) => TransformNode<N, ST, ET> | void
+  visitor: ExhaustiveVisitor<S, E>
+): Transform<N, S, E>
 
-type ExitVisitor<N extends Node, ST, ET> = (
-  node: TransformNode<N, ST, ET>
-) => N extends Stmt ? ST : ET
+export function visit<N extends Node, S, E>(
+  node: N,
+  visitor: PartialVisitor<S, E>
+): [S, E] extends [Stmt, Expr] ? Transform<N, S, E> : unknown
 
-type NodeVisitor<N extends Node, ST, ET> = {
-  enter?: EntryVisitor<N, ST, ET>
-  exit: ExitVisitor<N, ST, ET>
-}
+export function visit<N extends Node, S, E>(
+  node: N,
+  visitor: AsyncExhaustiveVisitor<S, E>
+): Promise<Transform<N, S, E>>
 
-type NodeConfig<N extends Node, ST, ET> =
-  | NodeVisitor<N, ST, ET>
-  | ExitVisitor<N, ST, ET>
+export function visit<N extends Node, S, E>(
+  node: N,
+  visitor: AsyncPartialVisitor<S, E>
+): Promise<[S, E] extends [Stmt, Expr] ? Transform<N, S, E> : unknown>
 
-type Nodes = typeof NodeKind
-
-export type Visitor<StmtT, ExprT = StmtT> = {
-  [N in keyof Nodes]?: NodeConfig<
-    Extract<Node, { kind: Nodes[N] }>,
-    StmtT,
-    ExprT
-  >
-}
-
-export type ExhaustiveVisitor<StmtT, ExprT = StmtT> = Required<
-  Visitor<StmtT, ExprT>
->
-
-const isVisitable = (node: any): node is Node =>
-  node && Object.keys(NodeKind).includes(node.kind)
-
-const id = (_id: any) => _id
-
-const getFinalVisitor = <N extends Node, ST, ET>(
-  cfg: NodeConfig<N, ST, ET>
-): NodeVisitor<N, ST, ET> => {
-  if (typeof cfg === 'function') {
-    return { exit: cfg }
-  }
-
-  const defaultVisitor = { exit: id }
-  return Object.assign(defaultVisitor, cfg)
-}
-
-function visit<ST, ET>(node: Stmt, visitor: Visitor<ST, ET>): ST
-function visit<ST, ET>(node: Expr, visitor: Visitor<ST, ET>): ST
-function visit<ST, ET>(node: Stmt | Expr, visitor: Visitor<ST, ET>): ST {
-  function _visit(node: Stmt): ST
-  function _visit(node: Expr): ET
-  function _visit(node: Node): ST | ET {
-    const transform = (node: any): any => {
-      const entries = Object.entries(node).map(([key, value]) => {
-        if (isVisitable(value as any)) {
-          return [key, _visit(value as any)]
-        }
-
-        if (Array.isArray(value)) {
-          if (!value.length) {
-            return [key, []]
-          }
-          if (isVisitable(value[0])) {
-            return [key, value.map(v => _visit(v))]
-          }
-          return [key, value.map(v => transform(v))]
-        }
-
-        if (typeof value === 'object') {
-          return [key, transform(value)]
-        }
-
-        return [key, value]
-      })
-      return Object.fromEntries(entries)
+export function visit<N extends Node, V extends Visitor<any, any>>(
+  node: N,
+  visitor: V
+): any {
+  function transform<T>(value: T, isRoot?: boolean): any {
+    if (!isRoot && isNode(value)) {
+      return visit(value, visitor)
+    } else if (Array.isArray(value)) {
+      return waitMap(value, el => transform(el))
+    } else if (typeof value === 'object' && value) {
+      const entries = waitMap(Object.entries(value), e =>
+        wait(transform(e[1]), v => [e[0], v])
+      )
+      return wait(entries, e => Object.fromEntries(e))
     }
-
-    const cfg = visitor[node.kind] || {}
-    const nodeVisitor = getFinalVisitor(cfg as any)
-    const transformedNode = nodeVisitor.enter?.(node, _visit) || transform(node)
-    return nodeVisitor.exit(transformedNode) as any
+    return value
   }
 
-  return _visit(node as Stmt)
+  const config = visitor[node.kind] ?? {}
+  const nodeVisitor = (
+    typeof config === 'function' ? { exit: config } : config
+  ) as NodeVisitor
+
+  const entryValue = nodeVisitor.enter?.(node, n => visit(n, visitor))
+
+  return wait(entryValue, x => {
+    if (x === SKIP) {
+      return node
+    }
+    const tnode = x ?? transform(node, true)
+    return wait(tnode, y => {
+      const exitValue = nodeVisitor.exit?.(y, node)
+      return wait(exitValue, z => z ?? y)
+    })
+  })
 }
 
-export { visit }
+function isNode(value: unknown): value is Node {
+  const kind = (value as any)?.kind
+  return typeof kind === 'string' && Object.keys(NodeKind).includes(kind)
+}
+
+function wait<V, X>(
+  value: MaybePromise<V>,
+  then: (value: V) => X
+): MaybePromise<X> {
+  return value instanceof Promise ? value.then(then) : then(value)
+}
+
+function waitMap<V, X>(
+  values: V[],
+  mapper: (value: V) => MaybePromise<X>
+): MaybePromise<X[]> {
+  return values.reduce(
+    (acc, value) =>
+      acc instanceof Promise
+        ? acc.then(async acc => [...acc, await mapper(value)])
+        : wait(mapper(value), value => [...acc, value]),
+    [] as MaybePromise<X[]>
+  )
+}
+
+export type {
+  ExhaustiveVisitor,
+  PartialVisitor as Visitor,
+  AsyncExhaustiveVisitor,
+  AsyncPartialVisitor as AsyncVisitor,
+}

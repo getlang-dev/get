@@ -1,4 +1,6 @@
-import type { Token } from 'moo'
+import type { Token as MooToken } from 'moo'
+
+type Token = Omit<MooToken, 'toString'>
 
 enum NodeKind {
   Program = 'Program',
@@ -20,8 +22,8 @@ enum NodeKind {
 }
 
 type RequestEntry = {
-  key: TemplateExpr
-  value: TemplateExpr
+  key: Expr
+  value: Expr
 }
 
 type RequestBlocks = {
@@ -74,10 +76,10 @@ type InputDeclStmt = {
 type RequestStmt = {
   kind: NodeKind.RequestStmt
   method: Token
-  url: TemplateExpr
+  url: Expr
   headers: RequestEntry[]
   blocks: RequestBlocks
-  body: TemplateExpr
+  body?: Expr
 }
 
 type LiteralExpr = {
@@ -110,7 +112,7 @@ type FunctionExpr = {
 type ModuleCallExpr = {
   kind: NodeKind.ModuleCallExpr
   name: Token
-  args: ObjectLiteralExpr
+  args: Expr
 }
 
 type ObjectLiteralExpr = {
@@ -196,10 +198,10 @@ const extractStmt = (value: Expr): ExtractStmt => ({
 
 const requestStmt = (
   method: Token,
-  url: TemplateExpr,
+  url: Expr,
   headers: RequestEntry[],
   blocks: RequestBlocks,
-  body: TemplateExpr
+  body: Expr
 ): RequestStmt => ({
   kind: NodeKind.RequestStmt,
   method,
@@ -248,7 +250,7 @@ const objectLiteralExpr = (entries: ObjectEntry[]): ObjectLiteralExpr => ({
 
 const moduleCallExpr = (
   name: Token,
-  args: ObjectLiteralExpr = objectLiteralExpr([])
+  args: Expr = objectLiteralExpr([])
 ): ModuleCallExpr => ({
   kind: NodeKind.ModuleCallExpr,
   name,

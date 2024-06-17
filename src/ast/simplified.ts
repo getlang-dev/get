@@ -1,3 +1,4 @@
+import { SyntaxError } from '../errors'
 import type { Node, Stmt, Expr, Program } from './ast'
 import { NodeKind, t } from './ast'
 import type { Visitor } from './visitor'
@@ -7,7 +8,6 @@ import { createToken, getContentMod } from './desugar/utils'
 
 type Context = Stmt | Expr
 type RequestStmt = ReturnType<typeof t.requestStmt>
-type IdentifierExpr = ReturnType<typeof t.identifierExpr>
 type Parsed = { [mod: string]: string }
 
 class Scope {
@@ -42,10 +42,10 @@ class Scope {
   getParsedRequestId(req: RequestStmt, mod = getContentMod(req)): string {
     const parsed = this.parsedResponses.get(req)
     if (!parsed) {
-      throw new Error('Request cannot be parsed, does not exist in scope')
+      throw new SyntaxError('Request cannot be parsed, does not exist in scope')
     }
     const pos = [...this.parsedResponses.keys()].indexOf(req)
-    const name = `_res_${pos}_parsed_${mod}_`
+    const name = `__${mod}_${pos}`
     parsed[mod] = name
     return name
   }
@@ -54,17 +54,39 @@ class Scope {
     const parserStmts = new Map<RequestStmt, Stmt[]>()
     for (const [req, parsed] of this.parsedResponses.entries()) {
       const stmts = Object.entries(parsed).map(([mod, id]) => {
-        const selectBody = t.drillExpr(
-          t.identifierExpr(createToken('_context_')),
-          t.templateExpr([t.literalExpr(createToken('body'))]),
+        const contextId = t.identifierExpr(createToken(''))
+        let target: Expr
+        let field = 'body'
+
+        if (mod === 'cookies') {
+          target = t.drillExpr(
+            contextId,
+            t.templateExpr([t.literalExpr(createToken('headers'))]),
+            false
+          )
+          field = 'set-cookie'
+        } else {
+          target = contextId
+          if (mod === 'headers') {
+            field = 'headers'
+          }
+        }
+        let expr: Expr = t.drillExpr(
+          target,
+          t.templateExpr([t.literalExpr(createToken(field))]),
           false
         )
-        const parseBody = t.drillExpr(
-          selectBody,
-          t.modifierExpr(createToken(`@${mod}`, mod)),
-          false
-        )
-        return t.assignmentStmt(createToken(id), parseBody, false)
+
+        if (mod !== 'headers') {
+          expr = t.drillExpr(
+            expr,
+            t.modifierExpr(createToken(`@${mod}`, mod)),
+            false
+          )
+        }
+
+        const optional = mod === 'cookies'
+        return t.assignmentStmt(createToken(id), expr, optional)
       })
       parserStmts.set(req, stmts)
     }
@@ -73,7 +95,7 @@ class Scope {
 }
 
 class ScopeStack {
-  private stack: Scope[] = []
+  stack: Scope[] = []
 
   newScope() {
     let initialContext: Context | undefined
@@ -89,39 +111,15 @@ class ScopeStack {
     if (scope) {
       return scope.finalize()
     }
-    throw new Error('Attempted to finalize scope on an empty stack')
+    throw new SyntaxError('Attempted to finalize scope on an empty stack')
   }
 
   get current(): Scope {
     const scope = this.stack.at(-1)
     if (!scope) {
-      throw new Error('Scope not found')
+      throw new SyntaxError('Scope not found')
     }
     return scope
-  }
-
-  drillContext(bit: Expr, expand: boolean): Expr {
-    let target: IdentifierExpr
-    const { context } = this.current
-    if (!context) {
-      throw new Error('Drill unable to locate active context')
-    }
-    if (context.kind === NodeKind.RequestStmt) {
-      const isModifier = bit.kind === NodeKind.ModifierExpr
-      const mod = isModifier ? bit.value.value : undefined
-      const scope = this.stack.find(x => x.hasRequest(context))
-      if (!scope) {
-        throw new Error('Encountered orphan context')
-      }
-      const id = scope.getParsedRequestId(context, mod)
-      target = t.identifierExpr(createToken(id))
-      if (isModifier) {
-        return target
-      }
-    } else {
-      target = t.identifierExpr(createToken('_context_'))
-    }
-    return t.drillExpr(target, bit, expand)
   }
 }
 
@@ -134,13 +132,13 @@ const appendTrailing = (body: Stmt[], map: Map<Stmt, Stmt[]>) => {
 
 export function desugar(ast: Node): Program {
   if (!(ast.kind === NodeKind.Program)) {
-    throw new Error(`Non-program AST node provided: ${ast}`)
+    throw new SyntaxError(`Non-program AST node provided: ${ast}`)
   }
 
   const scopes = new ScopeStack()
   let disableSliceAnalysis = false
 
-  const visitor: Visitor<any> = {
+  const visitor: Visitor = {
     Program: {
       enter() {
         scopes.newScope()
@@ -168,23 +166,42 @@ export function desugar(ast: Node): Program {
     },
 
     DrillExpr: {
-      enter(node, _visit) {
+      enter(node, visit) {
+        let target: Expr
+        let bit: Expr = node.bit
+
         if (node.target === 'context') {
-          return
+          const { context } = scopes.current
+          if (!context) {
+            throw new SyntaxError('Drill unable to locate active context')
+          } else if (context.kind === NodeKind.RequestStmt) {
+            const bit = node.bit
+            const isModifier = bit.kind === NodeKind.ModifierExpr
+            const mod = isModifier ? bit.value.value : undefined
+            const scope = scopes.stack.find(x => x.hasRequest(context))
+            if (!scope) {
+              throw new SyntaxError('Encountered orphan context')
+            }
+            const id = scope.getParsedRequestId(context, mod)
+            target = t.identifierExpr(createToken(id))
+            if (isModifier) {
+              // replace the context drill with identifier for the
+              // parsed value, essentially removing the modifier expr
+              return target
+            }
+          } else {
+            target = t.identifierExpr(createToken(''))
+          }
+        } else {
+          target = visit(node.target)
         }
-        const target = _visit(node.target)
+
         scopes.current.pushContext(target)
-        disableSliceAnalysis = node.bit.kind === NodeKind.SliceExpr
-        const bit = _visit(node.bit)
+        disableSliceAnalysis = bit.kind === NodeKind.SliceExpr
+        bit = visit(node.bit)
         disableSliceAnalysis = false
-        return { ...node, target, bit }
-      },
-      exit(node) {
-        if (node.target === 'context') {
-          return scopes.drillContext(node.bit as Expr, node.expand)
-        }
         scopes.current.popContext()
-        return node
+        return t.drillExpr(target, bit, node.expand)
       },
     },
 
@@ -210,5 +227,9 @@ export function desugar(ast: Node): Program {
     },
   }
 
-  return visit(ast, visitor)
+  const simplified = visit(ast, visitor)
+  if (simplified.kind !== NodeKind.Program) {
+    throw new SyntaxError('Desugar encountered unexpected error')
+  }
+  return simplified
 }
