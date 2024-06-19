@@ -1,6 +1,6 @@
 import { RuntimeError } from '../src/errors'
 import { execute, testIdempotency } from './helpers'
-import type { RequestFn } from './helpers'
+import type { RequestHook } from '../src'
 
 describe('drills & parsers', () => {
   test('into JS object', async () => {
@@ -58,8 +58,7 @@ describe('drills & parsers', () => {
   test('arrow prefix on context selector', async () => {
     // nested scope context is an element of `list`
     // `-> length` in the nested scope selects from this context
-    // note: these test don't work in python vm due to
-    //       use of JS-native String.prototype.length
+    // using String.prototype.length
     const result = await execute(`
       set list = \`['one','two','three']\`
       extract $list => (
@@ -263,6 +262,43 @@ describe('drills & parsers', () => {
     })
   })
 
+  test('headers', async () => {
+    const requestHook = vi.fn<
+      Parameters<RequestHook>,
+      ReturnType<RequestHook>
+    >()
+    const headers = new Headers({ foo: 'bar', baz: 'quux' })
+    headers.append('baz', 'qaax')
+    requestHook.mockResolvedValue({
+      status: 200,
+      headers,
+      body: '<!doctype html><h1>test</h1>',
+    })
+    const result = await execute(
+      `
+        GET https://example.com
+
+        extract {
+          all: @headers
+          one: @headers -> foo
+          many_as_one: @headers -> baz
+          many_as_many: @headers => baz
+        }
+      `,
+      {},
+      { request: requestHook }
+    )
+    expect(result).toEqual({
+      all: {
+        foo: 'bar',
+        baz: 'quux, qaax',
+      },
+      one: 'bar',
+      many_as_one: 'quux, qaax',
+      many_as_many: ['quux', 'qaax'],
+    })
+  })
+
   describe('cookies', () => {
     test('parse string', async () => {
       const result = await execute(`
@@ -397,8 +433,11 @@ describe('drills & parsers', () => {
     })
 
     test('optional headers and cookies selection', async () => {
-      const requestFn = vi.fn<Parameters<RequestFn>, ReturnType<RequestFn>>()
-      requestFn.mockResolvedValue({
+      const requestHook = vi.fn<
+        Parameters<RequestHook>,
+        ReturnType<RequestHook>
+      >()
+      requestHook.mockResolvedValue({
         status: 200,
         headers: new Headers({
           // 'set-cookie':
@@ -416,7 +455,7 @@ describe('drills & parsers', () => {
         }
       `,
         {},
-        requestFn
+        { request: requestHook }
       )
       expect(result).toEqual({})
     })

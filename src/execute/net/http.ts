@@ -2,7 +2,7 @@ import type { Element } from 'domhandler'
 import { RequestError } from '../../errors'
 
 type StringMap = Record<string, string>
-export type RequestFn = (url: string, opts: RequestOpts) => Promise<Response>
+export type RequestHook = (url: string, opts: RequestOpts) => Promise<Response>
 
 type RequestOpts = {
   method?: string
@@ -55,7 +55,7 @@ export const constructUrl = (
   return new URL(href, base).toString()
 }
 
-const requestFn: RequestFn = async (url, opts) => {
+export const requestHook: RequestHook = async (url, opts) => {
   const res = await fetch(url, opts)
   return {
     status: res.status,
@@ -70,7 +70,7 @@ export const request = async (
   _headers: StringMap,
   blocks: Blocks,
   bodyRaw: string,
-  fetch: RequestFn = requestFn
+  hook: RequestHook
 ) => {
   // construct url
   const finalUrl = new URL(url)
@@ -101,7 +101,7 @@ export const request = async (
 
   // make request
   try {
-    return await fetch(urlString, { method, headers, body })
+    return await hook(urlString, { method, headers, body })
   } catch (e) {
     throw new RequestError(urlString, { cause: e })
   }

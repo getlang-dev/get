@@ -15,9 +15,6 @@ declare module 'esquery' {
 declare module 'xpath' {
   import type { AnyHtmlNode } from 'domhandler'
 
-  // export type SelectedValue = Element | string | number | boolean | null
-  // export type SelectReturnType = Array<Element> | SelectedValue
-
   export function select(
     selector: string,
     node: AnyHtmlNode

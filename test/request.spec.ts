@@ -1,9 +1,10 @@
 import { vi } from 'vitest'
 import { execute as _exec, testIdempotency } from './helpers'
-import type { RequestFn } from './helpers'
+import type { RequestHook } from '../src'
 
-const requestFn = vi.fn<Parameters<RequestFn>, ReturnType<RequestFn>>()
-const execute = (src: string) => _exec(src, {}, requestFn)
+const requestHook = vi.fn<Parameters<RequestHook>, ReturnType<RequestHook>>()
+
+const execute = (src: string) => _exec(src, {}, { request: requestHook })
 
 expect.extend({
   headers(received: unknown, expected: Headers) {
@@ -25,7 +26,7 @@ expect.extend({
 })
 
 beforeEach(() => {
-  requestFn.mockResolvedValue({
+  requestHook.mockResolvedValue({
     status: 200,
     headers: new Headers({ 'content-type': 'text/html' }),
     body: '<!doctype html><h1>test</h1>',
@@ -33,7 +34,7 @@ beforeEach(() => {
 })
 
 afterEach(() => {
-  requestFn.mockClear()
+  requestHook.mockClear()
 })
 
 describe('request', () => {
@@ -44,7 +45,7 @@ describe('request', () => {
 
         extract -> h1
       `)
-      expect(requestFn.mock.calls[0]?.[1]).toMatchObject({
+      expect(requestHook.mock.calls[0]?.[1]).toMatchObject({
         method: 'GET',
       })
       expect(result).toEqual('test')
@@ -52,28 +53,28 @@ describe('request', () => {
 
     test('post', async () => {
       await execute('POST http://post.com')
-      expect(requestFn.mock.calls[0]?.[1]).toMatchObject({
+      expect(requestHook.mock.calls[0]?.[1]).toMatchObject({
         method: 'POST',
       })
     })
 
     test('put', async () => {
       await execute('PUT http://put.com')
-      expect(requestFn.mock.calls[0]?.[1]).toMatchObject({
+      expect(requestHook.mock.calls[0]?.[1]).toMatchObject({
         method: 'PUT',
       })
     })
 
     test('patch', async () => {
       await execute('PATCH http://patch.com')
-      expect(requestFn.mock.calls[0]?.[1]).toMatchObject({
+      expect(requestHook.mock.calls[0]?.[1]).toMatchObject({
         method: 'PATCH',
       })
     })
 
     test('delete', async () => {
       await execute('DELETE http://delete.com')
-      expect(requestFn.mock.calls[0]?.[1]).toMatchObject({
+      expect(requestHook.mock.calls[0]?.[1]).toMatchObject({
         method: 'DELETE',
       })
     })
@@ -82,7 +83,7 @@ describe('request', () => {
   describe('urls', () => {
     test('literal', async () => {
       await execute('GET http://get.com')
-      expect(requestFn).toHaveBeenCalledWith('http://get.com/', {
+      expect(requestHook).toHaveBeenCalledWith('http://get.com/', {
         method: 'GET',
         headers: expect.headers(new Headers()),
       })
@@ -93,7 +94,7 @@ describe('request', () => {
         set ident = \`'http://ident.com'\`
         GET $ident
       `)
-      expect(requestFn).toHaveBeenCalledWith('http://ident.com/', {
+      expect(requestHook).toHaveBeenCalledWith('http://ident.com/', {
         method: 'GET',
         headers: expect.headers(new Headers()),
       })
@@ -104,7 +105,7 @@ describe('request', () => {
         set query = \`'monterey'\`
         GET https://boogle.com/search/$query
       `)
-      expect(requestFn).toHaveBeenCalledWith(
+      expect(requestHook).toHaveBeenCalledWith(
         'https://boogle.com/search/monterey',
         {
           method: 'GET',
@@ -118,7 +119,7 @@ describe('request', () => {
         set query = \`'big sur'\`
         GET https://ging.com/\${query}_results
       `)
-      expect(requestFn).toHaveBeenCalledWith(
+      expect(requestHook).toHaveBeenCalledWith(
         'https://ging.com/big%20sur_results',
         {
           method: 'GET',
@@ -137,7 +138,7 @@ describe('request', () => {
       Accept: application/json
     `)
 
-    expect(requestFn).toHaveBeenCalledWith('http://api.unweb.com/', {
+    expect(requestHook).toHaveBeenCalledWith('http://api.unweb.com/', {
       method: 'GET',
       headers: expect.headers(
         new Headers({
@@ -162,7 +163,7 @@ describe('request', () => {
         c: interp$interp
       `)
 
-      expect(requestFn).toHaveBeenCalledWith(
+      expect(requestHook).toHaveBeenCalledWith(
         'https://example.com/?a=literal&b=b&c=interpolated',
         {
           method: 'GET',
@@ -184,7 +185,7 @@ describe('request', () => {
         c: /here&we!are?
       `)
 
-      expect(requestFn).toHaveBeenCalledWith('https://example.com/', {
+      expect(requestHook).toHaveBeenCalledWith('https://example.com/', {
         method: 'GET',
         headers: expect.headers(
           new Headers({
@@ -202,7 +203,7 @@ describe('request', () => {
         password: test
       `)
 
-      expect(requestFn).toHaveBeenCalledWith('https://example.com/login', {
+      expect(requestHook).toHaveBeenCalledWith('https://example.com/login', {
         method: 'POST',
         headers: expect.headers(new Headers()),
         body: '{"username":"admin","password":"test"}',
@@ -218,7 +219,7 @@ describe('request', () => {
         well $hello !!
       `)
 
-      expect(requestFn).toHaveBeenCalledWith('https://example.com/', {
+      expect(requestHook).toHaveBeenCalledWith('https://example.com/', {
         method: 'POST',
         headers: expect.headers(new Headers()),
         body: '        well hi there !!',
@@ -227,7 +228,7 @@ describe('request', () => {
 
     test('omits undefined', async () => {
       await execute(`
-        set foo = \`undefined\`
+        set foo? = \`undefined\`
 
         GET https://example.com
         X-Foo: $foo
@@ -243,7 +244,7 @@ describe('request', () => {
         bar: bar
       `)
 
-      expect(requestFn).toHaveBeenCalledWith('https://example.com/?bar=bar', {
+      expect(requestHook).toHaveBeenCalledWith('https://example.com/?bar=bar', {
         method: 'GET',
         headers: expect.headers(
           new Headers({
@@ -258,12 +259,12 @@ describe('request', () => {
 
   describe('context switching', () => {
     it('updates context variable ($) dynamically', async () => {
-      requestFn.mockResolvedValueOnce({
+      requestHook.mockResolvedValueOnce({
         status: 200,
         headers: new Headers(),
         body: '{"which":1}',
       })
-      requestFn.mockResolvedValueOnce({
+      requestHook.mockResolvedValueOnce({
         status: 200,
         headers: new Headers(),
         body: '{"which":2}',
@@ -287,7 +288,7 @@ describe('request', () => {
 
   describe('inference', () => {
     it('examines accept header', async () => {
-      requestFn.mockResolvedValue({
+      requestHook.mockResolvedValue({
         status: 200,
         headers: new Headers(),
         body: '{"works":true}',
@@ -314,7 +315,7 @@ describe('request', () => {
 
   describe('url resolution', () => {
     it('resolves urls against request context', async () => {
-      requestFn.mockResolvedValue({
+      requestHook.mockResolvedValue({
         status: 200,
         headers: new Headers(),
         body: `{
@@ -328,8 +329,8 @@ describe('request', () => {
         Accept: application/json
 
         extract {
-          link1: link -> @resolve
-          link2: html -> @html -> a -> @resolve
+          link1: link -> @link
+          link2: html -> @html -> a -> @link
         }
       `)
 
@@ -340,7 +341,7 @@ describe('request', () => {
     })
 
     it('resolves nested urls', async () => {
-      requestFn.mockResolvedValue({
+      requestHook.mockResolvedValue({
         status: 200,
         headers: new Headers(),
         body: `<div>
@@ -354,7 +355,7 @@ describe('request', () => {
 
         extract => a -> {
           text: $
-          link: @resolve
+          link: @link
         }
       `)
 
@@ -377,7 +378,7 @@ describe('request', () => {
     })
 
     test('cookie', async () => {
-      requestFn.mockResolvedValue({
+      requestHook.mockResolvedValue({
         status: 200,
         headers: new Headers({
           'set-cookie':

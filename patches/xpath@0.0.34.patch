@@ -1,0 +1,25 @@
+diff --git a/package.json b/package.json
+index 39db658b3cef96cb997c3181ff6a49093c73fbb1..bfdd82a48eb2fe857149423029b04800d6dd64ec 100644
+--- a/package.json
++++ b/package.json
+@@ -22,7 +22,6 @@
+     "func-xml": "^0.0.10",
+     "mocha": "^9.0.2"
+   },
+-  "typings": "./xpath.d.ts",
+   "scripts": {
+     "test": "mocha",
+     "validate": "es-check es5 xpath.js"
+@@ -32,9 +31,6 @@
+     "url": "https://github.com/goto100/xpath.git"
+   },
+   "main": "xpath.js",
+-  "files": [
+-    "xpath.d.ts"
+-  ],
+   "keywords": [
+     "xpath",
+     "xml"
+diff --git a/xpath.d.ts b/xpath.d.ts
+deleted file mode 100644
+index b6c808d420238dfe63c949b1c3781b709a356f3c..0000000000000000000000000000000000000000

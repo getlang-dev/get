@@ -4,6 +4,11 @@ settings:
   autoInstallPeers: true
   excludeLinksFromLockfile: false
 
+patchedDependencies:
+  xpath@0.0.34:
+    hash: pzeyyiiypsm7iaqbynlpkmrlty
+    path: patches/xpath@0.0.34.patch
+
 dependencies:
   acorn:
     specifier: ^8.12.0
@@ -55,7 +60,7 @@ dependencies:
     version: 2.6.0
   xpath:
     specifier: ^0.0.34
-    version: 0.0.34
+    version: 0.0.34(patch_hash=pzeyyiiypsm7iaqbynlpkmrlty)
 
 devDependencies:
   '@types/estree':
@@ -1205,10 +1210,11 @@ packages:
       stackback: 0.0.2
     dev: true
 
-  /xpath@0.0.34:
+  /xpath@0.0.34(patch_hash=pzeyyiiypsm7iaqbynlpkmrlty):
     resolution: {integrity: sha512-FxF6+rkr1rNSQrhUNYrAFJpRXNzlDoMxeXN5qI84939ylEv3qqPFKa85Oxr6tDaJKqwW6KKyo2v26TSv3k6LeA==}
     engines: {node: '>=0.6.0'}
     dev: false
+    patched: true
 
   /yocto-queue@1.0.0:
     resolution: {integrity: sha512-9bnSc/HEW2uRy67wc+T8UwauLuPJVn28jb+GtJY16iiKWyvmYJRXVT4UamsAEGQfPohgr2q4Tq0sQbQlxTfi1g==}

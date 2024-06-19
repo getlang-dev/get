@@ -1,17 +1,15 @@
 import { execute as exec, parse, desugar, print } from '../src'
-import type { RequestFn } from '../src/execute/net/http'
-
-export type { RequestFn }
+import type { Hooks } from '../src'
 
 export const collected: string[] = []
 
 export function execute(
   src: string,
   inputs?: Record<string, unknown>,
-  requestFn?: RequestFn
+  hooks?: Hooks
 ): any {
   collected.push(src)
-  return exec(src, inputs, requestFn)
+  return exec(src, inputs, hooks)
 }
 
 export function testIdempotency() {

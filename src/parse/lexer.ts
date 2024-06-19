@@ -11,7 +11,7 @@ const modifiers = [
   'json',
   'js',
   'cookies',
-  'resolve',
+  'link',
   'headers',
   'cookies',
 ]

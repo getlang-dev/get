@@ -1,11 +1,12 @@
 {
   "name": "@getlang/get",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "license": "Apache-2.0",
   "type": "module",
   "main": "dist",
   "files": [
-    "dist"
+    "dist",
+    "assets"
   ],
   "scripts": {
     "compile": "nearleyc src/parse/getlang.ne -o src/grammar.ts",
@@ -50,5 +51,10 @@
     "singleQuote": true,
     "trailingComma": "es5",
     "arrowParens": "avoid"
+  },
+  "pnpm": {
+    "patchedDependencies": {
+      "xpath@0.0.34": "patches/xpath@0.0.34.patch"
+    }
   }
 }

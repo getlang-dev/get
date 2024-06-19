@@ -30,7 +30,7 @@ function selectValue<T extends type.Value, V extends type.Value>(
     return new ValueType(result, context.base)
   }
 
-  return new type.Null()
+  return new type.Null(args[0])
 }
 
 export function select<T extends type.Value>(

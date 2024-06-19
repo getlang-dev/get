@@ -3,5 +3,7 @@
   "compilerOptions": {
     "outDir": "../dist",
     "types": ["node"]
-  }
+  },
+  "include": ["**/*", "types.d.ts"],
+  "files": ["types.d.ts"]
 }

@@ -10,6 +10,7 @@ import {
   NullSelectionError,
   ReferenceError,
   SyntaxError,
+  ImportError,
 } from '../errors'
 import * as http from './net/http'
 import * as html from './values/html'
@@ -19,11 +20,33 @@ import * as cookies from './values/cookies'
 import * as lang from './lang'
 import { select } from './select'
 
+export type InternalHooks = {
+  request: http.RequestHook
+  import: (module: string) => Program | Promise<Program>
+}
+
+class Modules {
+  private cache: Record<string, Program | Promise<Program>> = {}
+  constructor(private importHook: InternalHooks['import']) {}
+
+  import(module: string) {
+    return (this.cache[module] ??= this.importHook(module))
+  }
+
+  get(module: string) {
+    return this.cache[module]
+  }
+}
+
+Headers
+
 function toValue(value: type.Value): unknown {
   if (value instanceof type.Html) {
     return html.getValue(value.raw)
   } else if (value instanceof type.Js) {
     return js.getValue(value.raw)
+  } else if (value instanceof type.Headers) {
+    return Object.fromEntries(value.raw)
   } else if (value instanceof type.CookieSet) {
     return Object.fromEntries(
       Object.entries(value.raw).map(e => [e[0], e[1].value])
@@ -38,16 +61,29 @@ function toValue(value: type.Value): unknown {
 export async function execute(
   program: Program,
   inputs: Record<string, unknown>,
-  requestFn?: http.RequestFn
+  hooks: InternalHooks,
+  modules: Modules = new Modules(hooks.import)
 ) {
   const scope = new RootScope()
   let optional = [false]
   const allowNull = () => optional.at(-1) === true
 
   const visitor: AsyncExhaustiveVisitor<void, type.Value> = {
-    DeclImportStmt() {},
-    ModuleCallExpr() {
-      return new type.Value('TODO', null)
+    async DeclImportStmt(node) {
+      const module = node.id.value
+      try {
+        await modules.import(module)
+      } catch (e) {
+        throw new ImportError(`Failed to import module: ${module}`)
+      }
+    },
+
+    async ModuleCallExpr(node) {
+      const module = node.name.value
+      const external = await modules.get(module)
+      invariant(external, new ReferenceError(module))
+      const output = await execute(external, node.args.raw, hooks, modules)
+      return new type.Value(output, null)
     },
 
     /**
@@ -69,12 +105,19 @@ export async function execute(
     IdentifierExpr(node) {
       const value = scope.vars[node.value.value]
       invariant(value, new ReferenceError(node.value.value))
+      if (value instanceof type.Null) {
+        invariant(allowNull(), new NullSelectionError(value.selector))
+      }
       return value
     },
 
     async SliceExpr(node) {
-      const value = await lang.runSlice(node.slice.value, scope.context?.raw)
-      return value === null ? new type.Null() : new type.Value(value, null)
+      const { slice } = node
+      const fauxSelector = `slice@${slice.line}:${slice.col}`
+      const value = await lang.runSlice(slice.value, scope.context?.raw)
+      return value === null
+        ? new type.Null(fauxSelector)
+        : new type.Value(value, null)
     },
 
     DrillExpr: {
@@ -88,8 +131,8 @@ export async function execute(
         const context = await visit(node.target)
 
         if (context instanceof type.Null) {
-          invariant(allowNull(), new NullSelectionError('...'))
-          return new type.Null()
+          invariant(allowNull(), new NullSelectionError(context.selector))
+          return context
         }
         const isListContext = context instanceof type.List
         const isSelector = node.bit.kind === NodeKind.TemplateExpr
@@ -99,7 +142,7 @@ export async function execute(
             Array.isArray(context.raw),
             new TypeError('Cannot expand non-list context')
           )
-          const values = []
+          const values: type.Value[] = []
           for (const item of context.raw) {
             scope.pushContext(
               item instanceof type.Value
@@ -163,7 +206,7 @@ export async function execute(
         case 'cookies':
           return new type.CookieSet(cookies.parse(doc), context.base)
 
-        case 'resolve': {
+        case 'link': {
           const resolved = http.constructUrl(
             context.raw,
             context.base ?? undefined
@@ -171,8 +214,8 @@ export async function execute(
           if (resolved) {
             return new type.String(resolved, null)
           }
-          invariant(allowNull(), new NullSelectionError('@resolve'))
-          return new type.Null()
+          invariant(allowNull(), new NullSelectionError('@link'))
+          return new type.Null('@link')
         }
 
         default:
@@ -239,53 +282,61 @@ export async function execute(
         optional.push(node.optional)
       },
       exit(node) {
-        scope.vars[node.name.value] = node.value
         optional.pop()
+        scope.vars[node.name.value] = node.value
       },
     },
 
-    async RequestStmt(node) {
-      const method = node.method.value
-      const url = node.url.raw
-      const body = node.body?.raw || ''
+    RequestStmt: {
+      enter() {
+        optional.push(true)
+      },
 
-      invariant(
-        typeof url === 'string',
-        new TypeError('Request URL expected string')
-      )
-      invariant(
-        typeof body === 'string',
-        new TypeError('Request body expected string')
-      )
+      async exit(node) {
+        optional.pop()
 
-      const obj = (entries: (typeof node)['headers']) => {
-        const filteredEntries = entries.flatMap(e =>
-          e.key.hasUndefined || e.value.hasUndefined
-            ? []
-            : [[e.key.raw, e.value.raw]]
+        const method = node.method.value
+        const url = node.url.raw
+        const body = node.body?.raw || ''
+
+        invariant(
+          typeof url === 'string',
+          new TypeError('Request URL expected string')
         )
-        return Object.fromEntries(filteredEntries)
-      }
-
-      const headers = obj(node.headers)
-      const blocks = Object.fromEntries(
-        Object.entries(node.blocks).map(e => [e[0], obj(e[1])])
-      )
-
-      const res = await http.request(
-        method,
-        url,
-        headers,
-        blocks,
-        body,
-        requestFn
-      )
-      scope.pushContext(
-        new type.Value(
-          { ...res, headers: new type.Headers(res.headers, url) },
-          url
+        invariant(
+          typeof body === 'string',
+          new TypeError('Request body expected string')
         )
-      )
+
+        const obj = (entries: (typeof node)['headers']) => {
+          const filteredEntries = entries.flatMap(e =>
+            e.key.hasUndefined || e.value.hasUndefined
+              ? []
+              : [[e.key.raw, e.value.raw]]
+          )
+          return Object.fromEntries(filteredEntries)
+        }
+
+        const headers = obj(node.headers)
+        const blocks = Object.fromEntries(
+          Object.entries(node.blocks).map(e => [e[0], obj(e[1])])
+        )
+
+        const res = await http.request(
+          method,
+          url,
+          headers,
+          blocks,
+          body,
+          hooks.request
+        )
+        scope.pushContext(
+          new type.Value(
+            { ...res, headers: new type.Headers(res.headers, url) },
+            url
+          )
+        )
+      },
     },
 
     ExtractStmt(node) {

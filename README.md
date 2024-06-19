@@ -1,3 +1,6 @@
-<p align="center"><img src="assets/hero.png"></p>
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="./assets/hero.dark.png">
+  <img alt="GETlang hero banner" src="./assets/hero.png">
+</picture>
 
-Visit [getlang.dev](https://getlang.dev) to view examples, documentation, and a space to try your first Get query!
+Visit [getlang.dev](https://getlang.dev) to view examples, take a guided tour, or try your first GET query!

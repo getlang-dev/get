@@ -179,7 +179,7 @@ const printVisitor: ExhaustiveVisitor<Doc> = {
   SliceExpr(node) {
     const { value } = node.slice
     const quot = value.includes('`') ? '```' : '`'
-    const lines = value.replace(/`/g, '\\`').split('\n')
+    const lines = value.split('\n')
     return group([
       quot,
       indent([softline, join(hardline, lines)]),

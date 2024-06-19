@@ -88,6 +88,10 @@ export class ReferenceError extends RuntimeError {
   }
 }
 
+export class ImportError extends RuntimeError {
+  public override name = 'ImportError'
+}
+
 export function invariant(
   condition: unknown,
   err: string | RuntimeError

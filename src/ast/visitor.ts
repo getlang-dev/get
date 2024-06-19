@@ -1,3 +1,5 @@
+import { wait, waitMap } from '../utils'
+import type { MaybePromise } from '../utils'
 import type { Node, Stmt, Expr } from './ast'
 import { NodeKind } from './ast'
 
@@ -16,8 +18,6 @@ type Transform<V, S, E> = V extends V
 type TransformNode<N extends Node, S, E> = {
   [K in keyof N]: Transform<N[K], S, E>
 }
-
-type MaybePromise<T> = T | Promise<T>
 
 type NodeConfig<
   N extends Node,
@@ -140,26 +140,6 @@ export function visit<N extends Node, V extends Visitor<any, any>>(
 function isNode(value: unknown): value is Node {
   const kind = (value as any)?.kind
   return typeof kind === 'string' && Object.keys(NodeKind).includes(kind)
-}
-
-function wait<V, X>(
-  value: MaybePromise<V>,
-  then: (value: V) => X
-): MaybePromise<X> {
-  return value instanceof Promise ? value.then(then) : then(value)
-}
-
-function waitMap<V, X>(
-  values: V[],
-  mapper: (value: V) => MaybePromise<X>
-): MaybePromise<X[]> {
-  return values.reduce(
-    (acc, value) =>
-      acc instanceof Promise
-        ? acc.then(async acc => [...acc, await mapper(value)])
-        : wait(mapper(value), value => [...acc, value]),
-    [] as MaybePromise<X[]>
-  )
 }
 
 export type {

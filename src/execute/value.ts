@@ -61,12 +61,10 @@ export class CookieSet extends Value {
 
 export class Null extends Value {
   public override raw: null = null
-  constructor() {
+  constructor(public selector: string) {
     super(null, null)
   }
 }
-
-type X = InstanceType<typeof Null>['raw']
 
 export class List<T extends Value> extends Value {
   constructor(
