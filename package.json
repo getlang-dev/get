@@ -1,13 +1,19 @@
 {
   "name": "@getlang/get",
-  "version": "0.0.2",
+  "version": "0.0.3",
   "license": "Apache-2.0",
   "type": "module",
   "main": "dist",
   "files": [
-    "dist",
-    "assets"
+    "dist"
   ],
+  "bugs": {
+    "url": "https://github.com/getlang-dev/get/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/getlang-dev/get.git"
+  },
   "scripts": {
     "compile": "nearleyc src/parse/getlang.ne -o src/grammar.ts",
     "railroad": "nearley-railroad src/parse/getlang.ne -o grammar.html && open grammar.html",
