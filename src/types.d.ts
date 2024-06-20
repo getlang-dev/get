@@ -12,7 +12,7 @@ declare module 'esquery' {
   export default function query(ast: AnyNode, selector: string): AnyNode[]
 }
 
-declare module 'xpath' {
+declare module '@getlang/xpath' {
   import type { AnyHtmlNode } from 'domhandler'
 
   export function select(

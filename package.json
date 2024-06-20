@@ -22,6 +22,7 @@
     "build": "tsc -p src"
   },
   "dependencies": {
+    "@getlang/xpath": "0.0.35-0",
     "acorn": "^8.12.0",
     "acorn-globals": "^7.0.1",
     "css-select": "^5.1.0",
@@ -30,25 +31,24 @@
     "domhandler": "^5.0.3",
     "domutils": "^3.1.0",
     "esquery": "^1.5.0",
-    "globals": "^15.4.0",
+    "globals": "^15.6.0",
     "lodash-es": "^4.17.21",
     "moo": "^0.5.2",
     "nearley": "^2.20.1",
     "parse5": "^7.1.2",
     "parse5-htmlparser2-tree-adapter": "^7.0.0",
     "prettier": "^3.3.2",
-    "set-cookie-parser": "^2.6.0",
-    "xpath": "^0.0.34"
+    "set-cookie-parser": "^2.6.0"
   },
   "devDependencies": {
     "@types/estree": "^1.0.5",
     "@types/lodash-es": "^4.17.12",
     "@types/moo": "^0.5.9",
     "@types/nearley": "^2.11.5",
-    "@types/node": "^20.14.2",
+    "@types/node": "^20.14.6",
     "@types/set-cookie-parser": "^2.4.9",
     "dedent": "^1.5.3",
-    "tsx": "^4.15.4",
+    "tsx": "^4.15.6",
     "typescript": "^5.4.5",
     "vite": "^5.3.1",
     "vitest": "^1.6.0"
@@ -58,10 +58,5 @@
     "singleQuote": true,
     "trailingComma": "es5",
     "arrowParens": "avoid"
-  },
-  "pnpm": {
-    "patchedDependencies": {
-      "xpath@0.0.34": "patches/xpath@0.0.34.patch"
-    }
   }
 }

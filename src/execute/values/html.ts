@@ -1,7 +1,7 @@
 import type { AnyHtmlNode } from 'domhandler'
 import { parse as parse5 } from 'parse5'
 import { adapter } from 'parse5-htmlparser2-tree-adapter'
-import xpath from 'xpath'
+import xpath from '@getlang/xpath'
 import { textContent } from 'domutils'
 import { selectAll, selectOne } from 'css-select'
 import { parse as parseCss } from 'css-what'
