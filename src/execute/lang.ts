@@ -6,7 +6,7 @@ export const runSlice = async (
   context: Record<string, unknown> = {}
 ) => {
   try {
-    const fn = new Function('context', slice)
+    const fn = new Function('$', slice)
     const value = await fn(context)
     // convert an undefined result into explicit null
     return typeof value === 'undefined' ? null : value

@@ -27,7 +27,7 @@ export const analyzeSlice = (source: string) => {
 
   if (deps.length) {
     const contextVars = deps.join(', ')
-    const loadContext = `const { ${contextVars} } = context\n`
+    const loadContext = `const { ${contextVars} } = $\n`
     src = loadContext + src
   }
 

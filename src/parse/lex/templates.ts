@@ -10,17 +10,23 @@ type UntilOptions = {
 export const until = (term: RegExp, opts: UntilOptions = {}) => {
   const prefix = opts.prefix ? opts.prefix.source : ''
   const finalGroup = opts.inclusive ? '?:' : '?='
-  return new RegExp(`${prefix}[^]*?[^\\\\](${finalGroup}${term.source})`)
+  return new RegExp(
+    `${prefix}[^]*?[^\\\\](${finalGroup}${term.source}|(?![^]))`
+  )
+}
+
+type TemplateUntilOptions = {
+  interpSymbols?: string[]
+  next?: string
 }
 
 export const templateUntil = (
   term: RegExp,
-  interpSymbols = ['$'],
-  next?: string
+  { interpSymbols = ['$'], next }: TemplateUntilOptions = {}
 ) => ({
   term: {
     defaultType: 'literal',
-    match: new RegExp(`(?=\\s*(?:${term.source}))`),
+    match: new RegExp(`(?=${term.source})`),
     lineBreaks: true,
     ...(next ? { next } : { pop: 1 }),
   },
@@ -34,9 +40,9 @@ export const templateUntil = (
   },
   literal: {
     match: until(
-      new RegExp(`[${interpSymbols.join('')}]\\w|\\$|$|\\s*(?:${term.source})`)
+      new RegExp(`[${interpSymbols.join('')}]\\w|\\$|${term.source}`)
     ),
-    value: (text: string) => text.replace(/\s/g, ' ').replace(/\\(.)/g, '$1'),
+    value: (text: string) => text.replace(/\\(.)/g, '$1').replace(/\s/g, ' '),
     lineBreaks: true,
   },
 })

@@ -75,7 +75,7 @@ const printVisitor: ExhaustiveVisitor<Doc> = {
       }
     }
     if (node.body) {
-      parts.push(hardline, '[body]', hardline, node.body)
+      parts.push(hardline, '[body]', hardline, node.body, hardline, '[/body]')
     }
     parts.push(hardline) // terminal
     return group(parts)
@@ -122,8 +122,16 @@ const printVisitor: ExhaustiveVisitor<Doc> = {
       if (head.kind === NodeKind.IdentifierExpr) {
         value = ['$', value]
       }
-      if (entry.key === entry.value) {
-        shorthand[i] = value
+      let shValue: Doc = entry.value
+      if (
+        Array.isArray(shValue) &&
+        shValue.length === 1 &&
+        typeof shValue[0] === 'string'
+      ) {
+        shValue = shValue[0]
+      }
+      if (typeof shValue === 'string' && entry.key === shValue) {
+        shorthand[i] = [value, entry.optional ? '?' : '']
       }
       return { ...entry, key: keyGroup, value }
     })

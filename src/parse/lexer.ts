@@ -93,6 +93,10 @@ const request = {
     lineBreaks: true,
     pop: 1,
   },
+  request_block_body_end: {
+    match: /\n[^\S\r\n]*\[\/body\]/,
+    lineBreaks: true,
+  },
   nl: {
     match: /\n/,
     lineBreaks: true,
@@ -104,7 +108,7 @@ const request = {
   request_block_body: {
     match: /^\s*\[body\]\n/,
     lineBreaks: true,
-    push: 'requestValue',
+    push: 'requestBody',
   },
   start_of_line_incl_ws: {
     defaultType: 'ws',
@@ -124,9 +128,10 @@ const lexer: any = moo.states({
   expr,
   template: templateUntil(/\n|->|=>/),
   request,
-  requestUrl: templateUntil(/\n/, ['$:'], 'request'),
+  requestUrl: templateUntil(/\n/, { interpSymbols: ['$:'], next: 'request' }),
   requestKey: templateUntil(/:/),
   requestValue: templateUntil(/\n/),
+  requestBody: templateUntil(/\n[^\S\r\n]*\[\/body\]/),
   interpExpr,
 })
 

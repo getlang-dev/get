@@ -216,13 +216,17 @@ describe('request', () => {
 
         POST https://example.com
         [body]
-        well $hello !!
+        hello
+          g'day
+            welcome
+
+        [/body]
       `)
 
       expect(requestHook).toHaveBeenCalledWith('https://example.com/', {
         method: 'POST',
         headers: expect.headers(new Headers()),
-        body: '        well hi there !!',
+        body: "hello\n  g'day\n    welcome\n",
       })
     })
 

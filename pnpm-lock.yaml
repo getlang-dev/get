@@ -81,6 +81,9 @@ devDependencies:
   '@types/set-cookie-parser':
     specifier: ^2.4.9
     version: 2.4.9
+  dedent:
+    specifier: ^1.5.3
+    version: 1.5.3
   tsx:
     specifier: ^4.15.4
     version: 4.15.4
@@ -616,6 +619,15 @@ packages:
         optional: true
     dependencies:
       ms: 2.1.2
+    dev: true
+
+  /dedent@1.5.3:
+    resolution: {integrity: sha512-NHQtfOOW68WD8lgypbLA5oT+Bt0xXJhiYvoR6SmmNXZfpzOGXwdKWmcwG8N7PwVVWV3eF/68nmD9BaJSsTBhyQ==}
+    peerDependencies:
+      babel-plugin-macros: ^3.1.0
+    peerDependenciesMeta:
+      babel-plugin-macros:
+        optional: true
     dev: true
 
   /deep-eql@4.1.4:

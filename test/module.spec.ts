@@ -29,7 +29,7 @@ describe('getlang modules', () => {
 
     expect(err).toBeInstanceOf(Error)
     expect((err as Error).message).toEqual(
-      'SyntaxError: Invalid token at line 4 col 7:\n\n2  \n3        extrct { title }\n4      \n         ^'
+      'SyntaxError: Invalid token at line 3 col 1:\n\n1  GET https://test.com\n2  \n3  extrct { title }\n   ^'
     )
   })
 

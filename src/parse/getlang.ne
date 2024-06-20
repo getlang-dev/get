@@ -30,7 +30,7 @@ input_default -> slice {% id %}
 ### REQUEST
 request -> %request_verb template (line_sep request_block):? (line_sep request_block_named):* (line_sep request_block_body):? {% p.request %}
 request_block_named -> %request_block_name line_sep request_block {% p.requestBlockNamed %}
-request_block_body -> %request_block_body template {% p.requestBlockBody %}
+request_block_body -> %request_block_body template %request_block_body_end {% p.requestBlockBody %}
 request_block -> request_entry (line_sep request_entry):* {% p.requestBlock %}
 request_entry -> template ":" (__ template):? {% p.requestEntry %}
 

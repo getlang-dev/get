@@ -30,7 +30,13 @@ export const inputDecl: PP = ([id, optional, maybeDefault]) => {
   return t.inputDeclStmt(id, !!optional, defaultValue)
 }
 
-export const request: PP = ([method, url, headerBlock, namedBlocks, body]) => {
+export const request: PP = ([
+  method,
+  url,
+  headerBlock,
+  namedBlocks,
+  maybeBody,
+]) => {
   const headers = headerBlock?.[1] ?? []
 
   const blocks: any = {}
@@ -40,7 +46,17 @@ export const request: PP = ([method, url, headerBlock, namedBlocks, body]) => {
       blocks[block.name] = block.entries
     })
 
-  return t.requestStmt(method, url, headers, blocks, body?.[1])
+  const body = maybeBody?.[1]
+  if (body) {
+    for (const el of body.elements) {
+      if (el.kind === NodeKind.LiteralExpr) {
+        // restore original token text
+        el.value.value = el.value.text
+      }
+    }
+  }
+
+  return t.requestStmt(method, url, headers, blocks, body)
 }
 
 export const requestBlockNamed: PP = ([name, , entries]) => ({ name, entries })
@@ -121,15 +137,28 @@ export const template: PP = d => {
   let elements = d[0].filter((dd: any) => !!dd[0].value)
 
   // create the AST nodes for each element
-  elements = elements.map((dd: any) => {
+  elements = elements.flatMap((dd: any, i: number) => {
     const token = dd[0]
+
     switch (token.type) {
-      case 'literal':
-        return t.literalExpr(token)
       case 'interpvar':
-        return t.identifierExpr(token)
       case 'identifier':
         return t.identifierExpr(token)
+
+      case 'literal': {
+        let { value } = token
+        if (i === 0) {
+          value = value.trimLeft()
+        }
+        if (i === elements.length - 1) {
+          value = value.trimRight()
+        }
+        if (!value) {
+          return []
+        }
+        return t.literalExpr({ ...token, value })
+      }
+
       default:
         throw new SyntaxError(`Unkown template element: ${token.type}`)
     }
