@@ -6,7 +6,7 @@ settings:
 
 patchedDependencies:
   xpath@0.0.34:
-    hash: pzeyyiiypsm7iaqbynlpkmrlty
+    hash: suxc4iw3d7zsobrxbviuvq5sjm
     path: patches/xpath@0.0.34.patch
 
 dependencies:
@@ -60,7 +60,7 @@ dependencies:
     version: 2.6.0
   xpath:
     specifier: ^0.0.34
-    version: 0.0.34(patch_hash=pzeyyiiypsm7iaqbynlpkmrlty)
+    version: 0.0.34(patch_hash=suxc4iw3d7zsobrxbviuvq5sjm)
 
 devDependencies:
   '@types/estree':
@@ -1222,7 +1222,7 @@ packages:
       stackback: 0.0.2
     dev: true
 
-  /xpath@0.0.34(patch_hash=pzeyyiiypsm7iaqbynlpkmrlty):
+  /xpath@0.0.34(patch_hash=suxc4iw3d7zsobrxbviuvq5sjm):
     resolution: {integrity: sha512-FxF6+rkr1rNSQrhUNYrAFJpRXNzlDoMxeXN5qI84939ylEv3qqPFKa85Oxr6tDaJKqwW6KKyo2v26TSv3k6LeA==}
     engines: {node: '>=0.6.0'}
     dev: false
