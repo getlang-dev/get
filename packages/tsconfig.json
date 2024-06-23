@@ -1,5 +1,6 @@
 {
   "compilerOptions": {
+    "outDir": "../dist",
     "esModuleInterop": true,
     "skipLibCheck": true,
     "target": "es2022",
@@ -14,6 +15,5 @@
     "declaration": true,
     "module": "preserve",
     "lib": ["es2022", "dom", "dom.iterable"]
-  },
-  "include": ["packages", "test"]
+  }
 }

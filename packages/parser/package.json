@@ -1,8 +1,16 @@
 {
   "name": "@getlang/parser",
-  "version": "0.0.6",
+  "version": "0.0.7",
   "license": "Apache-2.0",
   "type": "module",
+  "bugs": {
+    "url": "https://github.com/getlang-dev/get/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/getlang-dev/get.git",
+    "directory": "packages/parser"
+  },
   "scripts": {
     "compile": "nearleyc parse/getlang.ne -o grammar.ts",
     "railroad": "nearley-railroad parse/getlang.ne -o grammar.html && open grammar.html"

@@ -1,6 +1,14 @@
 {
   "name": "@getlang/utils",
-  "version": "0.0.6",
+  "version": "0.0.7",
   "license": "Apache-2.0",
-  "type": "module"
+  "type": "module",
+  "bugs": {
+    "url": "https://github.com/getlang-dev/get/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/getlang-dev/get.git",
+    "directory": "packages/utils"
+  }
 }

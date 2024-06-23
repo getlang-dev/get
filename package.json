@@ -2,21 +2,14 @@
   "name": "get",
   "private": true,
   "license": "Apache-2.0",
-  "type": "module",
-  "bugs": {
-    "url": "https://github.com/getlang-dev/get/issues"
-  },
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/getlang-dev/get.git"
-  },
   "workspaces": ["packages/*", "test"],
   "scripts": {
-    "lint": "tsc --noEmit && biome lint",
+    "lint": "tsc --noEmit -p test && biome lint",
     "format": "biome format --write"
   },
   "devDependencies": {
     "@biomejs/biome": "1.8.2",
+    "@changesets/cli": "^2.27.5",
     "@types/bun": "^1.1.5",
     "typescript": "^5.5.2"
   }
