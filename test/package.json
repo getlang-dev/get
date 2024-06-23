@@ -1,0 +1,9 @@
+{
+  "name": "test",
+  "private": true,
+  "dependencies": {
+    "@getlang/get": "workspace:*",
+    "@getlang/parser": "workspace:*",
+    "dedent": "^1.5.3"
+  }
+}

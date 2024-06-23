@@ -1,10 +1,6 @@
-import { vi } from 'vitest'
+import { describe, test, mock, expect } from 'bun:test'
+import { errors } from '@getlang/get'
 import { execute, testIdempotency } from './helpers'
-import { RuntimeError } from '../src'
-
-afterEach(() => {
-  vi.clearAllMocks()
-})
 
 describe('getlang modules', () => {
   test('extract', async () => {
@@ -13,23 +9,15 @@ describe('getlang modules', () => {
     expect(result).toEqual(501)
   })
 
-  test('syntax error', async () => {
-    const src = `
-      GET https://test.com
+  test('syntax error', () => {
+    expect(() => {
+      execute(`
+        GET https://test.com
 
-      extrct { title }
-    `
-
-    let err
-    try {
-      await execute(src)
-    } catch (e) {
-      err = e
-    }
-
-    expect(err).toBeInstanceOf(Error)
-    expect((err as Error).message).toEqual(
-      'SyntaxError: Invalid token at line 3 col 1:\n\n1  GET https://test.com\n2  \n3  extrct { title }\n   ^'
+        extrct { title }
+      `)
+    }).toThrow(
+      'SyntaxError: Invalid token at line 3 col 1:\n\n1  GET https://test.com\n2  \n3  extrct { title }\n   ^',
     )
   })
 
@@ -52,22 +40,12 @@ describe('getlang modules', () => {
       expect(result).toEqual(20)
     })
 
-    test('required input missing', async () => {
-      const src = `
+    test('required input missing', () => {
+      const result = execute(`
         inputs { value }
         extract $value
-      `
-      let err
-      try {
-        await execute(src)
-      } catch (e) {
-        err = e
-      }
-
-      expect(err).toBeInstanceOf(RuntimeError)
-      expect(err).toMatchInlineSnapshot(
-        `[NullInputError: Required input 'value' not provided]`
-      )
+      `)
+      return expect(result).rejects.toThrow(new errors.NullInputError('value'))
     })
 
     test('optional input', async () => {
@@ -104,7 +82,7 @@ describe('getlang modules', () => {
   })
 
   test('imports', async () => {
-    const importHook = vi.fn(() => 'extract { token: `"abc"` }')
+    const importHook = mock(() => 'extract { token: `"abc"` }')
     const src = `
       import Auth
       extract { auth: $Auth() }
@@ -120,7 +98,7 @@ describe('getlang modules', () => {
   })
 
   test('imports cache', async () => {
-    const importHook = vi.fn(async (module: string) => {
+    const importHook = mock(async (module: string) => {
       if (module === 'Top') return `extract \`"top"\``
       if (module === 'Mid')
         return `
@@ -173,6 +151,8 @@ describe('getlang modules', () => {
   })
 
   test('idempotency', () => {
-    testIdempotency().forEach(({ a, b }) => expect(a).toEqual(b))
+    for (const { a, b } of testIdempotency()) {
+      expect(a).toEqual(b)
+    }
   })
 })

@@ -1,3 +1,4 @@
+import { describe, test, expect } from 'bun:test'
 import { execute, testIdempotency } from './helpers'
 
 describe('objects', () => {
@@ -84,6 +85,8 @@ describe('objects', () => {
   })
 
   test('idempotency', () => {
-    testIdempotency().forEach(({ a, b }) => expect(a).toEqual(b))
+    for (const { a, b } of testIdempotency()) {
+      expect(a).toEqual(b)
+    }
   })
 })

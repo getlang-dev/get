@@ -1,8 +1,16 @@
-import { vi } from 'vitest'
+import {
+  describe,
+  test,
+  it,
+  mock,
+  expect,
+  beforeEach,
+  afterEach,
+} from 'bun:test'
+import type { RequestHook } from '@getlang/get'
 import { execute as _exec, testIdempotency } from './helpers'
-import type { RequestHook } from '../src'
 
-const requestHook = vi.fn<Parameters<RequestHook>, ReturnType<RequestHook>>()
+const requestHook = mock<RequestHook>()
 
 const execute = (src: string) => _exec(src, {}, { request: requestHook })
 
@@ -10,14 +18,14 @@ expect.extend({
   headers(received: unknown, expected: Headers) {
     if (!(received instanceof Headers)) {
       return {
-        message: () => `expected headers object`,
+        message: () => 'expected headers object',
         pass: false,
       }
     }
 
     const pass = this.equals(
       Object.fromEntries(received as any),
-      Object.fromEntries(expected as any)
+      Object.fromEntries(expected as any),
     )
 
     const message = () => 'todo'
@@ -85,7 +93,7 @@ describe('request', () => {
       await execute('GET http://get.com')
       expect(requestHook).toHaveBeenCalledWith('http://get.com/', {
         method: 'GET',
-        headers: expect.headers(new Headers()),
+        headers: expect.headers(new globalThis.Headers()),
       })
     })
 
@@ -110,7 +118,7 @@ describe('request', () => {
         {
           method: 'GET',
           headers: expect.headers(new Headers()),
-        }
+        },
       )
     })
 
@@ -124,7 +132,7 @@ describe('request', () => {
         {
           method: 'GET',
           headers: expect.headers(new Headers()),
-        }
+        },
       )
     })
   })
@@ -144,7 +152,7 @@ describe('request', () => {
         new Headers({
           Authorization: 'Bearer 123',
           Accept: 'application/json',
-        })
+        }),
       ),
     })
   })
@@ -170,9 +178,9 @@ describe('request', () => {
           headers: expect.headers(
             new Headers({
               'X-Test': 'true',
-            })
+            }),
           ),
-        }
+        },
       )
     })
 
@@ -190,7 +198,7 @@ describe('request', () => {
         headers: expect.headers(
           new Headers({
             Cookie: 'a=A; b=123; c=%2Fhere%26we%21are%3F',
-          })
+          }),
         ),
       })
     })
@@ -254,7 +262,7 @@ describe('request', () => {
           new Headers({
             'X-Bar': 'bar',
             Cookie: 'bar=bar',
-          })
+          }),
         ),
         body: '{"bar":"bar"}',
       })
@@ -401,6 +409,8 @@ describe('request', () => {
   })
 
   test('idempotency', () => {
-    testIdempotency().forEach(({ a, b }) => expect(a).toEqual(b))
+    for (const { a, b } of testIdempotency()) {
+      expect(a).toEqual(b)
+    }
   })
 })

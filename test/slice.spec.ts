@@ -1,4 +1,5 @@
-import { RuntimeError } from '../src/errors'
+import { describe, test, it, expect } from 'bun:test'
+import { errors } from '@getlang/get'
 import { execute, testIdempotency } from './helpers'
 
 describe('slice', () => {
@@ -7,7 +8,7 @@ describe('slice', () => {
     expect(result).toEqual(3)
   })
 
-  it('has access to script variables', async ({ expect }) => {
+  it('has access to script variables', async () => {
     const result = await execute(
       `
       inputs { id, foo = \`[1]\` }
@@ -17,7 +18,7 @@ describe('slice', () => {
 
       extract { $baz }
     `,
-      { id: '123' }
+      { id: '123' },
     )
     expect(result).toEqual({
       baz: {
@@ -43,7 +44,7 @@ describe('slice', () => {
           }
         )
         extract $out
-      `
+      `,
     )
 
     expect(result).toEqual({
@@ -74,28 +75,26 @@ describe('slice', () => {
   })
 
   describe('errors', () => {
-    test.skip('parsing', async () => {
+    test.skip('parsing', () => {
       const result = execute(`
         extract \`{ a: "b" \`
       `)
 
-      // expect(result).rejects.toMatchInlineSnapshot()
-      expect(result).rejects.toBeInstanceOf(RuntimeError)
+      // expect(result).rejects.toThrow()
+      return expect(result).rejects.toBeInstanceOf(errors.SliceError)
     })
 
-    test('running', async () => {
+    test('running', () => {
       const result = execute(`
         extract \`({}).no.no.yes\`
       `)
-
-      expect(result).rejects.toMatchInlineSnapshot(
-        `[SliceError: An exception was thrown by the client-side slice]`
-      )
-      expect(result).rejects.toBeInstanceOf(RuntimeError)
+      return expect(result).rejects.toThrow(new errors.SliceError())
     })
   })
 
   test('idempotency', () => {
-    testIdempotency().forEach(({ a, b }) => expect(a).toEqual(b))
+    for (const { a, b } of testIdempotency()) {
+      expect(a).toEqual(b)
+    }
   })
 })

@@ -1,6 +1,7 @@
-import { RuntimeError } from '../src/errors'
+import { describe, test, mock, expect } from 'bun:test'
+import type { RequestHook } from '@getlang/get'
+import { errors } from '@getlang/get'
 import { execute, testIdempotency } from './helpers'
-import type { RequestHook } from '../src'
 
 describe('drills & parsers', () => {
   test('into JS object', async () => {
@@ -152,9 +153,8 @@ describe('drills & parsers', () => {
         set html = \`'<div>test</div>'\`
         extract $html -> @html -> p/*&@#^
       `)
-      expect(result).rejects.toBeInstanceOf(RuntimeError)
-      return expect(result).rejects.toMatchInlineSnapshot(
-        `[SelectorSyntaxError: Could not parse CSS selector 'p/*&@#^']`
+      return expect(result).rejects.toThrow(
+        new errors.SelectorSyntaxError('CSS', 'p/*&@#^'),
       )
     })
 
@@ -179,9 +179,8 @@ describe('drills & parsers', () => {
         set html = \`'<div>test</div>'\`
         extract $html -> @html -> xpath:p/*&@#^
       `)
-      // expect(result).rejects.toBeInstanceOf(RuntimeError)
-      return expect(result).rejects.toMatchInlineSnapshot(
-        `[SelectorSyntaxError: Could not parse XPath selector 'p/*&@#^']`
+      return expect(result).rejects.toThrow(
+        new errors.SelectorSyntaxError('XPath', 'p/*&@#^'),
       )
     })
 
@@ -228,9 +227,8 @@ describe('drills & parsers', () => {
         set js = \`'console.log(1 + 2)'\`
         extract $js -> @js -> Litera#$*& ><<>F
       `)
-      expect(result).rejects.toBeInstanceOf(RuntimeError)
-      return expect(result).rejects.toMatchInlineSnapshot(
-        `[SelectorSyntaxError: Could not parse AST selector 'Litera#$*& ><<>F']`
+      return expect(result).rejects.toThrow(
+        new errors.SelectorSyntaxError('AST', 'Litera#$*& ><<>F'),
       )
     })
 
@@ -239,9 +237,8 @@ describe('drills & parsers', () => {
         set js = \`'var a = 2;'\`
         extract $js -> @js -> Identifier
       `)
-      expect(result).rejects.toBeInstanceOf(RuntimeError)
-      return expect(result).rejects.toMatchInlineSnapshot(
-        `[ConversionError: Attempted to convert unsupported type to value: Identifier]`
+      return expect(result).rejects.toThrow(
+        new errors.ConversionError('Identifier'),
       )
     })
 
@@ -263,10 +260,7 @@ describe('drills & parsers', () => {
   })
 
   test('headers', async () => {
-    const requestHook = vi.fn<
-      Parameters<RequestHook>,
-      ReturnType<RequestHook>
-    >()
+    const requestHook = mock<RequestHook>()
     const headers = new Headers({ foo: 'bar', baz: 'quux' })
     headers.append('baz', 'qaax')
     requestHook.mockResolvedValue({
@@ -286,7 +280,7 @@ describe('drills & parsers', () => {
         }
       `,
       {},
-      { request: requestHook }
+      { request: requestHook },
     )
     expect(result).toEqual({
       all: {
@@ -322,18 +316,15 @@ describe('drills & parsers', () => {
     const slice = () => {
       const cookie =
         'patientZero=501; Max-Age=10800; Domain=.unweb.com; Path=/; Secure'
-      const literal = '&lt;p cooked=' + cookie + '&gt;attr&lt;/p&gt;'
-      const docHtml =
-        '<!doctype html><h1>test</h1><pre>var a = ' +
-        JSON.stringify(literal) +
-        '</pre>'
+      const literal = `&lt;p cooked=${cookie}&gt;attr&lt;/p&gt;`
+      const docHtml = `<!doctype html><h1>test</h1><pre>var a = ${JSON.stringify(literal)}</pre>`
       const obj = { docHtml }
       return JSON.stringify(obj)
     }
     /* eslint-enable prefer-template */
 
     const src = `
-      set all = \`(${slice.toString()})()\`
+      set all = \`\`\`(${slice.toString()})()\`\`\`
       extract $all
         -> @json -> docHtml
         -> @html -> pre
@@ -347,36 +338,20 @@ describe('drills & parsers', () => {
   })
 
   describe('optional v required', () => {
-    test('error when html selector fails to locate', async () => {
-      let err
-      try {
-        await execute(`
-          set html = \`'<div>test</div>'\`
-          extract $html -> @html -> p
-        `)
-      } catch (e) {
-        err = e
-      }
-      expect(err).toMatchInlineSnapshot(
-        `[NullSelectionError: The selector 'p' did not produce a result]`
-      )
-      expect(err).toBeInstanceOf(RuntimeError)
+    test('error when html selector fails to locate', () => {
+      const result = execute(`
+        set html = \`'<div>test</div>'\`
+        extract $html -> @html -> p
+      `)
+      return expect(result).rejects.toThrow(new errors.NullSelectionError('p'))
     })
 
-    test('error when json selector fails to locate', async () => {
-      let err
-      try {
-        await execute(`
-          set val = \`{x: 1}\`
-          extract $val -> y
-        `)
-      } catch (e) {
-        err = e
-      }
-      expect(err).toMatchInlineSnapshot(
-        `[NullSelectionError: The selector 'y' did not produce a result]`
-      )
-      expect(err).toBeInstanceOf(RuntimeError)
+    test('error when json selector fails to locate', () => {
+      const result = execute(`
+        set val = \`{x: 1}\`
+        extract $val -> y
+      `)
+      return expect(result).rejects.toThrow(new errors.NullSelectionError('y'))
     })
 
     test('null, zero, or empty string are valid', async () => {
@@ -433,10 +408,7 @@ describe('drills & parsers', () => {
     })
 
     test('optional headers and cookies selection', async () => {
-      const requestHook = vi.fn<
-        Parameters<RequestHook>,
-        ReturnType<RequestHook>
-      >()
+      const requestHook = mock<RequestHook>()
       requestHook.mockResolvedValue({
         status: 200,
         headers: new Headers({
@@ -455,7 +427,7 @@ describe('drills & parsers', () => {
         }
       `,
         {},
-        { request: requestHook }
+        { request: requestHook },
       )
       expect(result).toEqual({})
     })
@@ -473,6 +445,8 @@ describe('drills & parsers', () => {
   })
 
   test('idempotency', () => {
-    testIdempotency().forEach(({ a, b }) => expect(a).toEqual(b))
+    for (const { a, b } of testIdempotency()) {
+      expect(a).toEqual(b)
+    }
   })
 })

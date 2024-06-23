@@ -1,13 +1,14 @@
 import dedent from 'dedent'
-import { execute as exec, parse, desugar, print } from '../src'
-import type { Hooks } from '../src'
+import { parse, desugar, print } from '@getlang/parser'
+import { execute as exec } from '@getlang/get'
+import type { Hooks } from '@getlang/get'
 
 export const collected: string[] = []
 
 export function execute(
   _src: string,
   inputs?: Record<string, unknown>,
-  hooks?: Hooks
+  hooks?: Hooks,
 ): any {
   const src = dedent(_src)
   collected.push(src)
