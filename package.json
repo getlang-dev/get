@@ -5,7 +5,8 @@
   "workspaces": ["packages/*", "test"],
   "scripts": {
     "lint": "tsc --noEmit -p test && biome lint",
-    "format": "biome format --write"
+    "format": "biome format --write",
+    "pub": "sh scripts/publish.sh"
   },
   "devDependencies": {
     "@biomejs/biome": "1.8.2",
