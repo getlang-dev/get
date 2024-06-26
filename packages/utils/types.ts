@@ -1,16 +1,12 @@
 export enum Type {
+  Unknown = 'unknown',
   Html = 'html',
-  Json = 'json',
   Js = 'js',
   Headers = 'headers',
   Cookies = 'cookies',
-  String = 'string',
   Null = 'null',
-
   List = 'list',
   Struct = 'struct',
-
-  Unknown = 'unknown',
 }
 
 type ScalarType = {

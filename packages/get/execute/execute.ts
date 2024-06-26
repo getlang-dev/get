@@ -132,7 +132,7 @@ export async function execute(
           const fauxSelector = `slice@${slice.line}:${slice.col}`
           const value = await lang.runSlice(
             slice.value,
-            scope.context?.raw ?? {},
+            scope.context ? toValue(scope.context) : {},
           )
           return value === null
             ? new type.NullValue(fauxSelector)
@@ -143,10 +143,7 @@ export async function execute(
 
     SelectorExpr: {
       async enter(node, visit) {
-        invariant(
-          node.context !== 'infer',
-          new QuerySyntaxError('Unresolved context'),
-        )
+        invariant(node.context, new QuerySyntaxError('Unresolved context'))
         const context = await visit(node.context)
         return contextual(context, async () => {
           const selector = await visit(node.selector)
@@ -162,10 +159,7 @@ export async function execute(
 
     ModifierExpr: {
       async enter(node, visit) {
-        invariant(
-          node.context !== 'infer',
-          new QuerySyntaxError('Unresolved context'),
-        )
+        invariant(node.context, new QuerySyntaxError('Unresolved context'))
         const context = await visit(node.context)
         return contextual(context, async () => {
           const mod = node.value.value
@@ -244,7 +238,9 @@ export async function execute(
               break
             }
           }
-          return scope.pop()
+          const data = scope.pop()
+          invariant(data, new QuerySyntaxError('Missing extract statement'))
+          return data
         }
 
         const context = node.context && (await visit(node.context))
@@ -257,18 +253,12 @@ export async function execute(
                 ? item
                 : new type.Value(item, context.base)
             const data = await visitBody(itemContext)
-            if (!data) {
-              throw new Error('nyet 6')
-            }
             values.push(data)
           }
           return new type.ListValue(values, context.base)
         }
 
         const data = await visitBody(context)
-        if (!data) {
-          throw new Error('nyet 7')
-        }
         return new type.Value(toValue(data), null)
       },
     },

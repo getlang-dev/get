@@ -7,21 +7,21 @@ const browserGlobals = [
   ...Object.keys(globals.builtin),
 ]
 
-export const analyzeSlice = (source: string, includeDeps: boolean) => {
-  const ast = parse(source, {
+export const analyzeSlice = (_source: string, includeDeps: boolean) => {
+  const ast = parse(_source, {
     ecmaVersion: 'latest',
     allowReturnOutsideFunction: true,
   })
 
-  let src = source
+  let source = _source
 
   // auto-insert the return statement
   if (ast.body.length === 1 && ast.body[0]?.type !== 'ReturnStatement') {
-    src = `return ${src}`
+    source = `return ${source}`
   }
 
   if (!includeDeps) {
-    return { source: src, deps: [] }
+    return { source, deps: [] }
   }
 
   // detect globals and load them from context
@@ -29,11 +29,15 @@ export const analyzeSlice = (source: string, includeDeps: boolean) => {
     .map(id => id.name)
     .filter(id => !browserGlobals.includes(id))
 
+  if (deps.includes('$')) {
+    return { source, deps: [] }
+  }
+
   if (deps.length) {
     const contextVars = deps.join(', ')
     const loadContext = `const { ${contextVars} } = $\n`
-    src = loadContext + src
+    source = loadContext + source
   }
 
-  return { source: src, deps }
+  return { source, deps }
 }

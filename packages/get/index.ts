@@ -6,6 +6,7 @@ import type { InternalHooks } from './execute/execute'
 import * as http from './execute/net/http'
 import { ImportError } from '@getlang/utils'
 
+export { parse, desugar, print, NodeKind } from '@getlang/parser'
 export { RuntimeError } from '@getlang/utils'
 export * as errors from '@getlang/utils'
 

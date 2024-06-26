@@ -158,9 +158,8 @@ const printVisitor: ExhaustiveVisitor<Doc> = {
     return ['$', node.value.value]
   },
 
-  SelectorExpr(node, orig) {
-    const infer = orig.context === 'infer'
-    if (infer) {
+  SelectorExpr(node) {
+    if (!node.context) {
       const arrow = node.expand ? '=> ' : ''
       return [arrow, node.selector]
     }
@@ -168,10 +167,9 @@ const printVisitor: ExhaustiveVisitor<Doc> = {
     return [node.context, indent([line, arrow, node.selector])]
   },
 
-  ModifierExpr(node, orig) {
-    const infer = orig.context === 'infer'
+  ModifierExpr(node) {
     const mod = ['@', node.value.value]
-    return infer ? mod : [node.context, indent([line, '-> ', mod])]
+    return node.context ? [node.context, indent([line, '-> ', mod])] : mod
   },
 
   SliceExpr(node) {

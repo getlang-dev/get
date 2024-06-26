@@ -1,21 +1,22 @@
-import { Type, type TypeInfo } from '@getlang/utils'
+import { Type, type TypeInfo, ValueTypeError } from '@getlang/utils'
 import type { Expr, Node } from '../ast'
 import { NodeKind, type RequestExpr } from '../ast'
 
 const modTypeMap: Record<string, TypeInfo> = {
   html: { type: Type.Html },
-  json: { type: Type.Json },
+  json: { type: Type.Unknown },
   js: { type: Type.Js },
   headers: { type: Type.Headers },
   cookies: { type: Type.Cookies },
-  link: { type: Type.String },
+  link: { type: Type.Unknown },
 }
 
 export function getTypeInfo(node: Node | undefined, msg?: string) {
   if (node && 'typeInfo' in node && node.typeInfo) {
     return node.typeInfo
   }
-  throw new Error(msg || 'nyet 100')
+  const errMsg = msg ?? `Failed to locate type info for node: ${node?.kind}`
+  throw new ValueTypeError(errMsg)
 }
 
 export function getModTypeInfo(mod: string): TypeInfo {
@@ -23,7 +24,7 @@ export function getModTypeInfo(mod: string): TypeInfo {
   if (typeInfo) {
     return typeInfo
   }
-  throw new Error('nyet 200')
+  throw new ValueTypeError(`Failed to locate type info for modifier: ${mod}`)
 }
 
 export function createToken(text: string, value = text) {

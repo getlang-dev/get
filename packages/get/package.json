@@ -1,10 +1,12 @@
 {
   "name": "@getlang/get",
-  "version": "0.0.9",
+  "version": "0.0.10",
   "license": "Apache-2.0",
   "type": "module",
   "main": "dist",
-  "files": ["dist"],
+  "files": [
+    "dist"
+  ],
   "bugs": {
     "url": "https://github.com/getlang-dev/get/issues"
   },
@@ -13,9 +15,10 @@
     "url": "git+https://github.com/getlang-dev/get.git",
     "directory": "packages/get"
   },
+  "homepage": "https://getlang.dev",
   "dependencies": {
-    "@getlang/parser": "workspace:^0.0.9",
-    "@getlang/utils": "workspace:^0.0.7",
+    "@getlang/parser": "workspace:^0.0.10",
+    "@getlang/utils": "workspace:^0.0.8",
     "@getlang/xpath": "0.0.35-0",
     "acorn": "^8.12.0",
     "css-select": "^5.1.0",

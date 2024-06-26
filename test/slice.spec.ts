@@ -64,6 +64,22 @@ describe('slice', () => {
     expect(result).toEqual('escaped')
   })
 
+  it('converts context to value prior to run', async () => {
+    const result = await execute(`
+      set html = \`'<ul><li>one</li><li>two</li></ul>'\`
+      extract $html -> @html -> xpath://li -> \`$\`
+    `)
+    expect(result).toEqual('two')
+  })
+
+  it('operates on list item context', async () => {
+    const result = await execute(`
+      set html = \`'<ul><li>one</li><li>two</li></ul>'\`
+      extract $html -> @html => li -> \`$\`
+    `)
+    expect(result).toEqual(['one', 'two'])
+  })
+
   it('supports analysis on nested slices', async () => {
     const result = await execute(`
       set x = \`0\`

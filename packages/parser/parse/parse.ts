@@ -1,3 +1,4 @@
+import { invariant, QuerySyntaxError } from '@getlang/utils'
 import { t, NodeKind } from '../ast/ast'
 
 type PP = nearley.Postprocessor
@@ -117,12 +118,11 @@ export const drill: PP = ([context, , arrow, , bit]) => {
   if (expandingSelectors.includes(bit.kind)) {
     return t.selectorExpr(bit, expand, context)
   }
-  if (expand) {
-    throw new SyntaxError('Wide arrow drill requires selector on RHS')
-  }
-  if (!('context' in bit)) {
-    throw new SyntaxError('Invalid drill value')
-  }
+  invariant(
+    !expand,
+    new QuerySyntaxError('Wide arrow drill requires selector on RHS'),
+  )
+  invariant('context' in bit, new QuerySyntaxError('Invalid drill value'))
   bit.context = context
   return bit
 }
@@ -132,9 +132,10 @@ export const drillContext: PP = ([arrow, expr]) => {
   if (expr.kind === NodeKind.TemplateExpr) {
     return t.selectorExpr(expr, expand)
   }
-  if (expand) {
-    throw new SyntaxError('Wide arrow drill requires selector on RHS')
-  }
+  invariant(
+    !expand,
+    new QuerySyntaxError('Wide arrow drill requires selector on RHS'),
+  )
   return expr
 }
 
@@ -170,7 +171,7 @@ export const template: PP = d => {
       }
 
       default:
-        throw new SyntaxError(`Unkown template element: ${token.type}`)
+        throw new QuerySyntaxError(`Unkown template element: ${token.type}`)
     }
   })
 

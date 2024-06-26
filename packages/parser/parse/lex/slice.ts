@@ -1,12 +1,11 @@
+import { invariant, QuerySyntaxError } from '@getlang/utils'
 import { until } from './templates'
 
 const getSliceValue = (text: string, places = 1) => {
   const src = text.slice(places, -places).replace(/\\`/g, '`')
   let lines = src.split('\n')
   const firstIdx = lines.findIndex(x => x.trim().length)
-  if (firstIdx === -1) {
-    throw new SyntaxError('Slice must contain source')
-  }
+  invariant(firstIdx !== -1, new QuerySyntaxError('Slice must contain source'))
   lines = lines.slice(firstIdx)
   const indent = lines[0]?.match(/^\s*/)?.[0].length || 0
   if (indent) {

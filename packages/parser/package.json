@@ -1,10 +1,12 @@
 {
   "name": "@getlang/parser",
-  "version": "0.0.9",
+  "version": "0.0.10",
   "license": "Apache-2.0",
   "type": "module",
-  "main": "index.ts",
-  "files": ["dist"],
+  "main": "dist",
+  "files": [
+    "dist"
+  ],
   "bugs": {
     "url": "https://github.com/getlang-dev/get/issues"
   },
@@ -13,12 +15,13 @@
     "url": "git+https://github.com/getlang-dev/get.git",
     "directory": "packages/parser"
   },
+  "homepage": "https://getlang.dev",
   "scripts": {
     "compile": "nearleyc parse/getlang.ne -o grammar.ts",
     "railroad": "nearley-railroad parse/getlang.ne -o grammar.html && open grammar.html"
   },
   "dependencies": {
-    "@getlang/utils": "workspace:^0.0.7",
+    "@getlang/utils": "workspace:^0.0.8",
     "acorn": "^8.12.0",
     "acorn-globals": "^7.0.1",
     "globals": "^15.6.0",

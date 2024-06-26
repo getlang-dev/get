@@ -1,4 +1,5 @@
 import nearley from 'nearley'
+import { QuerySyntaxError } from '@getlang/utils'
 import grammar from './grammar'
 import lexer from './parse/lexer'
 import type { Program } from './ast/ast'
@@ -18,7 +19,7 @@ export function parse(source: string): Program {
     parser.feed(source)
   } catch (e: unknown) {
     if (typeof e === 'object' && e && 'token' in e) {
-      throw new SyntaxError(
+      throw new QuerySyntaxError(
         lexer.formatError(e.token, 'SyntaxError: Invalid token'),
       )
     }
@@ -30,8 +31,8 @@ export function parse(source: string): Program {
     case 1:
       return results[0]
     case 0:
-      throw new SyntaxError('Unexpected end of input')
+      throw new QuerySyntaxError('Unexpected end of input')
     default:
-      throw new SyntaxError('Unexpected parsing error')
+      throw new QuerySyntaxError('Unexpected parsing error')
   }
 }

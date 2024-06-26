@@ -1,10 +1,7 @@
 import { SliceError, NullInputError } from '@getlang/utils'
 import * as json from './values/json'
 
-export const runSlice = async (
-  slice: string,
-  context: Record<string, unknown> = {},
-) => {
+export const runSlice = async (slice: string, context: unknown = {}) => {
   try {
     const fn = new Function('$', slice)
     const value = await fn(context)

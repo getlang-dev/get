@@ -114,14 +114,14 @@ type SelectorExpr = {
   kind: NodeKind.SelectorExpr
   selector: Expr
   expand: boolean
-  context: Expr | 'infer'
+  context?: Expr
   typeInfo?: TypeInfo
 }
 
 type ModifierExpr = {
   kind: NodeKind.ModifierExpr
   value: Token
-  context: Expr | 'infer'
+  context?: Expr
   typeInfo?: TypeInfo
 }
 
@@ -264,13 +264,13 @@ const selectorExpr = (
   kind: NodeKind.SelectorExpr,
   selector,
   expand,
-  context: context ?? 'infer',
+  context,
 })
 
 const modifierExpr = (value: Token, context?: Expr): ModifierExpr => ({
   kind: NodeKind.ModifierExpr,
   value,
-  context: context ?? 'infer',
+  context,
 })
 
 const objectLiteralExpr = (
