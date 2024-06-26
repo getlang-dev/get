@@ -16,7 +16,7 @@ describe('getlang modules', () => {
       execute(`
         GET https://test.com
 
-        extrct { title }
+        extract { title }
       `)
     }).toThrow(
       'SyntaxError: Invalid token at line 3 col 1:\n\n1  GET https://test.com\n2  \n3  extrct { title }\n   ^',
