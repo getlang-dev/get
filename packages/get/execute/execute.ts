@@ -133,6 +133,7 @@ export async function execute(
           const value = await lang.runSlice(
             slice.value,
             scope.context ? toValue(scope.context) : {},
+            scope.context?.raw,
           )
           return value === null
             ? new type.NullValue(fauxSelector)

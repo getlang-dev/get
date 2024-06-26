@@ -29,7 +29,7 @@ export const analyzeSlice = (_source: string, includeDeps: boolean) => {
     .map(id => id.name)
     .filter(id => !browserGlobals.includes(id))
 
-  if (deps.includes('$')) {
+  if (deps.includes('$') || deps.includes('$$')) {
     return { source, deps: [] }
   }
 

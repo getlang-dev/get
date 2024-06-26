@@ -13,6 +13,12 @@ function main() {
     return ds(this)
   }
 
+  Object.defineProperty(Element.prototype, 'outerHTML', {
+    get() {
+      return ds(this)
+    },
+  })
+
   Object.defineProperty(Node.prototype, 'nodeName', {
     get: function () {
       return this.name

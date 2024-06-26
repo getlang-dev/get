@@ -1,10 +1,14 @@
 import { SliceError, NullInputError } from '@getlang/utils'
 import * as json from './values/json'
 
-export const runSlice = async (slice: string, context: unknown = {}) => {
+export const runSlice = async (
+  slice: string,
+  context: unknown = {},
+  raw: unknown = {},
+) => {
   try {
-    const fn = new Function('$', slice)
-    const value = await fn(context)
+    const fn = new Function('$', '$$', slice)
+    const value = await fn(context, raw)
     // convert an undefined result into explicit null
     return typeof value === 'undefined' ? null : value
   } catch (e) {

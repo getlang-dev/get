@@ -1,6 +1,6 @@
 {
   "name": "@getlang/get",
-  "version": "0.0.11",
+  "version": "0.0.12",
   "license": "Apache-2.0",
   "type": "module",
   "main": "dist",
@@ -17,7 +17,7 @@
   },
   "homepage": "https://getlang.dev",
   "dependencies": {
-    "@getlang/parser": "workspace:^0.0.10",
+    "@getlang/parser": "workspace:^0.0.11",
     "@getlang/utils": "workspace:^0.0.8",
     "@getlang/xpath": "0.0.35-0",
     "acorn": "^8.12.0",

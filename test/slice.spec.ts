@@ -72,6 +72,14 @@ describe('slice', () => {
     expect(result).toEqual('two')
   })
 
+  it('provides a variable for raw context ($$)', async () => {
+    const result = await execute(`
+      set html = \`'<ul><li>one</li><li>two</li></ul>'\`
+      extract $html -> @html -> ul -> \`$$.outerHTML\`
+    `)
+    expect(result).toEqual('<ul><li>one</li><li>two</li></ul>')
+  })
+
   it('operates on list item context', async () => {
     const result = await execute(`
       set html = \`'<ul><li>one</li><li>two</li></ul>'\`
