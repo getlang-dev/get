@@ -1,14 +1,15 @@
-import { wait } from '@getlang/utils'
+import { wait, ImportError } from '@getlang/utils'
 import { parse, desugar } from '@getlang/parser'
 import type { Program } from '@getlang/parser'
 import { execute as exec } from './execute/execute'
 import type { InternalHooks } from './execute/execute'
 import * as http from './execute/net/http'
-import { ImportError } from '@getlang/utils'
 
-export { parse, desugar, print, NodeKind } from '@getlang/parser'
 export { RuntimeError } from '@getlang/utils'
 export * as errors from '@getlang/utils'
+export { version } from './package.json'
+export { parse, desugar, print, NodeKind } from '@getlang/parser'
+export type { Program } from '@getlang/parser'
 
 export type RequestHook = InternalHooks['request']
 export type ImportHook = (module: string) => string | Promise<string>
