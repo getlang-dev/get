@@ -1,223 +1,183 @@
-import type { Node, Stmt, Expr, Program } from './ast'
+import { RootScope, Type, type TypeInfo, invariant } from '@getlang/utils'
+import type { Node, Program, Expr } from './ast'
 import { NodeKind, t } from './ast'
 import type { Visitor } from './visitor'
 import { visit } from './visitor'
 import { analyzeSlice } from './desugar/slice'
-import { createToken, getContentMod } from './desugar/utils'
-
-type Context = Stmt | Expr
-type RequestStmt = ReturnType<typeof t.requestStmt>
-type Parsed = { [mod: string]: string }
-
-class Scope {
-  private contextStack: Context[] = []
-  private parsedResponses = new Map<RequestStmt, Parsed>()
-
-  constructor(initialContext?: Context) {
-    if (initialContext) {
-      this.contextStack.push(initialContext)
-    }
-  }
-
-  pushContext(context: Context) {
-    this.contextStack.push(context)
-    if (context.kind === NodeKind.RequestStmt) {
-      this.parsedResponses.set(context, {})
-    }
-  }
-
-  popContext() {
-    this.contextStack.pop()
-  }
-
-  get context() {
-    return this.contextStack.at(-1)
-  }
-
-  hasRequest(req: RequestStmt) {
-    return this.parsedResponses.has(req)
-  }
-
-  getParsedRequestId(req: RequestStmt, mod = getContentMod(req)): string {
-    const parsed = this.parsedResponses.get(req)
-    if (!parsed) {
-      throw new SyntaxError('Request cannot be parsed, does not exist in scope')
-    }
-    const pos = [...this.parsedResponses.keys()].indexOf(req)
-    const name = `__${mod}_${pos}`
-    parsed[mod] = name
-    return name
-  }
-
-  finalize() {
-    const parserStmts = new Map<RequestStmt, Stmt[]>()
-    for (const [req, parsed] of this.parsedResponses.entries()) {
-      const stmts = Object.entries(parsed).map(([mod, id]) => {
-        const contextId = t.identifierExpr(createToken(''))
-        let target: Expr
-        let field = 'body'
-
-        if (mod === 'cookies') {
-          target = t.drillExpr(
-            contextId,
-            t.templateExpr([t.literalExpr(createToken('headers'))]),
-            false,
-          )
-          field = 'set-cookie'
-        } else {
-          target = contextId
-          if (mod === 'headers') {
-            field = 'headers'
-          }
-        }
-        let expr: Expr = t.drillExpr(
-          target,
-          t.templateExpr([t.literalExpr(createToken(field))]),
-          false,
-        )
-
-        if (mod !== 'headers') {
-          expr = t.drillExpr(
-            expr,
-            t.modifierExpr(createToken(`@${mod}`, mod)),
-            false,
-          )
-        }
-
-        const optional = mod === 'cookies'
-        return t.assignmentStmt(createToken(id), expr, optional)
-      })
-      parserStmts.set(req, stmts)
-    }
-    return { parserStmts }
-  }
-}
-
-class ScopeStack {
-  stack: Scope[] = []
-
-  newScope() {
-    let initialContext: Context | undefined
-    if (this.stack.length) {
-      initialContext = this.current.context
-    }
-    const scope = new Scope(initialContext)
-    this.stack.push(scope)
-  }
-
-  finalizeScope() {
-    const scope = this.stack.pop()
-    if (scope) {
-      return scope.finalize()
-    }
-    throw new SyntaxError('Attempted to finalize scope on an empty stack')
-  }
-
-  get current(): Scope {
-    const scope = this.stack.at(-1)
-    if (!scope) {
-      throw new SyntaxError('Scope not found')
-    }
-    return scope
-  }
-}
-
-const appendTrailing = (body: Stmt[], map: Map<Stmt, Stmt[]>) => {
-  return body.flatMap(stmt => {
-    const withTrailing = [stmt, ...(map.get(stmt) || [])]
-    return withTrailing
-  })
-}
+import type { Parsers } from './desugar/parsers'
+import { insertParsers } from './desugar/parsers'
+import {
+  createToken,
+  getContentMod,
+  getTypeInfo,
+  getModTypeInfo,
+} from './desugar/utils'
 
 export function desugar(ast: Node): Program {
   if (!(ast.kind === NodeKind.Program)) {
     throw new SyntaxError(`Non-program AST node provided: ${ast}`)
   }
 
-  const scopes = new ScopeStack()
-  let disableSliceAnalysis = false
+  const scope = new RootScope<Expr>()
+  const parsers: Parsers = new Map()
+
+  function requireContext() {
+    invariant(scope.context, new SyntaxError('Unable to locate active context'))
+    return scope.context
+  }
+
+  function inferContext(_mod?: string) {
+    const context = requireContext()
+    if (context.kind !== NodeKind.RequestExpr) {
+      return t.identifierExpr(createToken(''))
+    }
+    const mod = _mod ?? getContentMod(context)
+    const [mods, index] = parsers.get(context) ?? [new Set(), parsers.size]
+    mods.add(mod)
+    parsers.set(context, [mods, index])
+    const id = `__${mod}_${index}`
+    scope.vars[id] ??= {
+      ...t.modifierExpr(createToken(mod)),
+      typeInfo: getModTypeInfo(mod),
+    }
+    return t.identifierExpr(createToken(id))
+  }
+
+  function contextual(
+    context: Expr | undefined,
+    itemContext: Expr,
+    visit: (expr: Expr) => Expr,
+    cb: () => Expr,
+  ): Expr {
+    if (context) {
+      const ctype = getTypeInfo(context)
+      if (ctype.type === Type.List) {
+        scope.pushContext(context)
+        const fn = visit(
+          t.functionExpr(
+            [t.extractStmt(itemContext)],
+            t.identifierExpr(createToken('')),
+          ),
+        )
+        invariant(
+          fn.kind === NodeKind.FunctionExpr,
+          new SyntaxError('Failed to create item context'),
+        )
+        scope.popContext()
+        const typeInfo: TypeInfo = { type: Type.List, of: getTypeInfo(fn) }
+        return { ...fn, context, typeInfo }
+      }
+    }
+
+    context && scope.pushContext(context)
+    const node = cb()
+    context && scope.popContext()
+    return node
+  }
 
   const visitor: Visitor = {
-    Program: {
-      enter() {
-        scopes.newScope()
-        return undefined
-      },
-      exit(node) {
-        const final = scopes.finalizeScope()
-        const body = appendTrailing(node.body, final?.parserStmts)
-        return { ...node, body }
-      },
+    LiteralExpr(node) {
+      return { ...node, typeInfo: { type: Type.String } }
+    },
+
+    TemplateExpr(node) {
+      return { ...node, typeInfo: { type: Type.String } }
+    },
+
+    IdentifierExpr(node) {
+      const id = node.value.value
+      const typeInfo = getTypeInfo(
+        scope.vars[id],
+        `Failed to find type info for variable '${id}'`,
+      )
+      return { ...node, typeInfo }
     },
 
     FunctionExpr: {
-      enter() {
-        scopes.newScope()
-        return undefined
-      },
-      exit(node) {
-        scopes.finalizeScope()
-        return node
-      },
-    },
-
-    RequestStmt(node) {
-      scopes.current.pushContext(node as any)
-      return node
-    },
-
-    DrillExpr: {
       enter(node, visit) {
-        let target: Expr
-        let bit: Expr = node.bit
-
-        if (node.target === 'context') {
-          const { context } = scopes.current
-          if (!context) {
-            throw new SyntaxError('Drill unable to locate active context')
+        let context: Expr | undefined = node.context && visit(node.context)
+        if (context) {
+          const ctype = getTypeInfo(context)
+          if (ctype.type === Type.List) {
+            // item context
+            context = { ...context, typeInfo: ctype.of }
           }
-          if (context.kind === NodeKind.RequestStmt) {
-            const bit = node.bit
-            const isModifier = bit.kind === NodeKind.ModifierExpr
-            const mod = isModifier ? bit.value.value : undefined
-            const scope = scopes.stack.find(x => x.hasRequest(context))
-            if (!scope) {
-              throw new SyntaxError('Encountered orphan context')
-            }
-            const id = scope.getParsedRequestId(context, mod)
-            target = t.identifierExpr(createToken(id))
-            if (isModifier) {
-              // replace the context drill with identifier for the
-              // parsed value, essentially removing the modifier expr
-              return target
-            }
-          } else {
-            target = t.identifierExpr(createToken(''))
-          }
-        } else {
-          target = visit(node.target)
         }
-
-        scopes.current.pushContext(target)
-        disableSliceAnalysis = bit.kind === NodeKind.SliceExpr
-        bit = visit(node.bit)
-        disableSliceAnalysis = false
-        scopes.current.popContext()
-        return t.drillExpr(target, bit, node.expand)
+        scope.push(context)
+        const body = node.body.map(stmt => visit(stmt))
+        const extracted = scope.pop()
+        return {
+          ...node,
+          body: insertParsers(body, parsers),
+          typeInfo: getTypeInfo(extracted),
+        }
       },
     },
 
-    SliceExpr(node) {
-      if (disableSliceAnalysis) {
-        // a context for the slice has already been defined
-        // avoid desugar, which may have already been run
-        return node
-      }
+    ObjectLiteralExpr: {
+      enter(node, visit) {
+        const context = node.context && visit(node.context)
+        const itemContext = t.objectLiteralExpr(node.entries)
+        return contextual(context, itemContext, visit, () => {
+          const entries = node.entries.map(e => ({
+            key: visit(e.key),
+            value: visit(e.value),
+            optional: e.optional,
+          }))
+          return {
+            ...node,
+            entries,
+            typeInfo: { type: Type.Unknown },
+          }
+        })
+      },
+    },
 
-      const stat = analyzeSlice(node.slice.value)
-      const slice = t.sliceExpr(createToken(stat.source))
-      if (!stat.deps.length) {
-        return slice
+    SelectorExpr: {
+      enter(node, visit) {
+        const context = visit(
+          node.context === 'infer' ? inferContext() : node.context,
+        )
+        const itemContext = t.selectorExpr(node.selector, node.expand)
+        return contextual(context, itemContext, visit, () => {
+          const ctype = getTypeInfo(context)
+          const typeInfo: TypeInfo = node.expand
+            ? { type: Type.List, of: ctype }
+            : ctype
+          return { ...node, context, typeInfo }
+        })
+      },
+    },
+
+    ModifierExpr: {
+      enter(node, visit) {
+        const mod = node.value.value
+        const context = visit(
+          node.context === 'infer' ? inferContext(mod) : node.context,
+        )
+        const itemContext = t.modifierExpr(node.value)
+        return contextual(context, itemContext, visit, () => {
+          const ctype = getTypeInfo(context)
+          const mtype = getModTypeInfo(mod)
+          if (ctype.type === mtype.type) {
+            // remove modifier
+            return context
+          }
+          return { ...node, context, typeInfo: mtype }
+        })
+      },
+    },
+
+    // typeinfo is lost / resets back to Type.Unknown
+    SliceExpr(node) {
+      const stat = analyzeSlice(node.slice.value, !node.context)
+      const slice = createToken(stat.source)
+      const typeInfo: TypeInfo = { type: Type.Unknown }
+      if (stat.deps.length === 0) {
+        return {
+          ...t.sliceExpr(slice, node.context),
+          typeInfo,
+        }
       }
       const contextEntries = stat.deps.map(id => ({
         key: t.literalExpr(createToken(id)),
@@ -225,7 +185,53 @@ export function desugar(ast: Node): Program {
         optional: false,
       }))
       const context = t.objectLiteralExpr(contextEntries)
-      return t.drillExpr(context, slice, false)
+      return { ...node, slice, context, typeInfo }
+    },
+
+    // typeinfo is lost / resets back to Type.Unknown
+    ModuleCallExpr(node) {
+      return { ...node, typeInfo: { type: Type.Unknown } }
+    },
+
+    RequestExpr(node) {
+      return {
+        ...node,
+        typeInfo: {
+          type: Type.Struct,
+          schema: {
+            status: { type: Type.Json },
+            headers: { type: Type.Headers },
+            body: { type: Type.String },
+          },
+        },
+      }
+    },
+
+    InputDeclStmt(node) {
+      scope.vars[node.id.value] = {
+        ...t.identifierExpr(node.id),
+        typeInfo: { type: Type.Unknown },
+      }
+      return node
+    },
+
+    RequestStmt(node) {
+      scope.pushContext(node.request)
+      return node
+    },
+
+    AssignmentStmt(node) {
+      scope.vars[node.name.value] = node.value
+      return node
+    },
+
+    ExtractStmt(node) {
+      scope.extracted = node.value
+      return node
+    },
+
+    Program(node) {
+      return { ...node, body: insertParsers(node.body, parsers) }
     },
   }
 

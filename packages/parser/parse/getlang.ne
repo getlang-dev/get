@@ -55,7 +55,7 @@ module_call -> id_expr "(" (object _):? ")" {% p.moduleCall %}
 ### OBJECT LITERALS
 object -> "{" _ (object_entry (_ ","):? _):* "}" {% p.object %}
 object_entry -> %identifier "?":? ":" _ drill {% p.objectEntry %}
-object_entry -> %identifier "?":? {% p.objectEntryShorthandDrill %}
+object_entry -> %identifier "?":? {% p.objectEntryShorthandSelect %}
 object_entry -> id_expr "?":? {% p.objectEntryShorthandIdent %}
 
 

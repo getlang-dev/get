@@ -6,15 +6,7 @@ import { slice, slice_block } from './lex/slice'
 const verbs = ['GET', 'PUT', 'POST', 'PATCH', 'DELETE']
 const keywords = ['import', 'inputs', 'set']
 const requestBlockNames = ['query', 'cookies', 'json', 'form']
-const modifiers = [
-  'html',
-  'json',
-  'js',
-  'cookies',
-  'link',
-  'headers',
-  'cookies',
-]
+const modifiers = ['html', 'json', 'js', 'cookies', 'link', 'headers']
 const keywordsObj = Object.fromEntries(keywords.map(k => [`kw_${k}`, k]))
 
 const exprOpeners = {

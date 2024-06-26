@@ -1,7 +1,9 @@
 import { describe, test, mock, expect } from 'bun:test'
 import type { RequestHook } from '@getlang/get'
 import { errors } from '@getlang/get'
-import { execute, testIdempotency } from './helpers'
+import { helper } from './helpers'
+
+const { execute, testIdempotency } = helper()
 
 describe('drills & parsers', () => {
   test('into JS object', async () => {
@@ -41,7 +43,7 @@ describe('drills & parsers', () => {
   test('wide arrow expands drill into variable', async () => {
     const result = await execute(`
       set list = \`[{a: 1}, {a: 2}]\`
-      extract $list => a
+      extract $list => $ -> a
     `)
     expect(result).toEqual([1, 2])
   })
@@ -49,8 +51,8 @@ describe('drills & parsers', () => {
   test('wide arrow expands drill into context', async () => {
     const result = await execute(`
       set list = \`[{a: 1}, {a: 2}]\`
-      extract $list -> (
-        extract => a
+      extract $list => $ -> (
+        extract a
       )
     `)
     expect(result).toEqual([1, 2])
@@ -62,7 +64,7 @@ describe('drills & parsers', () => {
     // using String.prototype.length
     const result = await execute(`
       set list = \`['one','two','three']\`
-      extract $list => (
+      extract $list => $ -> (
         extract -> length
       )
     `)
@@ -72,7 +74,7 @@ describe('drills & parsers', () => {
   test('make reference to context variable ($)', async () => {
     const result = await execute(`
       set list = \`['one','two','three']\`
-      extract $list => {
+      extract $list => $ -> {
         id: $
       }
     `)
@@ -123,7 +125,7 @@ describe('drills & parsers', () => {
     test('wide arrow expansion', async () => {
       const result = await execute(`
         set json = \`'{"data": { "list": ["item one", "item two"] } }'\`
-        extract $json -> @json -> data.list => (
+        extract $json -> @json => data.list -> (
           extract -> length
         )
       `)

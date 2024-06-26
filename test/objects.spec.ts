@@ -1,5 +1,7 @@
 import { describe, test, expect } from 'bun:test'
-import { execute, testIdempotency } from './helpers'
+import { helper } from './helpers'
+
+const { execute, testIdempotency } = helper()
 
 describe('objects', () => {
   test('inline', async () => {

@@ -4,9 +4,7 @@
   "license": "Apache-2.0",
   "type": "module",
   "main": "dist",
-  "files": [
-    "dist"
-  ],
+  "files": ["dist"],
   "bugs": {
     "url": "https://github.com/getlang-dev/get/issues"
   },

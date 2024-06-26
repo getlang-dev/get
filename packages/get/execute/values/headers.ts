@@ -1,5 +1,5 @@
 import type { SelectFn } from './types'
-import { NullSelectionError, invariant } from '../../errors'
+import { NullSelectionError, invariant } from '@getlang/utils'
 
 export const select: SelectFn<Headers, string> = (
   headers,

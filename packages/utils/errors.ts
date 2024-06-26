@@ -8,12 +8,20 @@ export class FatalError extends RuntimeError {
   }
 }
 
-export class GetSyntaxError extends RuntimeError {
+export class QuerySyntaxError extends RuntimeError {
   public override name = 'SyntaxError'
 }
 
-export class GetTypeError extends RuntimeError {
+export class ValueTypeError extends RuntimeError {
   public override name = 'TypeError'
+}
+
+export class ValueReferenceError extends RuntimeError {
+  public override name = 'ReferenceError'
+
+  constructor(varName: string, options?: ErrorOptions) {
+    super(`Unable to locate variable: ${varName}`, options)
+  }
 }
 
 export class SliceError extends RuntimeError {
@@ -69,14 +77,6 @@ export class RequestError extends RuntimeError {
 
   constructor(url: string, options?: ErrorOptions) {
     super(`Request to url failed: ${url}`, options)
-  }
-}
-
-export class GetReferenceError extends RuntimeError {
-  public override name = 'ReferenceError'
-
-  constructor(varName: string, options?: ErrorOptions) {
-    super(`Unable to locate variable: ${varName}`, options)
   }
 }
 

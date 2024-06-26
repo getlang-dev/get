@@ -1,3 +1,7 @@
+export * from './scope'
+export * from './errors'
+export * from './types'
+
 export type MaybePromise<T> = T | Promise<T>
 
 export function wait<V, X>(

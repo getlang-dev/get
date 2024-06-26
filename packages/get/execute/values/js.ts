@@ -6,7 +6,7 @@ import {
   NullSelectionError,
   ConversionError,
   invariant,
-} from '../../errors'
+} from '@getlang/utils'
 import type { SelectFn } from './types'
 
 export const parse = (js: string): AnyNode => {

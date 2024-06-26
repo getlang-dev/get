@@ -1,6 +1,8 @@
 import { describe, test, mock, expect } from 'bun:test'
 import { errors } from '@getlang/get'
-import { execute, testIdempotency } from './helpers'
+import { helper } from './helpers'
+
+const { execute, testIdempotency } = helper()
 
 describe('getlang modules', () => {
   test('extract', async () => {

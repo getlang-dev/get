@@ -1,17 +1,14 @@
 import { get } from 'lodash-es'
-import { NullSelectionError, invariant } from '../../errors'
+import { NullSelectionError, invariant } from '@getlang/utils'
 import type { SelectFn } from './types'
 
 export const parse = (json: string) => JSON.parse(json)
 
 export const select: SelectFn<any> = (value, selector, expand, allowNull) => {
+  const result = get(value, selector, expand ? [] : undefined)
   if (expand) {
-    const list = Array.isArray(value) ? value : [value]
-    return list
-      .map(value => get(value, selector))
-      .filter(value => value !== undefined)
+    return result
   }
-  const result = get(value, selector)
   // if value is null, the key is present. Despite the operand
   // name of `allowNull`, this is a valid scenario that should
   // not raise a NullSelectionError

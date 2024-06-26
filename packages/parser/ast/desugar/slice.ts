@@ -7,7 +7,7 @@ const browserGlobals = [
   ...Object.keys(globals.builtin),
 ]
 
-export const analyzeSlice = (source: string) => {
+export const analyzeSlice = (source: string, includeDeps: boolean) => {
   const ast = parse(source, {
     ecmaVersion: 'latest',
     allowReturnOutsideFunction: true,
@@ -18,6 +18,10 @@ export const analyzeSlice = (source: string) => {
   // auto-insert the return statement
   if (ast.body.length === 1 && ast.body[0]?.type !== 'ReturnStatement') {
     src = `return ${src}`
+  }
+
+  if (!includeDeps) {
+    return { source: src, deps: [] }
   }
 
   // detect globals and load them from context

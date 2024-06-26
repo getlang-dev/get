@@ -1,4 +1,4 @@
-import { SliceError, NullInputError } from '../errors'
+import { SliceError, NullInputError } from '@getlang/utils'
 import * as json from './values/json'
 
 export const runSlice = async (
@@ -10,7 +10,7 @@ export const runSlice = async (
     const value = await fn(context)
     // convert an undefined result into explicit null
     return typeof value === 'undefined' ? null : value
-  } catch (e: unknown) {
+  } catch (e) {
     throw new SliceError({ cause: e })
   }
 }
@@ -23,6 +23,6 @@ export const selectInput = (
   try {
     return json.select(input, inputName, false, optional)
   } catch (e) {
-    throw new NullInputError(inputName)
+    throw new NullInputError(inputName, { cause: e })
   }
 }

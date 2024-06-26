@@ -1,26 +1,25 @@
-import { invariant, GetReferenceError } from '../errors'
-import type { Value } from './value'
+import { invariant, ValueReferenceError } from './errors'
 
-class Scope {
-  vars: Record<string, Value>
-  extracted: Value | undefined
-  contextStack: Value[]
+export class Scope<T> {
+  vars: Record<string, T>
+  extracted: T | undefined
+  contextStack: T[]
 
   constructor(
-    parentVars: Record<string, Value> = Object.create(null),
-    context?: Value,
+    parentVars: Record<string, T> = Object.create(null),
+    context?: T,
   ) {
     this.vars = Object.create(parentVars)
     this.contextStack = context ? [context] : []
   }
 }
 
-export class RootScope {
-  scopeStack: Scope[] = [new Scope()]
+export class RootScope<T> {
+  scopeStack: Scope<T>[] = [new Scope()]
 
   private get scope() {
     const scope = this.scopeStack.at(-1)
-    invariant(scope, new GetReferenceError('Corrupted scope stack'))
+    invariant(scope, new ValueReferenceError('Corrupted scope stack'))
     return scope
   }
 
@@ -28,7 +27,7 @@ export class RootScope {
     return this.scope.vars
   }
 
-  pushContext(context: Value) {
+  pushContext(context: T) {
     this.scope.contextStack.push(context)
     this.updateContext()
   }
@@ -51,12 +50,17 @@ export class RootScope {
     }
   }
 
-  set extracted(data: Value) {
-    this.scope.extracted = data
+  set extracted(data: T) {
+    if (this.scope.extracted !== undefined) {
+      console.warn('Functions must contain a single extract statement')
+    } else {
+      this.scope.extracted = data
+    }
   }
 
-  push() {
-    this.scopeStack.push(new Scope(this.vars, this.context))
+  push(context: T | undefined = this.context) {
+    this.scopeStack.push(new Scope(this.vars, context))
+    this.updateContext()
   }
 
   pop() {

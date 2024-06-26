@@ -1,6 +1,8 @@
 import { describe, test, it, expect } from 'bun:test'
 import { errors } from '@getlang/get'
-import { execute, testIdempotency } from './helpers'
+import { helper } from './helpers'
+
+const { execute, testIdempotency } = helper()
 
 describe('slice', () => {
   it('evaluates javascript with implicit return', async () => {

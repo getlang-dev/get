@@ -1,34 +1,17 @@
 import type { Doc } from 'prettier'
 import { doc } from 'prettier'
-import type { Node, Expr } from './ast'
+import type { Node } from './ast'
 import { NodeKind } from './ast'
 import type { ExhaustiveVisitor } from './visitor'
 import { visit } from './visitor'
+
+// NOTE: avoid using template interpolation with prettier.Doc
+// as the Doc may be a Doc array or Doc command
 
 const {
   builders: { group, indent, join, line, hardline, softline, ifBreak },
   printer,
 } = doc
-
-const unwrapHead = (expr: Expr): Expr => {
-  if (expr.kind === NodeKind.DrillExpr) {
-    if (expr.target === 'context') {
-      return expr.bit
-    }
-    if (expr.target.kind === NodeKind.DrillExpr) {
-      return unwrapHead(expr.target)
-    }
-    return expr.target
-  }
-  return expr
-}
-
-const unwrapTail = (expr: Expr): Expr => {
-  if (expr.kind === NodeKind.DrillExpr) {
-    return expr.bit
-  }
-  return expr
-}
 
 const printVisitor: ExhaustiveVisitor<Doc> = {
   Program(node) {
@@ -52,18 +35,7 @@ const printVisitor: ExhaustiveVisitor<Doc> = {
     return group(['$', node.name.value, '(', node.args, ')'])
   },
 
-  InputDeclStmt(node) {
-    const parts: Doc[] = [node.id.text]
-    if (node.optional) {
-      parts.push('?')
-    }
-    if (node.defaultValue) {
-      parts.push(' = ', node.defaultValue)
-    }
-    return group(parts)
-  },
-
-  RequestStmt(node) {
+  RequestExpr(node) {
     const parts: Doc[] = [node.method.value, ' ', node.url]
     for (const h of node.headers) {
       parts.push(hardline, h.key, ': ', h.value)
@@ -81,27 +53,39 @@ const printVisitor: ExhaustiveVisitor<Doc> = {
     return group(parts)
   },
 
-  AssignmentStmt(node, orig) {
-    const idTarget = unwrapHead(orig.value).kind === NodeKind.IdentifierExpr
-    const parts: Doc[] = ['set ', node.name.value]
+  InputDeclStmt(node) {
+    const parts: Doc[] = [node.id.text]
     if (node.optional) {
       parts.push('?')
     }
-    const sep = idTarget ? ' = $' : ' = '
-    parts.push(sep, node.value)
+    if (node.defaultValue) {
+      parts.push(' = ', node.defaultValue)
+    }
     return group(parts)
   },
 
-  ExtractStmt(node, orig) {
-    const head = unwrapHead(orig.value)
-    const punct = head.kind === NodeKind.IdentifierExpr ? ['$'] : []
-    return group(['extract ', ...punct, node.value])
+  RequestStmt(node) {
+    return node.request
+  },
+
+  AssignmentStmt(node) {
+    return group([
+      'set ',
+      node.name.value,
+      node.optional ? '?' : '',
+      ' = ',
+      node.value,
+    ])
+  },
+
+  ExtractStmt(node) {
+    return group(['extract ', node.value])
   },
 
   ObjectLiteralExpr(node, orig) {
     const shorthand: Doc[] = []
     const shouldBreak = orig.entries.some(
-      e => unwrapTail(e.value).kind === NodeKind.TemplateExpr,
+      e => e.value.kind === NodeKind.SelectorExpr,
     )
     const entries = node.entries.map((entry, i) => {
       const origEntry = orig.entries[i]
@@ -117,11 +101,7 @@ const printVisitor: ExhaustiveVisitor<Doc> = {
       keyGroup.push(': ')
 
       // value
-      const head = unwrapHead(origEntry.value)
-      let value = entry.value
-      if (head.kind === NodeKind.IdentifierExpr) {
-        value = ['$', value]
-      }
+      const value = entry.value
       let shValue: Doc = entry.value
       if (
         Array.isArray(shValue) &&
@@ -138,9 +118,10 @@ const printVisitor: ExhaustiveVisitor<Doc> = {
 
     const inner = entries.map((e, i) => shorthand[i] || group([e.key, e.value]))
     const sep = ifBreak(line, [',', line])
-    return group(['{', indent([line, join(sep, inner)]), line, '}'], {
+    const obj = group(['{', indent([line, join(sep, inner)]), line, '}'], {
       shouldBreak,
     })
+    return node.context ? [node.context, indent([line, '-> ', obj])] : obj
   },
 
   TemplateExpr(node, orig) {
@@ -148,21 +129,24 @@ const printVisitor: ExhaustiveVisitor<Doc> = {
       const origEl = orig.elements[i]
       if (!origEl) {
         throw new Error('Unmatched object literal entry')
-      }
-      if (origEl.kind === NodeKind.LiteralExpr) {
+      } else if (origEl.kind === NodeKind.LiteralExpr) {
         return el
-      }
-      if (origEl.kind !== NodeKind.IdentifierExpr) {
+      } else if (origEl.kind !== NodeKind.IdentifierExpr) {
         throw new Error(`Unexpected template node: ${origEl?.kind}`)
       }
 
+      // strip the leading `$` character
+      if (typeof el !== 'string' && !Array.isArray(el)) {
+        throw new Error(`Unsupported template node: ${el.type} command`)
+      }
+      let ret = el.slice(1)
+
       const nextEl = node.elements[i + 1]
-      let elDoc = el
       if (typeof nextEl === 'string' && /^\w/.test(nextEl)) {
         // use ${id} syntax to delineate against next element in template
-        elDoc = `{${el}}`
+        ret = ['{', ret, '}']
       }
-      return origEl.isUrlComponent ? `:${elDoc}` : `$${elDoc}`
+      return [origEl.isUrlComponent ? ':' : '$', ret]
     })
   },
 
@@ -171,37 +155,46 @@ const printVisitor: ExhaustiveVisitor<Doc> = {
   },
 
   IdentifierExpr(node) {
-    return node.value.value
+    return ['$', node.value.value]
   },
 
-  DrillExpr(node) {
-    if (node.target === 'context') {
-      return node.bit
+  SelectorExpr(node, orig) {
+    const infer = orig.context === 'infer'
+    if (infer) {
+      const arrow = node.expand ? '=> ' : ''
+      return [arrow, node.selector]
     }
     const arrow = node.expand ? '=> ' : '-> '
-    return [node.target, indent([line, arrow, node.bit])]
-    // return group([node.target, line, arrow, node.bit])
-    // return fill([node.target, line, arrow, node.bit])
+    return [node.context, indent([line, arrow, node.selector])]
   },
 
-  ModifierExpr(node) {
-    return `@${node.value.value}`
+  ModifierExpr(node, orig) {
+    const infer = orig.context === 'infer'
+    const mod = ['@', node.value.value]
+    return infer ? mod : [node.context, indent([line, '-> ', mod])]
   },
 
   SliceExpr(node) {
     const { value } = node.slice
     const quot = value.includes('`') ? '```' : '`'
     const lines = value.split('\n')
-    return group([
+    const slice = group([
       quot,
       indent([softline, join(hardline, lines)]),
       softline,
       quot,
     ])
+    return node.context ? [node.context, indent([line, '-> ', slice])] : slice
   },
 
   FunctionExpr(node) {
-    return ['(', indent(node.body.flatMap(x => [hardline, x])), hardline, ')']
+    const fn = [
+      '(',
+      indent(node.body.flatMap(x => [hardline, x])),
+      hardline,
+      ')',
+    ]
+    return node.context ? [node.context, indent([line, '-> ', fn])] : fn
   },
 }
 

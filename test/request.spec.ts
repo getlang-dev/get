@@ -8,7 +8,9 @@ import {
   afterEach,
 } from 'bun:test'
 import type { RequestHook } from '@getlang/get'
-import { execute as _exec, testIdempotency } from './helpers'
+import { helper } from './helpers'
+
+const { execute: _exec, testIdempotency } = helper()
 
 const requestHook = mock<RequestHook>()
 

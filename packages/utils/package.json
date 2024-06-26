@@ -3,7 +3,7 @@
   "version": "0.0.7",
   "license": "Apache-2.0",
   "type": "module",
-  "main": "dist",
+  "main": "index.ts",
   "files": ["dist"],
   "bugs": {
     "url": "https://github.com/getlang-dev/get/issues"

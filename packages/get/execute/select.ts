@@ -5,7 +5,7 @@ import * as js from './values/js'
 import * as headers from './values/headers'
 import * as cookies from './values/cookies'
 import * as type from './value'
-import { invariant, GetTypeError } from '../errors'
+import { invariant, ValueTypeError } from '@getlang/utils'
 
 type Args = [selector: string, expand: boolean, allowNull: boolean]
 
@@ -20,7 +20,7 @@ function selectValue<T extends type.Value, V extends type.Value>(
   if (expand) {
     invariant(
       Array.isArray(result),
-      new GetTypeError('Expanding selector encountered non-array'),
+      new ValueTypeError('Expanding selector encountered non-array'),
     )
     return new type.ListValue(
       result.map(x => new ValueType(x, context.base)),

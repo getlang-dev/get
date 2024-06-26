@@ -53,7 +53,7 @@ export const request: PP = ([
     }
   }
 
-  return t.requestStmt(method, url, headers, blocks, body)
+  return t.requestStmt(t.requestExpr(method, url, headers, blocks, body))
 }
 
 export const requestBlockNamed: PP = ([name, , entries]) => ({ name, entries })
@@ -100,10 +100,10 @@ export const objectEntry: PP = ([identifier, optional, , , value]) => ({
   optional: Boolean(optional),
 })
 
-export const objectEntryShorthandDrill: PP = ([identifier, optional]) => {
+export const objectEntryShorthandSelect: PP = ([identifier, optional]) => {
   const value = t.templateExpr([t.literalExpr(identifier)])
-  const drill = t.drillExpr('context', value, false)
-  return objectEntry([identifier, optional, null, null, drill])
+  const selector = t.selectorExpr(value, false)
+  return objectEntry([identifier, optional, null, null, selector])
 }
 
 export const objectEntryShorthandIdent: PP = ([identifier, optional]) => {
@@ -111,18 +111,31 @@ export const objectEntryShorthandIdent: PP = ([identifier, optional]) => {
   return objectEntry([identifier, optional, null, null, value])
 }
 
-export const drill: PP = ([target, , arrow, , bit]) => {
+const expandingSelectors = [NodeKind.TemplateExpr, NodeKind.IdentifierExpr]
+export const drill: PP = ([context, , arrow, , bit]) => {
   const expand = arrow.value.startsWith('=')
-  return t.drillExpr(target, bit, expand)
+  if (expandingSelectors.includes(bit.kind)) {
+    return t.selectorExpr(bit, expand, context)
+  }
+  if (expand) {
+    throw new SyntaxError('Wide arrow drill requires selector on RHS')
+  }
+  if (!('context' in bit)) {
+    throw new SyntaxError('Invalid drill value')
+  }
+  bit.context = context
+  return bit
 }
 
-const contextSelectors = [NodeKind.TemplateExpr, NodeKind.ModifierExpr]
 export const drillContext: PP = ([arrow, expr]) => {
-  if (!contextSelectors.includes(expr.kind)) {
-    return expr
-  }
   const expand = arrow?.[0].value === '=>'
-  return t.drillExpr('context', expr, expand)
+  if (expr.kind === NodeKind.TemplateExpr) {
+    return t.selectorExpr(expr, expand)
+  }
+  if (expand) {
+    throw new SyntaxError('Wide arrow drill requires selector on RHS')
+  }
+  return expr
 }
 
 export const identifier: PP = ([id]) => {

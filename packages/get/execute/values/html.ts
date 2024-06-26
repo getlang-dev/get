@@ -9,7 +9,7 @@ import {
   SelectorSyntaxError,
   NullSelectionError,
   invariant,
-} from '../../errors'
+} from '@getlang/utils'
 import type { SelectFn } from './types'
 import './patch-dom'
 

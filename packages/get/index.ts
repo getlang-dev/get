@@ -4,10 +4,10 @@ import type { Program } from '@getlang/parser'
 import { execute as exec } from './execute/execute'
 import type { InternalHooks } from './execute/execute'
 import * as http from './execute/net/http'
-import { ImportError } from './errors'
+import { ImportError } from '@getlang/utils'
 
-export { RuntimeError } from './errors'
-export * as errors from './errors'
+export { RuntimeError } from '@getlang/utils'
+export * as errors from '@getlang/utils'
 
 export type RequestHook = InternalHooks['request']
 export type ImportHook = (module: string) => string | Promise<string>
