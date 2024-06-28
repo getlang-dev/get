@@ -7,17 +7,12 @@ export class Value {
     public raw: any,
     public base: string | null,
   ) {}
-
-  get hasUndefined(): boolean {
-    return this instanceof StringValue && this._hasUndefined
-  }
 }
 
 export class StringValue extends Value {
   constructor(
     public override raw: string,
     base: string | null,
-    public _hasUndefined = false,
   ) {
     super(raw, base)
   }
@@ -59,10 +54,10 @@ export class CookieSetValue extends Value {
   }
 }
 
-export class NullValue extends Value {
-  public override raw: null = null
+export class UndefinedValue extends Value {
+  public override raw: undefined = undefined
   constructor(public selector: string) {
-    super(null, null)
+    super(undefined, null)
   }
 }
 

@@ -21,9 +21,9 @@ export const selectInput = (
   inputName: string,
   optional: boolean,
 ) => {
-  try {
-    return json.select(input, inputName, false, optional)
-  } catch (e) {
-    throw new NullInputError(inputName, { cause: e })
+  const value = json.select(input, inputName, false)
+  if (value === undefined && !optional) {
+    throw new NullInputError(inputName)
   }
+  return value
 }

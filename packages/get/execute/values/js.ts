@@ -1,33 +1,20 @@
 import { parse as acorn } from 'acorn'
 import type { AnyNode } from 'acorn'
 import esquery from 'esquery'
-import {
-  SelectorSyntaxError,
-  NullSelectionError,
-  ConversionError,
-  invariant,
-} from '@getlang/utils'
+import { SelectorSyntaxError, ConversionError, invariant } from '@getlang/utils'
 import type { SelectFn } from './types'
 
 export const parse = (js: string): AnyNode => {
   return acorn(js, { ecmaVersion: 'latest' })
 }
 
-export const select: SelectFn<AnyNode> = (
-  node,
-  selector,
-  expand,
-  allowNull,
-) => {
+export const select: SelectFn<AnyNode> = (node, selector, expand) => {
   try {
     const matches = esquery(node, selector)
     if (expand) {
       return matches
     }
-    if (matches.length) {
-      return matches[0]
-    }
-    invariant(allowNull, new NullSelectionError(selector))
+    return matches.length ? matches[0] : undefined
   } catch (e: any) {
     invariant(
       e.name !== 'SyntaxError',

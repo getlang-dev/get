@@ -1,5 +1,6 @@
+import { toPath } from 'lodash-es'
 import { Type, type TypeInfo, ValueTypeError } from '@getlang/utils'
-import type { Expr, Node } from '../ast'
+import type { Expr } from '../ast'
 import { NodeKind, type RequestExpr } from '../ast'
 
 const modTypeMap: Record<string, TypeInfo> = {
@@ -11,12 +12,21 @@ const modTypeMap: Record<string, TypeInfo> = {
   link: { type: Type.Unknown },
 }
 
-export function getTypeInfo(node: Node | undefined, msg?: string) {
-  if (node && 'typeInfo' in node && node.typeInfo) {
-    return node.typeInfo
+export function getTypeInfo(expr: Expr | undefined, msg?: string) {
+  if (expr && 'typeInfo' in expr && expr.typeInfo) {
+    return expr.typeInfo
   }
-  const errMsg = msg ?? `Failed to locate type info for node: ${node?.kind}`
+  const errMsg = msg ?? `Failed to locate type info for node: ${expr?.kind}`
   throw new ValueTypeError(errMsg)
+}
+
+export function selectTypeInfo(expr: Expr, selector: string): TypeInfo {
+  const ti = getTypeInfo(expr)
+  return toPath(selector).reduce(
+    (acc, cur) =>
+      (acc.type === Type.Struct && acc.schema[cur]) || { type: Type.Unknown },
+    ti,
+  )
 }
 
 export function getModTypeInfo(mod: string): TypeInfo {

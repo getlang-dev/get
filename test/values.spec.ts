@@ -97,6 +97,19 @@ describe('drills & parsers', () => {
     expect(result).toEqual(2)
   })
 
+  test('values not closed until final extract stmt', async () => {
+    const result = await execute(`
+        set fn_out = (
+          set html = \`"<html><h1>unweb</h1><html>"\`
+          extract {
+            doc: $html -> @html
+          }
+        )
+        extract $fn_out -> doc -> h1
+      `)
+    expect(result).toEqual('unweb')
+  })
+
   describe('json', () => {
     test('parse string', async () => {
       const result = await execute(`
@@ -434,11 +447,11 @@ describe('drills & parsers', () => {
       expect(result).toEqual({})
     })
 
-    test('complex drill bits are null for optionals', async () => {
+    test('complex drill bits are dropped for optionals', async () => {
       const result = await execute(`
-        set null = \`null\`
+        inputs { undefined? }
         extract {
-          test?: $null -> { a }
+          test?: $undefined -> { a }
         }
       `)
       // i.e. does not equal { test: { a: ... } }

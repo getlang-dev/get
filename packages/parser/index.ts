@@ -5,7 +5,7 @@ import lexer from './parse/lexer'
 import type { Program } from './ast/ast'
 
 export { NodeKind, t } from './ast/ast'
-export type { Program }
+export type { Program, Stmt } from './ast/ast'
 export { visit, SKIP } from './ast/visitor'
 export type * from './ast/visitor'
 

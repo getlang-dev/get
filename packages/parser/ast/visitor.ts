@@ -26,7 +26,9 @@ type NodeConfig<
   A extends boolean = false,
   TN = TransformNode<N, S, E>,
   XN = Transform<N, S, E>,
-  Visit = <C extends Node>(child: C) => Transform<C, S, E>,
+  Visit = <C extends Node>(
+    child: C,
+  ) => A extends true ? MaybePromise<Transform<C, S, E>> : Transform<C, S, E>,
   EntryVisitor = (
     node: N,
     visit: Visit,

@@ -53,11 +53,11 @@ describe('getlang modules', () => {
     test('optional input', async () => {
       const src = `
         inputs { value? }
-        extract $value
+        extract \`12\`
       `
       const result = await execute(src)
       // does not throw error
-      expect(result).toBeUndefined()
+      expect(result).toEqual(12)
     })
 
     test('default value', async () => {

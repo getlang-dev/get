@@ -1,12 +1,6 @@
 import type { SelectFn } from './types'
-import { NullSelectionError, invariant } from '@getlang/utils'
 
-export const select: SelectFn<Headers, string> = (
-  headers,
-  path,
-  expand,
-  allowNull,
-) => {
+export const select: SelectFn<Headers, string> = (headers, path, expand) => {
   if (expand && path === 'set-cookie') {
     return headers.getSetCookie()
   }
@@ -14,8 +8,5 @@ export const select: SelectFn<Headers, string> = (
   if (expand) {
     return result ? result.split(',').map(x => x.trimStart()) : []
   }
-  if (result !== null) {
-    return result
-  }
-  invariant(allowNull, new NullSelectionError(path))
+  return result === null ? undefined : result
 }

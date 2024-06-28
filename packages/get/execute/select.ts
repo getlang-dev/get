@@ -7,16 +7,14 @@ import * as cookies from './values/cookies'
 import * as type from './value'
 import { invariant, ValueTypeError } from '@getlang/utils'
 
-type Args = [selector: string, expand: boolean, allowNull: boolean]
-
 function selectValue<T extends type.Value, V extends type.Value>(
   ValueType: { new (...args: any[]): V },
   fn: SelectFn<T['raw'], V['raw']>,
   context: T,
-  ...args: Args
-): V | type.ListValue<V> | type.NullValue {
-  const result = fn(context.raw, ...args)
-  const [, expand] = args
+  selector: string,
+  expand: boolean,
+): V | type.ListValue<V> | type.UndefinedValue {
+  const result = fn(context.raw, selector, expand)
   if (expand) {
     invariant(
       Array.isArray(result),
@@ -27,30 +25,30 @@ function selectValue<T extends type.Value, V extends type.Value>(
       context.base,
     )
   }
-  if (result !== undefined) {
-    return new ValueType(result, context.base)
-  }
-
-  return new type.NullValue(args[0])
+  return result === undefined
+    ? new type.UndefinedValue(selector)
+    : new ValueType(result, context.base)
 }
 
 export function select<T extends type.Value>(
   context: T,
-  ...args: Args
+  selector: string,
+  expand: boolean,
 ): type.Value {
+  const args = [context, selector, expand] as const
   if (context instanceof type.HtmlValue) {
-    return selectValue(type.HtmlValue, html.select, context, ...args)
+    return selectValue(type.HtmlValue, html.select, ...args)
   }
   if (context instanceof type.JsValue) {
-    return selectValue(type.JsValue, js.select, context, ...args)
+    return selectValue(type.JsValue, js.select, ...args)
   }
   if (context instanceof type.HeadersValue) {
-    return selectValue(type.StringValue, headers.select, context, ...args)
+    return selectValue(type.StringValue, headers.select, ...args)
   }
   if (context instanceof type.CookieSetValue) {
-    return selectValue(type.StringValue, cookies.select, context, ...args)
+    return selectValue(type.StringValue, cookies.select, ...args)
   }
 
-  const result = selectValue(type.Value, json.select, context, ...args)
+  const result = selectValue(type.Value, json.select, ...args)
   return result?.raw instanceof type.Value ? result.raw : result
 }

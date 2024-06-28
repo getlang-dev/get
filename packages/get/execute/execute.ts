@@ -1,4 +1,4 @@
-import type { Program, AsyncExhaustiveVisitor } from '@getlang/parser'
+import type { Program, AsyncExhaustiveVisitor, Stmt } from '@getlang/parser'
 import { visit, SKIP, NodeKind } from '@getlang/parser'
 import { RootScope } from '@getlang/utils'
 import * as type from './value'
@@ -37,25 +37,30 @@ class Modules {
   }
 }
 
-function toValue(value: type.Value): unknown {
+function toValue(value: unknown): unknown {
   if (value instanceof type.HtmlValue) {
     return html.getValue(value.raw)
-  }
-  if (value instanceof type.JsValue) {
+  } else if (value instanceof type.JsValue) {
     return js.getValue(value.raw)
-  }
-  if (value instanceof type.HeadersValue) {
+  } else if (value instanceof type.HeadersValue) {
     return Object.fromEntries(value.raw)
-  }
-  if (value instanceof type.CookieSetValue) {
+  } else if (value instanceof type.CookieSetValue) {
     return Object.fromEntries(
       Object.entries(value.raw).map(e => [e[0], e[1].value]),
     )
-  }
-  if (value instanceof type.ListValue) {
+  } else if (value instanceof type.ListValue) {
     return value.raw.map(item => toValue(item))
+  } else if (value instanceof type.Value) {
+    return toValue(value.raw)
+  } else if (Array.isArray(value)) {
+    return value.map(toValue)
+  } else if (typeof value === 'object' && value) {
+    return Object.fromEntries(
+      Object.entries(value).map(e => [e[0], toValue(e[1])]),
+    )
+  } else {
+    return value
   }
-  return value.raw
 }
 
 export async function execute(
@@ -65,15 +70,33 @@ export async function execute(
   modules: Modules = new Modules(hooks.import),
 ) {
   const scope = new RootScope<type.Value>()
-  const optional = [false]
-  const allowNull = () => optional.at(-1) === true
+
+  function assert(value: type.Value) {
+    if (value instanceof type.UndefinedValue) {
+      throw new NullSelectionError(value.selector)
+    }
+  }
+
+  async function executeBody(
+    visit: (stmt: Stmt) => void,
+    body: Stmt[],
+    context?: type.Value,
+  ) {
+    scope.push(context)
+    for (const stmt of body) {
+      await visit(stmt)
+      if (stmt.kind === NodeKind.ExtractStmt) {
+        break
+      }
+    }
+    return scope.pop()
+  }
 
   async function contextual(
     context: type.Value | undefined,
     cb: () => Promise<type.Value>,
   ): Promise<type.Value> {
-    if (context instanceof type.NullValue) {
-      invariant(allowNull(), new NullSelectionError(context.selector))
+    if (context instanceof type.UndefinedValue) {
       return context
     }
     try {
@@ -108,19 +131,26 @@ export async function execute(
 
     TemplateExpr(node) {
       const { elements: els } = node
-      return new type.StringValue(
-        els.map(v => v.raw).join(''),
-        (els.length === 1 && els[0]?.base) || null,
-        els.some(v => v.raw === null || v.raw === undefined),
-      )
+      let hasUndefined = false
+      const value = node.elements
+        .map(e => {
+          if (e.raw === null || e.raw === undefined) {
+            hasUndefined = true
+            return '<null>'
+          }
+          return e.raw
+        })
+        .join('')
+      if (hasUndefined) {
+        return new type.UndefinedValue(value)
+      }
+      const base = (els.length === 1 && els[0]?.base) || null
+      return new type.StringValue(value, base)
     },
 
     IdentifierExpr(node) {
       const value = scope.vars[node.value.value]
       invariant(value, new ValueReferenceError(node.value.value))
-      if (value instanceof type.NullValue) {
-        invariant(allowNull(), new NullSelectionError(value.selector))
-      }
       return value
     },
 
@@ -135,8 +165,8 @@ export async function execute(
             scope.context ? toValue(scope.context) : {},
             scope.context?.raw,
           )
-          return value === null
-            ? new type.NullValue(fauxSelector)
+          return value === undefined
+            ? new type.UndefinedValue(fauxSelector)
             : new type.Value(value, null)
         })
       },
@@ -149,7 +179,7 @@ export async function execute(
         return contextual(context, async () => {
           const selector = await visit(node.selector)
           if (selector instanceof type.StringValue) {
-            return select(context, selector.raw, node.expand, allowNull())
+            return select(context, selector.raw, node.expand)
           }
           return node.expand
             ? new type.ListValue(selector.raw, selector.base)
@@ -188,11 +218,9 @@ export async function execute(
                 context.raw,
                 context.base ?? undefined,
               )
-              if (resolved) {
-                return new type.StringValue(resolved, null)
-              }
-              invariant(allowNull(), new NullSelectionError('@link'))
-              return new type.NullValue('@link')
+              return resolved
+                ? new type.StringValue(resolved, null)
+                : new type.UndefinedValue('@link')
             }
 
             default:
@@ -208,18 +236,17 @@ export async function execute(
         return contextual(context, async () => {
           const obj: Record<string, unknown> = {}
           for (const entry of node.entries) {
-            optional.push(entry.optional)
             const key = await visit(entry.key)
+            entry.optional || assert(key)
             const value = await visit(entry.value)
-            optional.pop()
+            entry.optional || assert(value)
             invariant(
               key instanceof type.StringValue,
               new ValueTypeError('Only string keys are supported'),
             )
-            if (value instanceof type.NullValue) {
-              continue
+            if (!(value instanceof type.UndefinedValue)) {
+              obj[key.raw] = value
             }
-            obj[key.raw] = toValue(value)
           }
           return new type.Value(obj, null)
         })
@@ -228,39 +255,24 @@ export async function execute(
 
     FunctionExpr: {
       async enter(node, visit) {
-        async function visitBody(context?: type.Value) {
-          scope.push()
-          if (context) {
-            scope.pushContext(context)
-          }
-          for (const stmt of node.body) {
-            await visit(stmt)
-            if (stmt.kind === NodeKind.ExtractStmt) {
-              break
-            }
-          }
-          const data = scope.pop()
-          invariant(data, new QuerySyntaxError('Missing extract statement'))
-          return data
-        }
-
         const context = node.context && (await visit(node.context))
-
-        if (context instanceof type.ListValue) {
-          const values: type.Value[] = []
-          for (const item of context.raw) {
-            const itemContext =
-              item instanceof type.Value
-                ? item
-                : new type.Value(item, context.base)
-            const data = await visitBody(itemContext)
-            values.push(data)
-          }
-          return new type.ListValue(values, context.base)
+        if (!(context instanceof type.ListValue)) {
+          const ex = await executeBody(visit, node.body, context)
+          invariant(ex, new QuerySyntaxError('Missing extract statement'))
+          return ex
         }
 
-        const data = await visitBody(context)
-        return new type.Value(toValue(data), null)
+        const values: type.Value[] = []
+        for (const item of context.raw) {
+          const itemContext =
+            item instanceof type.Value
+              ? item
+              : new type.Value(item, context.base)
+          const ex = await executeBody(visit, node.body, itemContext)
+          invariant(ex, new QuerySyntaxError('Missing extract statement'))
+          values.push(ex)
+        }
+        return new type.ListValue(values, context.base)
       },
     },
 
@@ -280,7 +292,8 @@ export async function execute(
 
       const obj = (entries: (typeof node)['headers']) => {
         const filteredEntries = entries.flatMap(e =>
-          e.key.hasUndefined || e.value.hasUndefined
+          e.key instanceof type.UndefinedValue ||
+          e.value instanceof type.UndefinedValue
             ? []
             : [[e.key.raw, e.value.raw]],
         )
@@ -331,43 +344,33 @@ export async function execute(
         if (!inputValue && node.defaultValue) {
           inputValue = (await visit(node.defaultValue)).raw
         }
-        scope.vars[inputName] = new type.Value(inputValue, null)
+        scope.vars[inputName] =
+          inputValue === undefined
+            ? new type.UndefinedValue(`input:${inputName}`)
+            : new type.Value(inputValue, null)
         return SKIP
       },
     },
 
-    AssignmentStmt: {
-      enter(node) {
-        optional.push(node.optional)
-      },
-      exit(node) {
-        optional.pop()
-        scope.vars[node.name.value] = node.value
-      },
+    AssignmentStmt(node) {
+      node.optional || assert(node.value)
+      scope.vars[node.name.value] = node.value
     },
 
-    RequestStmt: {
-      enter() {
-        optional.push(true)
-      },
-
-      async exit(node) {
-        optional.pop()
-        scope.pushContext(node.request)
-      },
+    RequestStmt(node) {
+      scope.pushContext(node.request)
     },
 
     ExtractStmt(node) {
+      assert(node.value)
       scope.extracted = node.value
     },
 
     Program: {
       async enter(node, visit) {
-        for (const stmt of node.body) {
-          await visit(stmt)
-          if (stmt.kind === NodeKind.ExtractStmt) {
-            break
-          }
+        const ex = await executeBody(visit, node.body)
+        if (ex) {
+          scope.extracted = ex
         }
         return SKIP
       },
@@ -375,7 +378,6 @@ export async function execute(
   }
 
   await visit(program, visitor)
-
-  const value = scope.pop()
-  return value ? toValue(value) : null
+  const ex = scope.pop()
+  return ex ? toValue(ex) : null
 }

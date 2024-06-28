@@ -16,6 +16,7 @@ import {
   createToken,
   getContentMod,
   getTypeInfo,
+  selectTypeInfo,
   getModTypeInfo,
 } from './desugar/utils'
 
@@ -34,6 +35,24 @@ export function desugar(ast: Node): Program {
       new QuerySyntaxError('Unable to locate active context'),
     )
     return scope.context
+  }
+
+  function render(expr: Expr) {
+    switch (expr.kind) {
+      case NodeKind.LiteralExpr:
+        return expr.value.value
+      case NodeKind.TemplateExpr: {
+        const template: string[] = []
+        for (const el of expr.elements) {
+          const r = render(el)
+          if (typeof r !== 'string') {
+            return
+          }
+          template.push(r)
+        }
+        return template.join('')
+      }
+    }
   }
 
   function inferContext(_mod?: string) {
@@ -134,11 +153,16 @@ export function desugar(ast: Node): Program {
             value: visit(e.value),
             optional: e.optional,
           }))
-          return {
-            ...node,
-            entries,
-            typeInfo: { type: Type.Unknown },
+          const typeInfo: TypeInfo = {
+            type: Type.Struct,
+            schema: Object.fromEntries(
+              entries.flatMap(e => {
+                const key = render(e.key)
+                return key ? [[key, getTypeInfo(e.value)]] : []
+              }),
+            ),
           }
+          return { ...node, entries, typeInfo }
         })
       },
     },
@@ -149,9 +173,16 @@ export function desugar(ast: Node): Program {
         const itemContext = t.selectorExpr(node.selector, node.expand)
         return contextual(context, itemContext, visit, () => {
           const ctype = getTypeInfo(context)
-          const typeInfo: TypeInfo = node.expand
-            ? { type: Type.List, of: ctype }
-            : ctype
+          let typeInfo: TypeInfo = ctype
+          if (ctype.type === Type.Struct) {
+            const selStr = render(node.selector)
+            typeInfo = selStr
+              ? selectTypeInfo(context, selStr)
+              : { type: Type.Unknown }
+          }
+          if (node.expand) {
+            typeInfo = { type: Type.List, of: typeInfo }
+          }
           return { ...node, context, typeInfo }
         })
       },

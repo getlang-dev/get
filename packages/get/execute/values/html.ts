@@ -17,12 +17,7 @@ export const parse = (html: string): AnyHtmlNode => {
   return parse5(html, { treeAdapter: adapter })
 }
 
-const selectXpath: SelectFn<AnyHtmlNode> = (
-  el,
-  selector,
-  expand,
-  allowNull,
-) => {
+const selectXpath: SelectFn<AnyHtmlNode> = (el, selector, expand) => {
   try {
     const parseXpath = new xpath.XPathParser()
     parseXpath.parse(selector)
@@ -42,13 +37,10 @@ const selectXpath: SelectFn<AnyHtmlNode> = (
   if (expand) {
     return result
   }
-  if (result.length) {
-    return result[0]
-  }
-  invariant(allowNull, new NullSelectionError(selector))
+  return result.length ? result[0] : undefined
 }
 
-const selectCss: SelectFn<AnyHtmlNode> = (el, selector, expand, allowNull) => {
+const selectCss: SelectFn<AnyHtmlNode> = (el, selector, expand) => {
   try {
     parseCss(selector)
   } catch (e) {
@@ -58,21 +50,13 @@ const selectCss: SelectFn<AnyHtmlNode> = (el, selector, expand, allowNull) => {
   if (expand) {
     return result ?? []
   }
-  if (result !== null) {
-    return result
-  }
-  invariant(allowNull, new NullSelectionError(selector))
+  return result === null ? undefined : result
 }
 
-export const select: SelectFn<AnyHtmlNode> = (
-  el,
-  selector,
-  expand,
-  allowNull,
-) => {
+export const select: SelectFn<AnyHtmlNode> = (el, selector, expand) => {
   return selector.startsWith('xpath:')
-    ? selectXpath(el, selector.slice(6), expand, allowNull)
-    : selectCss(el, selector, expand, allowNull)
+    ? selectXpath(el, selector.slice(6), expand)
+    : selectCss(el, selector, expand)
 }
 
 export const getValue = (el: AnyHtmlNode) => {
