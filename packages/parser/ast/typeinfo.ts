@@ -7,6 +7,7 @@ export enum Type {
   Null = 'null',
   List = 'list',
   Struct = 'struct',
+  Maybe = 'maybe',
 }
 
 type ScalarType = {
@@ -23,4 +24,9 @@ type Struct = {
   schema: Record<string, TypeInfo>
 }
 
-export type TypeInfo = ScalarType | List | Struct
+type Maybe = {
+  type: Type.Maybe
+  of: TypeInfo
+}
+
+export type TypeInfo = ScalarType | List | Struct | Maybe

@@ -1,14 +1,11 @@
-import {
-  RootScope,
-  Type,
-  type TypeInfo,
-  invariant,
-  QuerySyntaxError,
-} from '@getlang/utils'
+import { invariant, QuerySyntaxError } from '@getlang/lib'
 import type { Node, Program, Expr } from './ast'
 import { NodeKind, t } from './ast'
 import type { Visitor } from './visitor'
 import { visit } from './visitor'
+import { RootScope } from './scope'
+import type { TypeInfo } from './typeinfo'
+import { Type } from './typeinfo'
 import { analyzeSlice } from './desugar/slice'
 import type { Parsers } from './desugar/parsers'
 import { insertParsers } from './desugar/parsers'

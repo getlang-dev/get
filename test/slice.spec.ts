@@ -1,5 +1,5 @@
 import { describe, test, it, expect } from 'bun:test'
-import { errors } from '@getlang/get'
+import { SliceError } from '@getlang/lib'
 import { helper } from './helpers'
 
 const { execute, testIdempotency } = helper()
@@ -107,14 +107,14 @@ describe('slice', () => {
       `)
 
       // expect(result).rejects.toThrow()
-      return expect(result).rejects.toBeInstanceOf(errors.SliceError)
+      return expect(result).rejects.toBeInstanceOf(SliceError)
     })
 
     test('running', () => {
       const result = execute(`
         extract \`({}).no.no.yes\`
       `)
-      return expect(result).rejects.toThrow(new errors.SliceError())
+      return expect(result).rejects.toThrow(new SliceError())
     })
   })
 

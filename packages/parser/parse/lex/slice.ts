@@ -1,4 +1,4 @@
-import { invariant, QuerySyntaxError } from '@getlang/utils'
+import { invariant, QuerySyntaxError } from '@getlang/lib'
 import { until } from './templates'
 
 const getSliceValue = (text: string, places = 1) => {

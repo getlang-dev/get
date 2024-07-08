@@ -1,7 +1,7 @@
 import { parse as acorn } from 'acorn'
 import type { AnyNode } from 'acorn'
 import esquery from 'esquery'
-import { SelectorSyntaxError, ConversionError, invariant } from '@getlang/utils'
+import { SelectorSyntaxError, ConversionError, invariant } from '@getlang/lib'
 import type { SelectFn } from './types'
 
 export const parse = (js: string): AnyNode => {

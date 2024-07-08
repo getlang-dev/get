@@ -7,7 +7,7 @@ import {
   beforeEach,
   afterEach,
 } from 'bun:test'
-import type { RequestHook } from '@getlang/get'
+import type { RequestHook } from '@getlang/lib'
 import { helper } from './helpers'
 
 const { execute: _exec, testIdempotency } = helper()
@@ -15,25 +15,6 @@ const { execute: _exec, testIdempotency } = helper()
 const requestHook = mock<RequestHook>()
 
 const execute = (src: string) => _exec(src, {}, { request: requestHook })
-
-expect.extend({
-  headers(received: unknown, expected: Headers) {
-    if (!(received instanceof Headers)) {
-      return {
-        message: () => 'expected headers object',
-        pass: false,
-      }
-    }
-
-    const pass = this.equals(
-      Object.fromEntries(received as any),
-      Object.fromEntries(expected as any),
-    )
-
-    const message = () => 'todo'
-    return { pass, message }
-  },
-})
 
 beforeEach(() => {
   requestHook.mockResolvedValue({

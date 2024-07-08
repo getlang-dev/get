@@ -1,6 +1,10 @@
 import { describe, test, mock, expect } from 'bun:test'
-import type { RequestHook } from '@getlang/get'
-import { errors } from '@getlang/get'
+import type { RequestHook } from '@getlang/lib'
+import {
+  SelectorSyntaxError,
+  NullSelectionError,
+  ConversionError,
+} from '@getlang/lib'
 import { helper } from './helpers'
 
 const { execute, testIdempotency } = helper()
@@ -169,7 +173,7 @@ describe('drills & parsers', () => {
         extract $html -> @html -> p/*&@#^
       `)
       return expect(result).rejects.toThrow(
-        new errors.SelectorSyntaxError('CSS', 'p/*&@#^'),
+        new SelectorSyntaxError('CSS', 'p/*&@#^'),
       )
     })
 
@@ -195,7 +199,7 @@ describe('drills & parsers', () => {
         extract $html -> @html -> xpath:p/*&@#^
       `)
       return expect(result).rejects.toThrow(
-        new errors.SelectorSyntaxError('XPath', 'p/*&@#^'),
+        new SelectorSyntaxError('XPath', 'p/*&@#^'),
       )
     })
 
@@ -243,7 +247,7 @@ describe('drills & parsers', () => {
         extract $js -> @js -> Litera#$*& ><<>F
       `)
       return expect(result).rejects.toThrow(
-        new errors.SelectorSyntaxError('AST', 'Litera#$*& ><<>F'),
+        new SelectorSyntaxError('AST', 'Litera#$*& ><<>F'),
       )
     })
 
@@ -252,9 +256,7 @@ describe('drills & parsers', () => {
         set js = \`'var a = 2;'\`
         extract $js -> @js -> Identifier
       `)
-      return expect(result).rejects.toThrow(
-        new errors.ConversionError('Identifier'),
-      )
+      return expect(result).rejects.toThrow(new ConversionError('Identifier'))
     })
 
     test('nested selector', async () => {
@@ -358,7 +360,7 @@ describe('drills & parsers', () => {
         set html = \`'<div>test</div>'\`
         extract $html -> @html -> p
       `)
-      return expect(result).rejects.toThrow(new errors.NullSelectionError('p'))
+      return expect(result).rejects.toThrow(new NullSelectionError('p'))
     })
 
     test('error when json selector fails to locate', () => {
@@ -366,7 +368,7 @@ describe('drills & parsers', () => {
         set val = \`{x: 1}\`
         extract $val -> y
       `)
-      return expect(result).rejects.toThrow(new errors.NullSelectionError('y'))
+      return expect(result).rejects.toThrow(new NullSelectionError('y'))
     })
 
     test('null, zero, or empty string are valid', async () => {

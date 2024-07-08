@@ -1,7 +1,27 @@
+import { expect } from 'bun:test'
 import dedent from 'dedent'
 import { parse, desugar, print } from '@getlang/parser'
 import { execute as exec } from '@getlang/get'
-import type { Hooks } from '@getlang/get'
+import type { Hooks } from '@getlang/lib'
+
+expect.extend({
+  headers(received: unknown, expected: Headers) {
+    if (!(received instanceof Headers)) {
+      return {
+        message: () => 'expected headers object',
+        pass: false,
+      }
+    }
+
+    const pass = this.equals(
+      Object.fromEntries(received as any),
+      Object.fromEntries(expected as any),
+    )
+
+    const message = () => 'todo'
+    return { pass, message }
+  },
+})
 
 export function helper() {
   const collected: string[] = []
@@ -9,7 +29,7 @@ export function helper() {
   function execute(
     _src: string,
     inputs?: Record<string, unknown>,
-    hooks?: Hooks,
+    hooks?: Partial<Hooks>,
   ): any {
     const src = dedent(_src)
     collected.push(src)

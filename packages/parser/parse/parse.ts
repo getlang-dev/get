@@ -1,4 +1,4 @@
-import { invariant, QuerySyntaxError } from '@getlang/utils'
+import { invariant, QuerySyntaxError } from '@getlang/lib'
 import { t, NodeKind } from '../ast/ast'
 
 type PP = nearley.Postprocessor

@@ -1,5 +1,5 @@
 import type { Token as MooToken } from 'moo'
-import type { TypeInfo } from '@getlang/utils'
+import type { TypeInfo } from './typeinfo'
 
 type Token = Omit<MooToken, 'toString'>
 

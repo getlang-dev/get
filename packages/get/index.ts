@@ -1,23 +1,18 @@
-import { wait, ImportError } from '@getlang/utils'
+import type { Hooks } from '@getlang/lib'
+import { wait, ImportError } from '@getlang/lib'
 import { parse, desugar } from '@getlang/parser'
 import type { Program } from '@getlang/parser'
 import { execute as exec } from './execute/execute'
 import type { InternalHooks } from './execute/execute'
 import * as http from './execute/net/http'
+import { runSlice } from './execute/lang'
 
-export { RuntimeError } from '@getlang/utils'
-export * as errors from '@getlang/utils'
 export { version } from './package.json'
-export { parse, desugar, print, NodeKind } from '@getlang/parser'
-export type { Program } from '@getlang/parser'
 
-export type RequestHook = InternalHooks['request']
-export type ImportHook = (module: string) => string | Promise<string>
-export type Hooks = Partial<{ request: RequestHook; import: ImportHook }>
+export type UserHooks = Partial<Hooks>
 
-function buildHooks(hooks: Hooks = {}): InternalHooks {
+function buildHooks(hooks: UserHooks = {}): InternalHooks {
   return {
-    request: hooks.request ?? http.requestHook,
     import: (module: string) => {
       if (!hooks.import) {
         throw new ImportError(
@@ -26,13 +21,15 @@ function buildHooks(hooks: Hooks = {}): InternalHooks {
       }
       return wait(hooks.import(module), src => desugar(parse(src)))
     },
+    request: hooks.request ?? http.requestHook,
+    slice: hooks.slice ?? runSlice,
   }
 }
 
 export function execute(
   source: string,
   inputs: Record<string, unknown> = {},
-  hooks?: Hooks,
+  hooks?: UserHooks,
 ) {
   const ast = parse(source)
   const simplified = desugar(ast)
@@ -42,7 +39,7 @@ export function execute(
 export function executeAST(
   ast: Program,
   inputs: Record<string, unknown> = {},
-  hooks?: Hooks,
+  hooks?: UserHooks,
 ) {
   return exec(ast, inputs, buildHooks(hooks))
 }

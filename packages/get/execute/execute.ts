@@ -1,7 +1,6 @@
 import type { Program, AsyncExhaustiveVisitor, Stmt } from '@getlang/parser'
-import { visit, SKIP, NodeKind } from '@getlang/parser'
-import { RootScope } from '@getlang/utils'
-import * as type from './value'
+import { visit, SKIP, NodeKind, RootScope } from '@getlang/parser'
+import type { Hooks, MaybePromise } from '@getlang/lib'
 import {
   invariant,
   NullSelectionError,
@@ -9,8 +8,9 @@ import {
   ValueTypeError,
   ValueReferenceError,
   ImportError,
-} from '@getlang/utils'
+} from '@getlang/lib'
 import * as http from './net/http'
+import * as type from './value'
 import * as html from './values/html'
 import * as json from './values/json'
 import * as js from './values/js'
@@ -19,8 +19,9 @@ import * as lang from './lang'
 import { select } from './select'
 
 export type InternalHooks = {
-  request: http.RequestHook
-  import: (module: string) => Program | Promise<Program>
+  import: (module: string) => MaybePromise<Program>
+  request: Hooks['request']
+  slice: Hooks['slice']
 }
 
 class Modules {
@@ -160,7 +161,7 @@ export async function execute(
         return contextual(context, async () => {
           const { slice } = node
           const fauxSelector = `slice@${slice.line}:${slice.col}`
-          const value = await lang.runSlice(
+          const value = await hooks.slice(
             slice.value,
             scope.context ? toValue(scope.context) : {},
             scope.context?.raw,

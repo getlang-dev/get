@@ -1,5 +1,5 @@
 import type { Element } from 'domhandler'
-import { RequestError } from '@getlang/utils'
+import { RequestError } from '@getlang/lib'
 
 type StringMap = Record<string, string>
 export type RequestHook = (url: string, opts: RequestOpts) => Promise<Response>

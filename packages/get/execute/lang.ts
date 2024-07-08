@@ -1,4 +1,4 @@
-import { SliceError, NullInputError } from '@getlang/utils'
+import { SliceError, NullInputError } from '@getlang/lib'
 import * as json from './values/json'
 
 export const runSlice = async (

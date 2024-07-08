@@ -5,7 +5,7 @@ import * as js from './values/js'
 import * as headers from './values/headers'
 import * as cookies from './values/cookies'
 import * as type from './value'
-import { invariant, ValueTypeError } from '@getlang/utils'
+import { invariant, ValueTypeError } from '@getlang/lib'
 
 function selectValue<T extends type.Value, V extends type.Value>(
   ValueType: { new (...args: any[]): V },

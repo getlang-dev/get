@@ -1,5 +1,5 @@
-import { wait, waitMap } from '@getlang/utils'
-import type { MaybePromise } from '@getlang/utils'
+import { wait, waitMap } from '@getlang/lib'
+import type { MaybePromise } from '@getlang/lib'
 import type { Node, Stmt, Expr } from './ast'
 import { NodeKind } from './ast'
 

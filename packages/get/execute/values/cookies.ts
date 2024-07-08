@@ -1,6 +1,6 @@
 import * as scp from 'set-cookie-parser'
 import type { SelectFn } from './types'
-import { QuerySyntaxError, invariant } from '@getlang/utils'
+import { QuerySyntaxError, invariant } from '@getlang/lib'
 
 export const parse = (from: string) => {
   const cookie = scp.splitCookiesString(from)

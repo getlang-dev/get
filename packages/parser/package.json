@@ -3,10 +3,8 @@
   "version": "0.0.11",
   "license": "Apache-2.0",
   "type": "module",
-  "main": "dist",
-  "files": [
-    "dist"
-  ],
+  "main": "index.ts",
+  "files": ["dist"],
   "bugs": {
     "url": "https://github.com/getlang-dev/get/issues"
   },
@@ -21,7 +19,7 @@
     "railroad": "nearley-railroad parse/getlang.ne -o grammar.html && open grammar.html"
   },
   "dependencies": {
-    "@getlang/utils": "workspace:^0.0.8",
+    "@getlang/lib": "workspace:^0.0.8",
     "acorn": "^8.12.0",
     "acorn-globals": "^7.0.1",
     "globals": "^15.6.0",

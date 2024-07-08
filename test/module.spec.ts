@@ -1,5 +1,5 @@
 import { describe, test, mock, expect } from 'bun:test'
-import { errors } from '@getlang/get'
+import { NullInputError } from '@getlang/lib'
 import { helper } from './helpers'
 
 const { execute, testIdempotency } = helper()
@@ -47,7 +47,7 @@ describe('getlang modules', () => {
         inputs { value }
         extract $value
       `)
-      return expect(result).rejects.toThrow(new errors.NullInputError('value'))
+      return expect(result).rejects.toThrow(new NullInputError('value'))
     })
 
     test('optional input', async () => {

@@ -1,7 +1,9 @@
 import { toPath } from 'lodash-es'
-import { Type, type TypeInfo, ValueTypeError } from '@getlang/utils'
+import { ValueTypeError } from '@getlang/lib'
 import type { Expr } from '../ast'
 import { NodeKind, type RequestExpr } from '../ast'
+import type { TypeInfo } from '../typeinfo'
+import { Type } from '../typeinfo'
 
 const modTypeMap: Record<string, TypeInfo> = {
   html: { type: Type.Html },
