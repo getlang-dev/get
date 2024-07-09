@@ -1,8 +1,8 @@
 import fs from 'node:fs'
 import path from 'node:path'
 
-const path1 = path.join(import.meta.dir, 'package.json')
-const path2 = path.join(import.meta.dir, '..', 'package.json')
+const path1 = path.join(import.meta.dirname, 'package.json')
+const path2 = path.join(import.meta.dirname, '..', 'package.json')
 let json: string
 
 try {
