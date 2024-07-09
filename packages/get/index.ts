@@ -6,8 +6,8 @@ import { execute as exec } from './execute/execute.js'
 import type { InternalHooks } from './execute/execute.js'
 import * as http from './execute/net/http.js'
 import { runSlice } from './execute/lang.js'
-import pkg from './package.json' with { type: 'json' }
 
+export { version } from './version.js'
 export type UserHooks = Partial<Hooks>
 
 function buildHooks(hooks: UserHooks = {}): InternalHooks {
@@ -42,7 +42,3 @@ export function executeAST(
 ) {
   return exec(ast, inputs, buildHooks(hooks))
 }
-
-const { version } = pkg
-
-export { version }
