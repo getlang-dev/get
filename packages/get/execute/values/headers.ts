@@ -1,4 +1,4 @@
-import type { SelectFn } from './types'
+import type { SelectFn } from './types.js'
 
 export const select: SelectFn<Headers, string> = (headers, path, expand) => {
   if (expand && path === 'set-cookie') {

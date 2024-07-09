@@ -1,7 +1,7 @@
 import { wait, waitMap } from '@getlang/lib'
 import type { MaybePromise } from '@getlang/lib'
-import type { Node, Stmt, Expr } from './ast'
-import { NodeKind } from './ast'
+import type { Node, Stmt, Expr } from './ast.js'
+import { NodeKind } from './ast.js'
 
 export const SKIP = { __skip: true }
 

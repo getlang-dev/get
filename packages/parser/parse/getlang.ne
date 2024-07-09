@@ -1,6 +1,6 @@
 @{%
-import lexer from './parse/lexer'
-import * as p from './parse/parse'
+import lexer from './parse/lexer.js'
+import * as p from './parse/parse.js'
 %}
 
 

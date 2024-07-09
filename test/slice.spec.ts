@@ -1,6 +1,6 @@
 import { describe, test, it, expect } from 'bun:test'
 import { SliceError } from '@getlang/lib'
-import { helper } from './helpers'
+import { helper } from './helpers.js'
 
 const { execute, testIdempotency } = helper()
 

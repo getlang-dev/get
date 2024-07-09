@@ -1,5 +1,5 @@
 import { get } from 'lodash-es'
-import type { SelectFn } from './types'
+import type { SelectFn } from './types.js'
 
 export const parse = (json: string) => JSON.parse(json)
 

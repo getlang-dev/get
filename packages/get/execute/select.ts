@@ -1,10 +1,10 @@
-import type { SelectFn } from './values/types'
-import * as html from './values/html'
-import * as json from './values/json'
-import * as js from './values/js'
-import * as headers from './values/headers'
-import * as cookies from './values/cookies'
-import * as type from './value'
+import type { SelectFn } from './values/types.js'
+import * as html from './values/html.js'
+import * as json from './values/json.js'
+import * as js from './values/js.js'
+import * as headers from './values/headers.js'
+import * as cookies from './values/cookies.js'
+import * as type from './value.js'
 import { invariant, ValueTypeError } from '@getlang/lib'
 
 function selectValue<T extends type.Value, V extends type.Value>(

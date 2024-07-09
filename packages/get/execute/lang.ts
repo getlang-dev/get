@@ -1,5 +1,5 @@
 import { SliceError, NullInputError } from '@getlang/lib'
-import * as json from './values/json'
+import * as json from './values/json.js'
 
 export const runSlice = async (
   slice: string,

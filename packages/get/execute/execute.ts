@@ -1,5 +1,10 @@
-import type { Program, AsyncExhaustiveVisitor, Stmt } from '@getlang/parser'
-import { visit, SKIP, NodeKind, RootScope } from '@getlang/parser'
+import {
+  visit,
+  SKIP,
+  type AsyncExhaustiveVisitor,
+} from '@getlang/parser/visitor'
+import { RootScope } from '@getlang/parser/scope'
+import { NodeKind, type Stmt, type Program } from '@getlang/parser/ast'
 import type { Hooks, MaybePromise } from '@getlang/lib'
 import {
   invariant,
@@ -9,14 +14,14 @@ import {
   ValueReferenceError,
   ImportError,
 } from '@getlang/lib'
-import * as http from './net/http'
-import * as type from './value'
-import * as html from './values/html'
-import * as json from './values/json'
-import * as js from './values/js'
-import * as cookies from './values/cookies'
-import * as lang from './lang'
-import { select } from './select'
+import * as http from './net/http.js'
+import * as type from './value.js'
+import * as html from './values/html.js'
+import * as json from './values/json.js'
+import * as js from './values/js.js'
+import * as cookies from './values/cookies.js'
+import * as lang from './lang.js'
+import { select } from './select.js'
 
 export type InternalHooks = {
   import: (module: string) => MaybePromise<Program>

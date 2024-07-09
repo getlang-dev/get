@@ -1,21 +1,21 @@
 import { invariant, QuerySyntaxError } from '@getlang/lib'
-import type { Node, Program, Expr } from './ast'
-import { NodeKind, t } from './ast'
-import type { Visitor } from './visitor'
-import { visit } from './visitor'
-import { RootScope } from './scope'
-import type { TypeInfo } from './typeinfo'
-import { Type } from './typeinfo'
-import { analyzeSlice } from './desugar/slice'
-import type { Parsers } from './desugar/parsers'
-import { insertParsers } from './desugar/parsers'
+import type { Node, Program, Expr } from './ast.js'
+import { NodeKind, t } from './ast.js'
+import type { Visitor } from './visitor.js'
+import { visit } from './visitor.js'
+import { RootScope } from './scope.js'
+import type { TypeInfo } from './typeinfo.js'
+import { Type } from './typeinfo.js'
+import { analyzeSlice } from './desugar/slice.js'
+import type { Parsers } from './desugar/parsers.js'
+import { insertParsers } from './desugar/parsers.js'
 import {
   createToken,
   getContentMod,
   getTypeInfo,
   selectTypeInfo,
   getModTypeInfo,
-} from './desugar/utils'
+} from './desugar/utils.js'
 
 export function desugar(ast: Node): Program {
   invariant(

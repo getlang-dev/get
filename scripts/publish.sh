@@ -6,8 +6,6 @@ set -e
 
 tsc -p packages
 
-sed -i '' 's/\( from '\''\.[^'\'']*\)'\''/\1.js'\''/' dist/**/*.js
-
 for dir in dist/*; do
   pkg=$(basename "$dir")
   mv "$dir" "packages/$pkg/dist"

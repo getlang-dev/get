@@ -1,5 +1,5 @@
 import { invariant, QuerySyntaxError } from '@getlang/lib'
-import { until } from './templates'
+import { until } from './templates.js'
 
 const getSliceValue = (text: string, places = 1) => {
   const src = text.slice(places, -places).replace(/\\`/g, '`')

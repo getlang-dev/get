@@ -10,8 +10,8 @@ import {
   NullSelectionError,
   invariant,
 } from '@getlang/lib'
-import type { SelectFn } from './types'
-import './patch-dom'
+import type { SelectFn } from './types.js'
+import './patch-dom.js'
 
 export const parse = (html: string): AnyHtmlNode => {
   return parse5(html, { treeAdapter: adapter })

@@ -1,13 +1,12 @@
 import type { Hooks } from '@getlang/lib'
 import { wait, ImportError } from '@getlang/lib'
 import { parse, desugar } from '@getlang/parser'
-import type { Program } from '@getlang/parser'
-import { execute as exec } from './execute/execute'
-import type { InternalHooks } from './execute/execute'
-import * as http from './execute/net/http'
-import { runSlice } from './execute/lang'
-
-export { version } from './package.json'
+import type { Program } from '@getlang/parser/ast'
+import { execute as exec } from './execute/execute.js'
+import type { InternalHooks } from './execute/execute.js'
+import * as http from './execute/net/http.js'
+import { runSlice } from './execute/lang.js'
+import pkg from './package.json' with { type: 'json' }
 
 export type UserHooks = Partial<Hooks>
 
@@ -43,3 +42,7 @@ export function executeAST(
 ) {
   return exec(ast, inputs, buildHooks(hooks))
 }
+
+const { version } = pkg
+
+export { version }

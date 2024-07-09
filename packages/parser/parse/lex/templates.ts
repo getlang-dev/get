@@ -1,4 +1,4 @@
-import { ws, identifier } from './shared'
+import { ws, identifier } from './shared.js'
 
 type UntilOptions = {
   prefix?: RegExp

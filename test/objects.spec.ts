@@ -1,5 +1,5 @@
 import { describe, test, expect } from 'bun:test'
-import { helper } from './helpers'
+import { helper } from './helpers.js'
 
 const { execute, testIdempotency } = helper()
 

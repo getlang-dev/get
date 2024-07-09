@@ -1,5 +1,5 @@
 import * as scp from 'set-cookie-parser'
-import type { SelectFn } from './types'
+import type { SelectFn } from './types.js'
 import { QuerySyntaxError, invariant } from '@getlang/lib'
 
 export const parse = (from: string) => {

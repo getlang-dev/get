@@ -1,6 +1,7 @@
 {
   "name": "test",
   "private": true,
+  "type": "module",
   "dependencies": {
     "@getlang/get": "workspace:*",
     "@getlang/parser": "workspace:*",

@@ -1,6 +1,5 @@
 {
   "compilerOptions": {
-    "outDir": "../dist",
     "esModuleInterop": true,
     "skipLibCheck": true,
     "target": "es2022",
@@ -12,8 +11,12 @@
     "strict": true,
     "noUncheckedIndexedAccess": true,
     "noImplicitOverride": true,
+    "module": "NodeNext",
+    "outDir": "../dist",
+    "sourceMap": true,
     "declaration": true,
-    "module": "preserve",
-    "lib": ["es2022", "dom", "dom.iterable"]
+    "lib": ["es2022", "dom", "dom.iterable"],
+    // customizations
+    "customConditions": ["bun"]
   }
 }

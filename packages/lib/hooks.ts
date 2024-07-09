@@ -1,4 +1,4 @@
-import type { MaybePromise } from './utils'
+import type { MaybePromise } from './utils.js'
 
 export type ImportHook = (module: string) => MaybePromise<string>
 export type RequestHook = (url: string, opts: RequestInit) => Promise<Response>

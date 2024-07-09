@@ -1,12 +1,30 @@
 {
   "name": "@getlang/parser",
-  "version": "0.0.13",
+  "version": "0.0.16",
   "license": "Apache-2.0",
   "type": "module",
-  "main": "dist",
-  "files": [
-    "dist"
-  ],
+  "exports": {
+    ".": {
+      "bun": "./index.ts",
+      "default": "./dist/index.js"
+    },
+    "./ast": {
+      "bun": "./ast/ast.ts",
+      "default": "./dist/ast/ast.js"
+    },
+    "./visitor": {
+      "bun": "./ast/visitor.ts",
+      "default": "./dist/ast/visitor.js"
+    },
+    "./scope": {
+      "bun": "./ast/scope.ts",
+      "default": "./dist/ast/scope.js"
+    },
+    "./typeinfo": {
+      "bun": "./ast/typeinfo.ts",
+      "default": "./dist/ast/typeinfo.js"
+    }
+  },
   "bugs": {
     "url": "https://github.com/getlang-dev/get/issues"
   },
@@ -21,7 +39,7 @@
     "railroad": "nearley-railroad parse/getlang.ne -o grammar.html && open grammar.html"
   },
   "dependencies": {
-    "@getlang/lib": "workspace:^0.0.10",
+    "@getlang/lib": "workspace:^0.0.13",
     "acorn": "^8.12.0",
     "acorn-globals": "^7.0.1",
     "globals": "^15.6.0",

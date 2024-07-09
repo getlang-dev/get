@@ -1,5 +1,5 @@
 import type { Token as MooToken } from 'moo'
-import type { TypeInfo } from './typeinfo'
+import type { TypeInfo } from './typeinfo.js'
 
 type Token = Omit<MooToken, 'toString'>
 

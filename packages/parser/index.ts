@@ -1,19 +1,11 @@
 import nearley from 'nearley'
 import { QuerySyntaxError } from '@getlang/lib'
-import grammar from './grammar'
-import lexer from './parse/lexer'
-import type { Program } from './ast/ast'
+import grammar from './grammar.js'
+import lexer from './parse/lexer.js'
+import type { Program } from './ast/ast.js'
 
-export { NodeKind, t } from './ast/ast'
-export type { Program, Stmt } from './ast/ast'
-export { visit, SKIP } from './ast/visitor'
-export type * from './ast/visitor'
-export { RootScope } from './ast/scope'
-export type { TypeInfo } from './ast/typeinfo'
-export { Type } from './ast/typeinfo'
-export { desugar } from './ast/simplified'
-export { createToken } from './ast/desugar/utils'
-export { print } from './ast/print'
+export { desugar } from './ast/simplified.js'
+export { print } from './ast/print.js'
 
 export function parse(source: string): Program {
   const parser = new nearley.Parser(nearley.Grammar.fromCompiled(grammar))

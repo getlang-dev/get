@@ -1,6 +1,6 @@
-import type { Stmt, RequestExpr, Expr } from '../ast'
-import { NodeKind, t } from '../ast'
-import { createToken } from './utils'
+import type { Stmt, RequestExpr, Expr } from '../ast.js'
+import { NodeKind, t } from '../ast.js'
+import { createToken } from './utils.js'
 
 export type Parsers = Map<RequestExpr, [Set<string>, number]>
 

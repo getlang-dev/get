@@ -1,7 +1,7 @@
 import moo from 'moo'
-import { ws, identifier, identifierExpr, popAll } from './lex/shared'
-import { templateUntil, interpExpr } from './lex/templates'
-import { slice, slice_block } from './lex/slice'
+import { ws, identifier, identifierExpr, popAll } from './lex/shared.js'
+import { templateUntil, interpExpr } from './lex/templates.js'
+import { slice, slice_block } from './lex/slice.js'
 
 const verbs = ['GET', 'PUT', 'POST', 'PATCH', 'DELETE']
 const keywords = ['import', 'inputs', 'set']
