@@ -8,9 +8,7 @@ export const runSlice = async (
 ) => {
   try {
     const fn = new Function('$', '$$', slice)
-    const value = await fn(context, raw)
-    // convert an undefined result into explicit null
-    return typeof value === 'undefined' ? null : value
+    return await fn(context, raw)
   } catch (e) {
     throw new SliceError({ cause: e })
   }

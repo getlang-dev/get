@@ -1,7 +1,6 @@
 import { toPath } from 'lodash-es'
 import { ValueTypeError } from '@getlang/lib'
-import type { Expr } from '../ast.js'
-import { NodeKind, type RequestExpr } from '../ast.js'
+import type { TemplateExpr, RequestExpr, Expr } from '../ast.js'
 import type { TypeInfo } from '../typeinfo.js'
 import { Type } from '../typeinfo.js'
 
@@ -50,21 +49,16 @@ export function createToken(text: string, value = text) {
   }
 }
 
-function literalExpr(expr: Expr): string | null {
-  if (expr.kind === NodeKind.LiteralExpr) {
-    return expr.value.value
-  }
-  if (expr.kind !== NodeKind.TemplateExpr || expr.elements.length !== 1) {
-    return null
-  }
-  return expr.elements[0] ? literalExpr(expr.elements[0]) : null
-}
+export const render = (template: TemplateExpr) =>
+  template.elements.every(e => 'offset' in e)
+    ? template.elements.map(e => e.value).join('')
+    : null
 
 export function getContentMod(req: RequestExpr) {
   const accept = req.headers.find(
-    e => literalExpr(e.key)?.toLowerCase() === 'accept',
+    e => render(e.key)?.toLowerCase() === 'accept',
   )
-  switch (accept && literalExpr(accept.value)?.toLowerCase()) {
+  switch (accept && render(accept.value)?.toLowerCase()) {
     case 'application/json':
       return 'json'
     case 'application/javascript':

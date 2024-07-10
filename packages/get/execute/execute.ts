@@ -30,7 +30,7 @@ export type InternalHooks = {
 }
 
 class Modules {
-  private cache: Record<string, Program | Promise<Program>> = {}
+  private cache: Record<string, MaybePromise<Program>> = {}
   constructor(private importHook: InternalHooks['import']) {}
 
   import(module: string) {
@@ -131,15 +131,13 @@ export async function execute(
       },
     },
 
-    LiteralExpr(node) {
-      return new type.StringValue(node.value.value, null)
-    },
-
     TemplateExpr(node) {
-      const { elements: els } = node
       let hasUndefined = false
       const value = node.elements
         .map(e => {
+          if ('offset' in e) {
+            return e.value
+          }
           if (e.raw === null || e.raw === undefined) {
             hasUndefined = true
             return '<null>'
@@ -150,8 +148,7 @@ export async function execute(
       if (hasUndefined) {
         return new type.UndefinedValue(value)
       }
-      const base = (els.length === 1 && els[0]?.base) || null
-      return new type.StringValue(value, base)
+      return new type.StringValue(value, null)
     },
 
     IdentifierExpr(node) {
@@ -242,16 +239,10 @@ export async function execute(
         return contextual(context, async () => {
           const obj: Record<string, unknown> = {}
           for (const entry of node.entries) {
-            const key = await visit(entry.key)
-            entry.optional || assert(key)
             const value = await visit(entry.value)
             entry.optional || assert(value)
-            invariant(
-              key instanceof type.StringValue,
-              new ValueTypeError('Only string keys are supported'),
-            )
             if (!(value instanceof type.UndefinedValue)) {
-              obj[key.raw] = value
+              obj[entry.key.value] = value
             }
           }
           return new type.Value(obj, null)

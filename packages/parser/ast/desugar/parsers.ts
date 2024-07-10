@@ -5,7 +5,7 @@ import { createToken } from './utils.js'
 export type Parsers = Map<RequestExpr, [Set<string>, number]>
 
 function template(contents: string) {
-  return t.templateExpr([t.literalExpr(createToken(contents))])
+  return t.templateExpr([createToken(contents)])
 }
 
 export function insertParsers(stmts: Stmt[], parsers: Parsers) {

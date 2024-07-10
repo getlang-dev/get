@@ -13,7 +13,6 @@ export enum NodeKind {
   RequestStmt = 'RequestStmt',
   RequestExpr = 'RequestExpr',
   TemplateExpr = 'TemplateExpr',
-  LiteralExpr = 'LiteralExpr',
   IdentifierExpr = 'IdentifierExpr',
   SelectorExpr = 'SelectorExpr',
   ModifierExpr = 'ModifierExpr',
@@ -24,8 +23,8 @@ export enum NodeKind {
 }
 
 type RequestEntry = {
-  key: Expr
-  value: Expr
+  key: TemplateExpr
+  value: TemplateExpr
 }
 
 type RequestBlocks = {
@@ -36,7 +35,7 @@ type RequestBlocks = {
 }
 
 type ObjectEntry = {
-  key: Expr
+  key: Token
   value: Expr
   optional: boolean
 }
@@ -72,7 +71,7 @@ type InputDeclStmt = {
   kind: NodeKind.InputDeclStmt
   id: Token
   optional: boolean
-  defaultValue?: Expr
+  defaultValue?: SliceExpr
 }
 
 type RequestStmt = {
@@ -90,16 +89,10 @@ type RequestExpr = {
   typeInfo?: TypeInfo
 }
 
-type LiteralExpr = {
-  kind: NodeKind.LiteralExpr
-  value: Token
-  typeInfo?: TypeInfo
-}
-
 // single-element expressions are reduced to their base during parsing
 type TemplateExpr = {
   kind: NodeKind.TemplateExpr
-  elements: Expr[]
+  elements: (Expr | Token)[]
   typeInfo?: TypeInfo
 }
 
@@ -112,7 +105,7 @@ type IdentifierExpr = {
 
 type SelectorExpr = {
   kind: NodeKind.SelectorExpr
-  selector: Expr
+  selector: TemplateExpr
   expand: boolean
   context?: Expr
   typeInfo?: TypeInfo
@@ -166,7 +159,6 @@ type Stmt =
 type Expr =
   | RequestExpr
   | TemplateExpr
-  | LiteralExpr
   | IdentifierExpr
   | SelectorExpr
   | ModifierExpr
@@ -206,7 +198,7 @@ const declInputsStmt = (inputs: InputDeclStmt[]): DeclInputsStmt => ({
 const inputDeclStmt = (
   id: Token,
   optional: boolean,
-  defaultValue?: Expr,
+  defaultValue?: SliceExpr,
 ): InputDeclStmt => ({
   kind: NodeKind.InputDeclStmt,
   id,
@@ -251,13 +243,8 @@ const identifierExpr = (value: Token): IdentifierExpr => ({
   isUrlComponent: value.text.startsWith(':'),
 })
 
-const literalExpr = (value: Token): LiteralExpr => ({
-  kind: NodeKind.LiteralExpr,
-  value,
-})
-
 const selectorExpr = (
-  selector: Expr,
+  selector: TemplateExpr,
   expand: boolean,
   context?: Expr,
 ): SelectorExpr => ({
@@ -299,7 +286,7 @@ const sliceExpr = (slice: Token, context?: Expr): SliceExpr => ({
   context,
 })
 
-const templateExpr = (elements: Expr[]): TemplateExpr => ({
+const templateExpr = (elements: (Expr | Token)[]): TemplateExpr => ({
   kind: NodeKind.TemplateExpr,
   elements,
 })
@@ -319,7 +306,6 @@ export const t = {
   requestExpr,
   functionExpr,
   identifierExpr,
-  literalExpr,
   selectorExpr,
   modifierExpr,
   moduleCallExpr,
@@ -328,4 +314,14 @@ export const t = {
   templateExpr,
 }
 
-export type { Token, Program, DeclInputsStmt, Node, Stmt, Expr, RequestExpr }
+export type {
+  Token,
+  Program,
+  DeclInputsStmt,
+  Node,
+  Stmt,
+  Expr,
+  RequestExpr,
+  TemplateExpr,
+  InputDeclStmt,
+}

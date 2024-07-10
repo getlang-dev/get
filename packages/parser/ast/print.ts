@@ -92,7 +92,7 @@ const printVisitor: ExhaustiveVisitor<Doc> = {
       if (!origEntry) {
         throw new Error('Unmatched object literal entry')
       }
-      const keyGroup: Doc[] = [entry.key]
+      const keyGroup: Doc[] = [entry.key.value]
       if (entry.optional) {
         keyGroup.push('?')
       }
@@ -110,7 +110,7 @@ const printVisitor: ExhaustiveVisitor<Doc> = {
       ) {
         shValue = shValue[0]
       }
-      if (typeof shValue === 'string' && entry.key === shValue) {
+      if (typeof shValue === 'string' && entry.key.value === shValue) {
         shorthand[i] = [value, entry.optional ? '?' : '']
       }
       return { ...entry, key: keyGroup, value }
@@ -129,8 +129,8 @@ const printVisitor: ExhaustiveVisitor<Doc> = {
       const origEl = orig.elements[i]
       if (!origEl) {
         throw new Error('Unmatched object literal entry')
-      } else if (origEl.kind === NodeKind.LiteralExpr) {
-        return el
+      } else if ('offset' in origEl) {
+        return origEl.value
       } else if (origEl.kind !== NodeKind.IdentifierExpr) {
         throw new Error(`Unexpected template node: ${origEl?.kind}`)
       }
@@ -142,16 +142,16 @@ const printVisitor: ExhaustiveVisitor<Doc> = {
       let ret = el.slice(1)
 
       const nextEl = node.elements[i + 1]
-      if (typeof nextEl === 'string' && /^\w/.test(nextEl)) {
+      if (
+        typeof nextEl === 'object' &&
+        'offset' in nextEl &&
+        /^\w/.test(nextEl.value)
+      ) {
         // use ${id} syntax to delineate against next element in template
         ret = ['{', ret, '}']
       }
       return [origEl.isUrlComponent ? ':' : '$', ret]
     })
-  },
-
-  LiteralExpr(node) {
-    return node.value.value
   },
 
   IdentifierExpr(node) {

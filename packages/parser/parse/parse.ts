@@ -47,9 +47,9 @@ export const request: PP = ([
   const body = maybeBody?.[1]
   if (body) {
     for (const el of body.elements) {
-      if (el.kind === NodeKind.LiteralExpr) {
-        // restore original token text
-        el.value.value = el.value.text
+      if ('offset' in el) {
+        // a token - restore original text
+        el.value = el.text
       }
     }
   }
@@ -69,11 +69,11 @@ export const requestBlock: PP = ([entry, entries]) => [
 export const requestEntry: PP = ([key, , maybeValue]) => {
   let value = maybeValue?.[1]
   if (typeof value === 'undefined') {
-    value = t.literalExpr({
+    value = {
       ...key.value, // key is already a literal expr
       value: '',
       text: '',
-    })
+    }
   }
   return { key, value }
 }
@@ -96,13 +96,13 @@ export const object: PP = d => {
 }
 
 export const objectEntry: PP = ([identifier, optional, , , value]) => ({
-  key: t.literalExpr(identifier),
+  key: identifier,
   value,
   optional: Boolean(optional),
 })
 
 export const objectEntryShorthandSelect: PP = ([identifier, optional]) => {
-  const value = t.templateExpr([t.literalExpr(identifier)])
+  const value = t.templateExpr([identifier])
   const selector = t.selectorExpr(value, false)
   return objectEntry([identifier, optional, null, null, selector])
 }
@@ -167,7 +167,7 @@ export const template: PP = d => {
         if (!value) {
           return []
         }
-        return t.literalExpr({ ...token, value })
+        return { ...token, value }
       }
 
       default:

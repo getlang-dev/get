@@ -1,5 +1,5 @@
 import { invariant, QuerySyntaxError } from '@getlang/lib'
-import type { Node, Program, Expr } from './ast.js'
+import type { Node, Program, Expr, RequestExpr, InputDeclStmt } from './ast.js'
 import { NodeKind, t } from './ast.js'
 import type { Visitor } from './visitor.js'
 import { visit } from './visitor.js'
@@ -15,6 +15,7 @@ import {
   getTypeInfo,
   selectTypeInfo,
   getModTypeInfo,
+  render,
 } from './desugar/utils.js'
 
 export function desugar(ast: Node): Program {
@@ -32,24 +33,6 @@ export function desugar(ast: Node): Program {
       new QuerySyntaxError('Unable to locate active context'),
     )
     return scope.context
-  }
-
-  function render(expr: Expr) {
-    switch (expr.kind) {
-      case NodeKind.LiteralExpr:
-        return expr.value.value
-      case NodeKind.TemplateExpr: {
-        const template: string[] = []
-        for (const el of expr.elements) {
-          const r = render(el)
-          if (typeof r !== 'string') {
-            return
-          }
-          template.push(r)
-        }
-        return template.join('')
-      }
-    }
   }
 
   function inferContext(_mod?: string) {
@@ -102,10 +85,6 @@ export function desugar(ast: Node): Program {
   }
 
   const visitor: Visitor = {
-    LiteralExpr(node) {
-      return { ...node, typeInfo: { type: Type.Unknown } }
-    },
-
     TemplateExpr(node) {
       return { ...node, typeInfo: { type: Type.Unknown } }
     },
@@ -146,17 +125,14 @@ export function desugar(ast: Node): Program {
         const itemContext = t.objectLiteralExpr(node.entries)
         return contextual(context, itemContext, visit, () => {
           const entries = node.entries.map(e => ({
-            key: visit(e.key),
+            key: e.key,
             value: visit(e.value),
             optional: e.optional,
           }))
           const typeInfo: TypeInfo = {
             type: Type.Struct,
             schema: Object.fromEntries(
-              entries.flatMap(e => {
-                const key = render(e.key)
-                return key ? [[key, getTypeInfo(e.value)]] : []
-              }),
+              entries.flatMap(e => [[e.key.value, getTypeInfo(e.value)]]),
             ),
           }
           return { ...node, entries, typeInfo }
@@ -172,9 +148,9 @@ export function desugar(ast: Node): Program {
           const ctype = getTypeInfo(context)
           let typeInfo: TypeInfo = ctype
           if (ctype.type === Type.Struct) {
-            const selStr = render(node.selector)
-            typeInfo = selStr
-              ? selectTypeInfo(context, selStr)
+            const selstr = render(node.selector)
+            typeInfo = selstr
+              ? selectTypeInfo(context, selstr)
               : { type: Type.Unknown }
           }
           if (node.expand) {
@@ -217,7 +193,7 @@ export function desugar(ast: Node): Program {
             }
           }
           const contextEntries = stat.deps.map(id => ({
-            key: t.literalExpr(createToken(id)),
+            key: createToken(id),
             value: t.identifierExpr(createToken(id)),
             optional: false,
           }))
@@ -248,7 +224,7 @@ export function desugar(ast: Node): Program {
             body: { type: Type.Unknown },
           },
         },
-      }
+      } as RequestExpr
     },
 
     InputDeclStmt(node) {
@@ -256,7 +232,7 @@ export function desugar(ast: Node): Program {
         ...t.identifierExpr(node.id),
         typeInfo: { type: Type.Unknown },
       }
-      return node
+      return node as InputDeclStmt
     },
 
     RequestStmt(node) {
