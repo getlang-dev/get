@@ -32,25 +32,34 @@ const printVisitor: ExhaustiveVisitor<Doc> = {
   },
 
   ModuleCallExpr(node) {
-    return group(['$', node.name.value, '(', node.args, ')'])
+    return group(['$', node.name.value, '(', node.inputs, ')'])
   },
 
-  RequestExpr(node) {
-    const parts: Doc[] = [node.method.value, ' ', node.url]
-    for (const h of node.headers) {
-      parts.push(hardline, h.key, ': ', h.value)
-    }
-    for (const [blockName, blockEntries] of Object.entries(node.blocks)) {
-      parts.push(hardline, '[', blockName, ']')
-      for (const e of blockEntries) {
-        parts.push(hardline, e.key, ': ', e.value)
+  RequestExpr: {
+    enter(node, visit) {
+      const parts: Doc[] = [node.method.value, ' ', visit(node.url)]
+      for (const h of node.headers.entries) {
+        parts.push(hardline, visit(h.key), ': ', visit(h.value))
       }
-    }
-    if (node.body) {
-      parts.push(hardline, '[body]', hardline, node.body, hardline, '[/body]')
-    }
-    parts.push(hardline) // terminal
-    return group(parts)
+      for (const [blockName, block] of Object.entries(node.blocks)) {
+        parts.push(hardline, '[', blockName, ']')
+        for (const e of block.entries) {
+          parts.push(hardline, visit(e.key), ': ', visit(e.value))
+        }
+      }
+      if (node.body) {
+        parts.push(
+          hardline,
+          '[body]',
+          hardline,
+          visit(node.body),
+          hardline,
+          '[/body]',
+        )
+      }
+      parts.push(hardline) // terminal
+      return group(parts)
+    },
   },
 
   InputDeclStmt(node) {
@@ -92,7 +101,7 @@ const printVisitor: ExhaustiveVisitor<Doc> = {
       if (!origEntry) {
         throw new Error('Unmatched object literal entry')
       }
-      const keyGroup: Doc[] = [entry.key.value]
+      const keyGroup: Doc[] = [entry.key]
       if (entry.optional) {
         keyGroup.push('?')
       }
@@ -110,7 +119,7 @@ const printVisitor: ExhaustiveVisitor<Doc> = {
       ) {
         shValue = shValue[0]
       }
-      if (typeof shValue === 'string' && entry.key.value === shValue) {
+      if (typeof shValue === 'string' && entry.key === shValue) {
         shorthand[i] = [value, entry.optional ? '?' : '']
       }
       return { ...entry, key: keyGroup, value }
@@ -167,8 +176,11 @@ const printVisitor: ExhaustiveVisitor<Doc> = {
     return [node.context, indent([line, arrow, node.selector])]
   },
 
-  ModifierExpr(node) {
-    const mod = ['@', node.value.value]
+  ModifierExpr(node, orig) {
+    const mod: Doc[] = ['@', node.value.value]
+    if (orig.options.entries.length) {
+      mod.push('(', node.options, ')')
+    }
     return node.context ? [node.context, indent([line, '-> ', mod])] : mod
   },
 

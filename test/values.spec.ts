@@ -9,7 +9,7 @@ import { helper } from './helpers.js'
 
 const { execute, testIdempotency } = helper()
 
-describe('drills & parsers', () => {
+describe('values', () => {
   test('into JS object', async () => {
     const result = await execute(`
       set obj = \`{ a: "b" }\`
@@ -99,6 +99,18 @@ describe('drills & parsers', () => {
       )
     `)
     expect(result).toEqual(2)
+  })
+
+  test('list of lists', async () => {
+    const result = await execute(`
+        set data = \`[ {list: ["one", "two"]}, {list: ["three", "four"]} ]\`
+        extract $data => $ => list -> length
+      `)
+
+    expect(result).toEqual([
+      [3, 3],
+      [5, 4],
+    ])
   })
 
   test('values not closed until final extract stmt', async () => {

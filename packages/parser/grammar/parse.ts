@@ -27,7 +27,7 @@ export const declInputs: PP = ([, , , , first, maybeRest]) => {
 
 export const inputDecl: PP = ([id, optional, maybeDefault]) => {
   const defaultValue = maybeDefault?.[3]
-  return t.inputDeclStmt(id, !!optional, defaultValue)
+  return t.inputDeclStmt(id, Boolean(optional || defaultValue), defaultValue)
 }
 
 export const request: PP = ([
@@ -37,7 +37,7 @@ export const request: PP = ([
   namedBlocks,
   maybeBody,
 ]) => {
-  const headers = headerBlock?.[1] ?? []
+  const headers = headerBlock?.[1] ?? t.objectLiteralExpr([])
 
   const blocks: Record<string, unknown> = {}
   for (const [, block] of namedBlocks) {
@@ -61,10 +61,8 @@ export const requestBlockNamed: PP = ([name, , entries]) => ({ name, entries })
 
 export const requestBlockBody: PP = ([, body]) => body
 
-export const requestBlock: PP = ([entry, entries]) => [
-  entry,
-  ...entries.map((d: any) => d[1]),
-]
+export const requestBlock: PP = ([entry, entries]) =>
+  t.objectLiteralExpr([entry, ...entries.map((d: any) => d[1])])
 
 export const requestEntry: PP = ([key, , maybeValue]) => {
   let value = maybeValue?.[1]
@@ -75,7 +73,7 @@ export const requestEntry: PP = ([key, , maybeValue]) => {
       text: '',
     }
   }
-  return { key, value }
+  return { key, value, optional: true }
 }
 
 export const assignment: PP = ([, , name, optional, , , , expr]) =>
@@ -85,10 +83,8 @@ export const extract: PP = ([, , exports]) => t.extractStmt(exports)
 
 export const fn: PP = ([, , stmts]) => t.functionExpr(stmts)
 
-export const moduleCall: PP = ([name, , optArgs]) => {
-  const args = optArgs?.[0]
-  return t.moduleCallExpr(name, args)
-}
+export const moduleCall: PP = ([name, , optInputs]) =>
+  t.moduleCallExpr(name, optInputs?.[0])
 
 export const object: PP = d => {
   const entries = d[2].map((dd: any) => dd[0])
@@ -96,7 +92,7 @@ export const object: PP = d => {
 }
 
 export const objectEntry: PP = ([identifier, optional, , , value]) => ({
-  key: identifier,
+  key: t.templateExpr([identifier]),
   value,
   optional: Boolean(optional),
 })
@@ -183,7 +179,8 @@ export const interpExpr: PP = ([, , token]) => token
 
 export const slice: PP = d => t.sliceExpr(d[0])
 
-export const modifier: PP = d => t.modifierExpr(d[0])
+export const modifier: PP = ([value, maybeOptions]) =>
+  t.modifierExpr(value, maybeOptions?.[1])
 
 export const ws: PP = () => null
 

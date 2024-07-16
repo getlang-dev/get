@@ -35,8 +35,8 @@
   },
   "homepage": "https://getlang.dev",
   "scripts": {
-    "compile": "nearleyc parse/getlang.ne -o grammar.ts",
-    "railroad": "nearley-railroad parse/getlang.ne -o grammar.html && open grammar.html"
+    "compile": "nearleyc grammar/getlang.ne -o grammar.ts",
+    "railroad": "nearley-railroad grammar/getlang.ne -o grammar.html && open grammar.html"
   },
   "dependencies": {
     "@getlang/lib": "workspace:^0.0.13",

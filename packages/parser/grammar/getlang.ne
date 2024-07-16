@@ -1,6 +1,6 @@
 @{%
-import lexer from './parse/lexer.js'
-import * as p from './parse/parse.js'
+import lexer from './grammar/lexer.js'
+import * as p from './grammar/parse.js'
 %}
 
 
@@ -49,7 +49,7 @@ expression -> id_expr {% p.identifier %}
 
 ### FUNCTIONS
 function -> "(" _ statements _ ")" {% p.fn %}
-module_call -> id_expr "(" (object _):? ")" {% p.moduleCall %}
+module_call -> id_expr "(" object:? ")" {% p.moduleCall %}
 
 
 ### OBJECT LITERALS
@@ -63,7 +63,7 @@ object_entry -> id_expr "?":? {% p.objectEntryShorthandIdent %}
 template -> (%literal | %interpvar | interp_expr):+ {% p.template %}
 interp_expr -> "${" _ %identifier _ "}" {% p.interpExpr %}
 slice -> %slice {% p.slice %}
-modifier -> %modifier {% p.modifier %}
+modifier -> %modifier ("(" object ")"):? {% p.modifier %}
 id_expr -> %identifier_expr {% id %}
 
 

@@ -101,7 +101,8 @@ export const request = async (
 
   // make request
   try {
-    return await hook(urlString, { method, headers, body })
+    const res = await hook(urlString, { method, headers, body })
+    return { url: urlString, ...res }
   } catch (e) {
     throw new RequestError(urlString, { cause: e })
   }

@@ -1,7 +1,8 @@
 import type { Token as MooToken } from 'moo'
 import type { TypeInfo } from './typeinfo.js'
+import { Type } from './typeinfo.js'
 
-type Token = Omit<MooToken, 'toString'>
+export type Token = Omit<MooToken, 'toString'>
 
 export enum NodeKind {
   Program = 'Program',
@@ -22,25 +23,13 @@ export enum NodeKind {
   SliceExpr = 'SliceExpr',
 }
 
-type RequestEntry = {
-  key: TemplateExpr
-  value: TemplateExpr
-}
-
-type RequestBlocks = {
-  query?: RequestEntry[]
-  cookies?: RequestEntry[]
-  json?: RequestEntry[]
-  form?: RequestEntry[]
-}
-
 type ObjectEntry = {
-  key: Token
+  key: Expr
   value: Expr
   optional: boolean
 }
 
-type Program = {
+export type Program = {
   kind: NodeKind.Program
   body: Stmt[]
 }
@@ -62,7 +51,7 @@ type DeclImportStmt = {
   id: Token
 }
 
-type DeclInputsStmt = {
+export type DeclInputsStmt = {
   kind: NodeKind.DeclInputsStmt
   inputs: InputDeclStmt[]
 }
@@ -76,31 +65,37 @@ type InputDeclStmt = {
 
 type RequestStmt = {
   kind: NodeKind.RequestStmt
-  request: Expr
+  request: RequestExpr
 }
 
-type RequestExpr = {
+type RequestBlocks = {
+  query?: ObjectLiteralExpr
+  cookies?: ObjectLiteralExpr
+  json?: ObjectLiteralExpr
+  form?: ObjectLiteralExpr
+}
+
+export type RequestExpr = {
   kind: NodeKind.RequestExpr
   method: Token
   url: Expr
-  headers: RequestEntry[]
+  headers: ObjectLiteralExpr
   blocks: RequestBlocks
   body?: Expr
-  typeInfo?: TypeInfo
+  typeInfo: TypeInfo
 }
 
-// single-element expressions are reduced to their base during parsing
-type TemplateExpr = {
+export type TemplateExpr = {
   kind: NodeKind.TemplateExpr
   elements: (Expr | Token)[]
-  typeInfo?: TypeInfo
+  typeInfo: TypeInfo
 }
 
 type IdentifierExpr = {
   kind: NodeKind.IdentifierExpr
   value: Token
   isUrlComponent: boolean
-  typeInfo?: TypeInfo
+  typeInfo: TypeInfo
 }
 
 type SelectorExpr = {
@@ -108,46 +103,47 @@ type SelectorExpr = {
   selector: TemplateExpr
   expand: boolean
   context?: Expr
-  typeInfo?: TypeInfo
+  typeInfo: TypeInfo
 }
 
 type ModifierExpr = {
   kind: NodeKind.ModifierExpr
   value: Token
+  options: ObjectLiteralExpr
   context?: Expr
-  typeInfo?: TypeInfo
+  typeInfo: TypeInfo
 }
 
 type FunctionExpr = {
   kind: NodeKind.FunctionExpr
   body: Stmt[]
   context?: Expr
-  typeInfo?: TypeInfo
+  typeInfo: TypeInfo
 }
 
 type ModuleCallExpr = {
   kind: NodeKind.ModuleCallExpr
   name: Token
-  args: Expr
+  inputs: Expr
   context?: Expr
-  typeInfo?: TypeInfo
+  typeInfo: TypeInfo
 }
 
 type ObjectLiteralExpr = {
   kind: NodeKind.ObjectLiteralExpr
   entries: ObjectEntry[]
   context?: Expr
-  typeInfo?: TypeInfo
+  typeInfo: TypeInfo
 }
 
 type SliceExpr = {
   kind: NodeKind.SliceExpr
   slice: Token
   context?: Expr
-  typeInfo?: TypeInfo
+  typeInfo: TypeInfo
 }
 
-type Stmt =
+export type Stmt =
   | Program
   | ExtractStmt
   | AssignmentStmt
@@ -156,7 +152,7 @@ type Stmt =
   | InputDeclStmt
   | RequestStmt
 
-type Expr =
+export type Expr =
   | RequestExpr
   | TemplateExpr
   | IdentifierExpr
@@ -167,7 +163,8 @@ type Expr =
   | ObjectLiteralExpr
   | SliceExpr
 
-type Node = Stmt | Expr
+export type CExpr = Extract<Expr, { context?: any }>
+export type Node = Stmt | Expr
 
 const program = (body: Stmt[]): Program => ({
   kind: NodeKind.Program,
@@ -219,7 +216,7 @@ const requestStmt = (request: RequestExpr): RequestStmt => ({
 const requestExpr = (
   method: Token,
   url: Expr,
-  headers: RequestEntry[],
+  headers: ObjectLiteralExpr,
   blocks: RequestBlocks,
   body: Expr,
 ): RequestExpr => ({
@@ -229,18 +226,21 @@ const requestExpr = (
   headers,
   blocks,
   body,
+  typeInfo: { type: Type.Value },
 })
 
 const functionExpr = (body: Stmt[], context?: Expr): FunctionExpr => ({
   kind: NodeKind.FunctionExpr,
   body,
   context,
+  typeInfo: { type: Type.Value },
 })
 
 const identifierExpr = (value: Token): IdentifierExpr => ({
   kind: NodeKind.IdentifierExpr,
   value,
   isUrlComponent: value.text.startsWith(':'),
+  typeInfo: { type: Type.Value },
 })
 
 const selectorExpr = (
@@ -252,12 +252,19 @@ const selectorExpr = (
   selector,
   expand,
   context,
+  typeInfo: { type: Type.Value },
 })
 
-const modifierExpr = (value: Token, context?: Expr): ModifierExpr => ({
+const modifierExpr = (
+  value: Token,
+  options: ObjectLiteralExpr = objectLiteralExpr([]),
+  context?: Expr,
+): ModifierExpr => ({
   kind: NodeKind.ModifierExpr,
   value,
+  options,
   context,
+  typeInfo: { type: Type.Value },
 })
 
 const objectLiteralExpr = (
@@ -267,28 +274,32 @@ const objectLiteralExpr = (
   kind: NodeKind.ObjectLiteralExpr,
   entries,
   context,
+  typeInfo: { type: Type.Value },
 })
 
 const moduleCallExpr = (
   name: Token,
-  args: Expr = objectLiteralExpr([]),
+  inputs: Expr = objectLiteralExpr([]),
   context?: Expr,
 ): ModuleCallExpr => ({
   kind: NodeKind.ModuleCallExpr,
   name,
-  args,
+  inputs,
   context,
+  typeInfo: { type: Type.Value },
 })
 
 const sliceExpr = (slice: Token, context?: Expr): SliceExpr => ({
   kind: NodeKind.SliceExpr,
   slice,
   context,
+  typeInfo: { type: Type.Value },
 })
 
 const templateExpr = (elements: (Expr | Token)[]): TemplateExpr => ({
   kind: NodeKind.TemplateExpr,
   elements,
+  typeInfo: { type: Type.Value },
 })
 
 export const t = {
@@ -312,16 +323,4 @@ export const t = {
   objectLiteralExpr,
   sliceExpr,
   templateExpr,
-}
-
-export type {
-  Token,
-  Program,
-  DeclInputsStmt,
-  Node,
-  Stmt,
-  Expr,
-  RequestExpr,
-  TemplateExpr,
-  InputDeclStmt,
 }

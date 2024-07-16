@@ -1,13 +1,16 @@
 import { parse } from 'acorn'
 import detect from 'acorn-globals'
 import globals from 'globals'
+import type { Visitor } from '../../ast/visitor.js'
+import { t } from '../../ast/ast.js'
+import { createToken } from '../utils.js'
 
 const browserGlobals = [
   ...Object.keys(globals.browser),
   ...Object.keys(globals.builtin),
 ]
 
-export const analyzeSlice = (_source: string, includeDeps: boolean) => {
+const analyzeSlice = (_source: string, includeDeps: boolean) => {
   const ast = parse(_source, {
     ecmaVersion: 'latest',
     allowReturnOutsideFunction: true,
@@ -40,4 +43,24 @@ export const analyzeSlice = (_source: string, includeDeps: boolean) => {
   }
 
   return { source, deps }
+}
+
+export function inferSliceDeps(): Visitor {
+  return {
+    SliceExpr(node) {
+      const stat = analyzeSlice(node.slice.value, !node.context)
+      const slice = createToken(stat.source)
+      if (stat.deps.length === 0) {
+        return { ...node, slice }
+      }
+      const deps = stat.deps.map(id => ({
+        key: t.templateExpr([createToken(id)]),
+        value: t.identifierExpr(createToken(id)),
+        optional: false,
+      }))
+
+      const context = t.objectLiteralExpr(deps)
+      return { ...node, slice, context }
+    },
+  }
 }

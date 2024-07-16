@@ -4,7 +4,7 @@ import { helper } from './helpers.js'
 
 const { execute, testIdempotency } = helper()
 
-describe('getlang modules', () => {
+describe('modules', () => {
   test('extract', async () => {
     const src = 'extract `501`'
     const result = await execute(src)
@@ -148,6 +148,24 @@ describe('getlang modules', () => {
     const result = await execute(`
       set x = \`{ test: true }\`
       extract $x
+    `)
+    expect(result).toEqual({ test: true })
+  })
+
+  test('func scope with context', async () => {
+    const result = await execute(`
+      set x = \`{ test: true }\`
+      extract $x -> ( extract $ )
+    `)
+    expect(result).toEqual({ test: true })
+  })
+
+  test('func scope with closures', async () => {
+    const result = await execute(`
+      set x = \`{ test: true }\`
+      extract (
+        extract $x
+      )
     `)
     expect(result).toEqual({ test: true })
   })

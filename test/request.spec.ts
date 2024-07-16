@@ -359,6 +359,22 @@ describe('request', () => {
         { text: 'second', link: 'https://base.com/from/root' },
       ])
     })
+
+    it('infers base inside list context', async () => {
+      requestHook.mockResolvedValue({
+        status: 200,
+        headers: new Headers(),
+        body: `<a href="/foo">click here</a>`,
+      })
+
+      const result = await execute(`
+          GET https://bar.com/with/links
+
+          extract => a -> @link
+        `)
+
+      expect(result).toEqual(['https://bar.com/foo'])
+    })
   })
 
   describe('non-body selectors', () => {

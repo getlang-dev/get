@@ -1,5 +1,5 @@
 export enum Type {
-  Unknown = 'unknown',
+  Value = 'value',
   Html = 'html',
   Js = 'js',
   Headers = 'headers',
@@ -7,7 +7,7 @@ export enum Type {
   Null = 'null',
   List = 'list',
   Struct = 'struct',
-  Maybe = 'maybe',
+  Never = 'never',
 }
 
 type ScalarType = {
@@ -19,14 +19,25 @@ type List = {
   of: TypeInfo
 }
 
-type Struct = {
+export type Struct = {
   type: Type.Struct
   schema: Record<string, TypeInfo>
 }
 
-type Maybe = {
-  type: Type.Maybe
-  of: TypeInfo
-}
+export type TypeInfo = ScalarType | List | Struct
 
-export type TypeInfo = ScalarType | List | Struct | Maybe
+export function tequal(a: TypeInfo, b: TypeInfo): boolean {
+  if (a.type === 'list' && b.type === 'list') {
+    return tequal(a.of, b.of)
+  } else if (a.type === 'struct' && b.type === 'struct') {
+    const ax = Object.entries(a.schema)
+    const bx = Object.entries(b.schema)
+    if (ax.length !== bx.length) return false
+    return ax.every(([ak, av]) => {
+      const bv = b.schema[ak]
+      return bv && tequal(av, bv)
+    })
+  } else {
+    return a.type === b.type
+  }
+}

@@ -1,10 +1,10 @@
 import nearley from 'nearley'
 import { QuerySyntaxError } from '@getlang/lib'
 import grammar from './grammar.js'
-import lexer from './parse/lexer.js'
+import lexer from './grammar/lexer.js'
 import type { Program } from './ast/ast.js'
 
-export { desugar } from './ast/simplified.js'
+export { desugar } from './desugar/simplified.js'
 export { print } from './ast/print.js'
 
 export function parse(source: string): Program {
