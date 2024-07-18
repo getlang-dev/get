@@ -12,10 +12,6 @@
       "bun": "./ast/ast.ts",
       "default": "./dist/ast/ast.js"
     },
-    "./visitor": {
-      "bun": "./ast/visitor.ts",
-      "default": "./dist/ast/visitor.js"
-    },
     "./scope": {
       "bun": "./ast/scope.ts",
       "default": "./dist/ast/scope.js"
@@ -23,6 +19,10 @@
     "./typeinfo": {
       "bun": "./ast/typeinfo.ts",
       "default": "./dist/ast/typeinfo.js"
+    },
+    "./visitor": {
+      "bun": "./visitor/visitor.ts",
+      "default": "./dist/visitor/visitor.js"
     }
   },
   "bugs": {

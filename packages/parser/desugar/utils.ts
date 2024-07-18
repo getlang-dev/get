@@ -1,17 +1,22 @@
 import { toPath } from 'lodash-es'
-import type { TemplateExpr, RequestExpr } from '../ast/ast.js'
-import { t } from '../ast/ast.js'
+import type { Expr, RequestExpr } from '../ast/ast.js'
+import { NodeKind, t } from '../ast/ast.js'
 import type { TypeInfo, Struct } from '../ast/typeinfo.js'
 import { Type } from '../ast/typeinfo.js'
 
-export const render = (template: TemplateExpr) =>
-  template.elements.every(e => 'offset' in e)
-    ? template.elements.map(e => e.value).join('')
+export const render = (template: Expr) => {
+  if (template.kind !== NodeKind.TemplateExpr) {
+    return null
+  }
+  const els = template.elements
+  return els?.every(el => 'offset' in el)
+    ? els.map(el => el.value).join('')
     : null
+}
 
 export function selectTypeInfo(
   typeInfo: Struct,
-  selector: TemplateExpr,
+  selector: Expr,
 ): TypeInfo | null {
   const sel = render(selector)
   if (!sel) return null

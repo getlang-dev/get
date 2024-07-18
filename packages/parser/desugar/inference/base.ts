@@ -2,7 +2,7 @@ import { invariant, QuerySyntaxError, ValueReferenceError } from '@getlang/lib'
 import type { Expr, RequestExpr, Stmt } from '../../ast/ast.js'
 import { NodeKind, t } from '../../ast/ast.js'
 import { RootScope } from '../../ast/scope.js'
-import type { Visitor } from '../../ast/visitor.js'
+import type { TransformVisitor } from '../../visitor/transform.js'
 import { createToken, render, template } from '../utils.js'
 import { traceVisitor } from '../trace.js'
 
@@ -27,7 +27,7 @@ function insertUrls(stmts: Stmt[], urls: Urls) {
   })
 }
 
-export function inferBase(): Visitor {
+export function inferBase(): TransformVisitor {
   const scope = new RootScope<Expr>()
 
   const bases = new Map<Expr, RequestExpr>()
@@ -63,6 +63,7 @@ export function inferBase(): Visitor {
     SelectorExpr: {
       enter(node, visit) {
         const xnode = trace.SelectorExpr.enter(node, visit)
+        invariant(xnode.context, new QuerySyntaxError('Unresolved context'))
         inherit(xnode.context, xnode)
         return xnode
       },
@@ -90,6 +91,7 @@ export function inferBase(): Visitor {
             })
           }
         }
+        invariant(xnode.context, new QuerySyntaxError('Unresolved context'))
         inherit(xnode.context, xnode)
         return xnode
       },
@@ -97,6 +99,7 @@ export function inferBase(): Visitor {
 
     RequestExpr(node) {
       bases.set(node, node)
+      return node
     },
 
     Program(node) {

@@ -1,7 +1,7 @@
 import { invariant, QuerySyntaxError, ValueReferenceError } from '@getlang/lib'
 import { NodeKind, type CExpr, type Expr } from '../../ast/ast.js'
 import { RootScope } from '../../ast/scope.js'
-import type { Visitor } from '../../ast/visitor.js'
+import type { TransformVisitor, Visit } from '../../visitor/transform.js'
 import { traceVisitor } from '../trace.js'
 import { Type, type TypeInfo } from '../../ast/typeinfo.js'
 import { render, selectTypeInfo } from '../utils.js'
@@ -27,10 +27,10 @@ function rewrap(
   return { ...typeInfo, of: rewrap(typeInfo.of, itemTypeInfo) }
 }
 
-export function inferTypeInfo(): Visitor {
+export function inferTypeInfo(): TransformVisitor {
   const scope = new RootScope<Expr>()
 
-  function itemVisit(node: CExpr, visit: (node: Expr) => Expr) {
+  function itemVisit(node: CExpr, visit: Visit): Visit {
     return child => {
       if (child === node.context || !scope.context?.typeInfo) {
         return visit(child)
@@ -77,7 +77,7 @@ export function inferTypeInfo(): Visitor {
     SliceExpr: {
       enter(node, visit) {
         const xnode = trace.SliceExpr.enter(node, itemVisit(node, visit))
-        const typeInfo = { type: Type.Value }
+        const typeInfo: TypeInfo = { type: Type.Value }
         return { ...xnode, typeInfo: rewrap(xnode.context?.typeInfo, typeInfo) }
       },
     },
@@ -85,7 +85,7 @@ export function inferTypeInfo(): Visitor {
     ModuleCallExpr: {
       enter(node, visit) {
         const xnode = trace.ModuleCallExpr.enter(node, itemVisit(node, visit))
-        const typeInfo = { type: Type.Value }
+        const typeInfo: TypeInfo = { type: Type.Value }
         return { ...xnode, typeInfo: rewrap(xnode.context?.typeInfo, typeInfo) }
       },
     },

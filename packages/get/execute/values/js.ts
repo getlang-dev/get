@@ -2,13 +2,12 @@ import { parse as acorn } from 'acorn'
 import type { AnyNode } from 'acorn'
 import esquery from 'esquery'
 import { SelectorSyntaxError, ConversionError, invariant } from '@getlang/lib'
-import type { SelectFn } from './types.js'
 
 export const parse = (js: string): AnyNode => {
   return acorn(js, { ecmaVersion: 'latest' })
 }
 
-export const select: SelectFn<AnyNode> = (node, selector, expand) => {
+export const select = (node: AnyNode, selector: string, expand: boolean) => {
   try {
     const matches = esquery(node, selector)
     if (expand) {
@@ -24,7 +23,7 @@ export const select: SelectFn<AnyNode> = (node, selector, expand) => {
   }
 }
 
-export const getValue = (node: AnyNode) => {
+export const toValue = (node: AnyNode) => {
   invariant(node.type === 'Literal', new ConversionError(node.type))
   return node.value
 }

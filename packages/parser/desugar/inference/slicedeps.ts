@@ -1,7 +1,7 @@
 import { parse } from 'acorn'
 import detect from 'acorn-globals'
 import globals from 'globals'
-import type { Visitor } from '../../ast/visitor.js'
+import type { TransformVisitor } from '../../visitor/transform.js'
 import { t } from '../../ast/ast.js'
 import { createToken } from '../utils.js'
 
@@ -45,7 +45,7 @@ const analyzeSlice = (_source: string, includeDeps: boolean) => {
   return { source, deps }
 }
 
-export function inferSliceDeps(): Visitor {
+export function inferSliceDeps(): TransformVisitor {
   return {
     SliceExpr(node) {
       const stat = analyzeSlice(node.slice.value, !node.context)

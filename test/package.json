@@ -6,5 +6,8 @@
     "@getlang/get": "workspace:*",
     "@getlang/parser": "workspace:*",
     "dedent": "^1.5.3"
+  },
+  "devDependencies": {
+    "js-yaml": "^4.1.0"
   }
 }

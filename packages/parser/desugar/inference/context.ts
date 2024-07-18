@@ -2,7 +2,7 @@ import { invariant, QuerySyntaxError } from '@getlang/lib'
 import type { CExpr, Expr, RequestExpr, Stmt } from '../../ast/ast.js'
 import { NodeKind, t } from '../../ast/ast.js'
 import { RootScope } from '../../ast/scope.js'
-import type { Visitor } from '../../ast/visitor.js'
+import type { TransformVisitor } from '../../visitor/transform.js'
 import { createToken, getContentMod, template } from '../utils.js'
 import { traceVisitor } from '../trace.js'
 
@@ -45,13 +45,8 @@ function insertParsers(stmts: Stmt[], parsers: Parsers) {
   })
 }
 
-export function inferContext(): Visitor {
+export function inferContext(): TransformVisitor {
   const scope = new RootScope<Expr>()
-
-  function requireContext() {
-    invariant(scope.context, new QuerySyntaxError('Unresolved context'))
-    return scope.context
-  }
 
   const parsers: Parsers = new Map()
   function getParser(req: RequestExpr, mod: string = getContentMod(req)) {
@@ -63,16 +58,19 @@ export function inferContext(): Visitor {
   }
 
   function infer(node: CExpr, mod?: string) {
-    let context = node.context
+    let resolved: Expr
     let from: Expr | undefined
-    if (!node.context) {
-      from = requireContext()
-      context =
+    if (node.context) {
+      resolved = node.context
+    } else {
+      from = scope.context
+      invariant(from, new QuerySyntaxError('Unresolved context'))
+      resolved =
         from.kind === NodeKind.RequestExpr
           ? getParser(from, mod)
           : t.identifierExpr(createToken(''))
     }
-    return { context, from }
+    return { resolved, from }
   }
 
   const trace = traceVisitor(scope)
@@ -93,7 +91,7 @@ export function inferContext(): Visitor {
 
     SelectorExpr: {
       enter(node, visit) {
-        const { context } = infer(node)
+        const { resolved: context } = infer(node)
         return trace.SelectorExpr.enter({ ...node, context }, visit)
       },
     },
@@ -101,11 +99,15 @@ export function inferContext(): Visitor {
     ModifierExpr: {
       enter(node, visit) {
         const mod = node.value.value
-        const { context, from } = infer(node, mod)
+        const { resolved: context, from } = infer(node, mod)
         const onRequest = from?.kind === NodeKind.RequestExpr
         const xnode = trace.ModifierExpr.enter({ ...node, context }, visit)
         // when inferred to request parser, replace modifier
-        return onRequest ? xnode.context : xnode
+        if (onRequest) {
+          invariant(xnode.context, new QuerySyntaxError('Unresolved context'))
+          return xnode.context
+        }
+        return xnode
       },
     },
   }

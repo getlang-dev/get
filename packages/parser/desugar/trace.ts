@@ -1,14 +1,10 @@
 import type { Expr, CExpr } from '../ast/ast.js'
 import { t } from '../ast/ast.js'
 import type { RootScope } from '../ast/scope.js'
-import type { Visitor } from '../ast/visitor.js'
+import type { Visit, TransformVisitor } from '../visitor/transform.js'
 
 export function traceVisitor(scope: RootScope<Expr>) {
-  function ctx(
-    node: CExpr,
-    visit: (node: Expr) => Expr,
-    cb: (tnode: Expr) => Expr,
-  ) {
+  function ctx<C extends CExpr>(node: C, visit: Visit, cb: (tnode: C) => C) {
     const context = node.context && visit(node.context)
     context && scope.pushContext(context)
     const xnode = cb({ ...node, context })
@@ -92,5 +88,5 @@ export function traceVisitor(scope: RootScope<Expr>) {
         return ctx(node, visit, node => node)
       },
     },
-  } satisfies Visitor
+  } satisfies TransformVisitor
 }

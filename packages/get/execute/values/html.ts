@@ -10,14 +10,13 @@ import {
   NullSelectionError,
   invariant,
 } from '@getlang/lib'
-import type { SelectFn } from './types.js'
 import './patch-dom.js'
 
 export const parse = (html: string): AnyHtmlNode => {
   return parse5(html, { treeAdapter: adapter })
 }
 
-const selectXpath: SelectFn<AnyHtmlNode> = (el, selector, expand) => {
+const selectXpath = (el: AnyHtmlNode, selector: string, expand: boolean) => {
   try {
     const parseXpath = new xpath.XPathParser()
     parseXpath.parse(selector)
@@ -40,7 +39,7 @@ const selectXpath: SelectFn<AnyHtmlNode> = (el, selector, expand) => {
   return result.length ? result[0] : undefined
 }
 
-const selectCss: SelectFn<AnyHtmlNode> = (el, selector, expand) => {
+const selectCss = (el: AnyHtmlNode, selector: string, expand: boolean) => {
   try {
     parseCss(selector)
   } catch (e) {
@@ -53,13 +52,13 @@ const selectCss: SelectFn<AnyHtmlNode> = (el, selector, expand) => {
   return result === null ? undefined : result
 }
 
-export const select: SelectFn<AnyHtmlNode> = (el, selector, expand) => {
+export const select = (el: AnyHtmlNode, selector: string, expand: boolean) => {
   return selector.startsWith('xpath:')
     ? selectXpath(el, selector.slice(6), expand)
     : selectCss(el, selector, expand)
 }
 
-export const getValue = (el: AnyHtmlNode) => {
+export const toValue = (el: AnyHtmlNode) => {
   let str = ''
   if (el.nodeType === 2) {
     str = el.value

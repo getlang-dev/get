@@ -4,7 +4,6 @@ export enum Type {
   Js = 'js',
   Headers = 'headers',
   Cookies = 'cookies',
-  Null = 'null',
   List = 'list',
   Struct = 'struct',
   Never = 'never',
@@ -14,7 +13,7 @@ type ScalarType = {
   type: Exclude<Type, Type.List | Type.Struct>
 }
 
-type List = {
+export type List = {
   type: Type.List
   of: TypeInfo
 }

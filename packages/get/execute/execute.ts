@@ -1,9 +1,5 @@
 import { mapValues } from 'lodash-es'
-import {
-  visit,
-  SKIP,
-  type AsyncExhaustiveVisitor,
-} from '@getlang/parser/visitor'
+import { visit, type AsyncInterpretVisitor } from '@getlang/parser/visitor'
 import { RootScope } from '@getlang/parser/scope'
 import type { Stmt, Program, Expr, CExpr } from '@getlang/parser/ast'
 import { NodeKind } from '@getlang/parser/ast'
@@ -14,7 +10,6 @@ import {
   invariant,
   NullSelectionError,
   QuerySyntaxError,
-  ValueTypeError,
   ValueReferenceError,
   ImportError,
   NullInputError,
@@ -32,32 +27,34 @@ export type InternalHooks = {
   slice: Hooks['slice']
 }
 
-type Value = { raw: unknown; typeInfo: TypeInfo; selector?: string }
+type Contextual = { value: any; typeInfo: TypeInfo }
 
-function assert(value: Value) {
-  if (value.raw === undefined) {
-    throw new NullSelectionError(value.selector ?? '<unknown>')
+class NullSelection {
+  constructor(public selector: string) {}
+}
+
+function assert(value: any) {
+  if (value instanceof NullSelection) {
+    throw new NullSelectionError(value.selector)
   }
 }
 
-function toValue({ raw, typeInfo }: Value): unknown {
+function toValue(value: any, typeInfo: TypeInfo): any {
   switch (typeInfo.type) {
     case Type.Html:
-      return html.getValue(raw)
+      return html.toValue(value)
     case Type.Js:
-      return js.getValue(raw)
+      return js.toValue(value)
     case Type.Headers:
-      return Object.fromEntries(raw)
+      return Object.fromEntries(value)
     case Type.Cookies:
-      return mapValues(raw, c => c.value)
+      return mapValues(value, c => c.value)
     case Type.List:
-      return raw.map(item => toValue({ raw: item, typeInfo: typeInfo.of }))
+      return value.map((item: any) => toValue(item, typeInfo.of))
     case Type.Struct:
-      return mapValues(raw, (v, k) =>
-        toValue({ raw: v, typeInfo: typeInfo.schema[k] }),
-      )
+      return mapValues(value, (v, k) => toValue(v, typeInfo.schema[k]!))
     case Type.Value:
-      return raw
+      return value
   }
 }
 
@@ -81,12 +78,12 @@ export async function execute(
   hooks: InternalHooks,
   modules: Modules = new Modules(hooks.import),
 ) {
-  const scope = new RootScope<Value>()
+  const scope = new RootScope<any>()
 
   async function executeBody(
     visit: (stmt: Stmt) => void,
     body: Stmt[],
-    context?: Value,
+    context?: any,
   ) {
     scope.push(context)
     for (const stmt of body) {
@@ -98,55 +95,46 @@ export async function execute(
     return scope.pop()
   }
 
-  async function unwrap(
-    context: Value | undefined,
-    cb: () => MaybePromise<Value>,
-  ): Value {
-    const { raw: cval, typeInfo } = context ?? {}
-    if (typeInfo?.type !== Type.List) {
-      context && scope.pushContext(context)
-      const value = await cb()
-      context && scope.popContext()
-      return value
-    }
-    invariant(
-      Array.isArray(cval),
-      new ValueTypeError('List context requires a list value'),
-    )
-    const list = []
-    for (const item of cval) {
-      const itemContext: Value = { raw: item, typeInfo: typeInfo.of }
-      const { raw: itemValue } = await unwrap(itemContext, cb)
-      list.push(itemValue)
-    }
-    return { raw: list, typeInfo }
-  }
-
   async function ctx(
     node: CExpr,
-    visit: (node: Expr) => MaybePromise<Value>,
-    cb: () => MaybePromise<Value>,
-  ): Promise<Value> {
-    const context = node.context && (await visit(node.context))
-    if (context && context.raw === undefined) {
-      return { ...context, typeInfo: node.typeInfo }
+    visit: (node: Expr) => MaybePromise<any>,
+    cb: (ctx?: Contextual) => MaybePromise<any>,
+  ): Promise<any> {
+    async function unwrap(
+      context: Contextual | undefined,
+      cb: (ctx?: Contextual) => MaybePromise<any>,
+    ): Promise<any> {
+      if (!context) {
+        return cb()
+      } else if (context.typeInfo.type === Type.List) {
+        const list = []
+        for (const item of context.value) {
+          const itemCtx = { value: item, typeInfo: context.typeInfo.of }
+          list.push(await unwrap(itemCtx, cb))
+        }
+        return list
+      } else {
+        context && scope.pushContext(context.value)
+        const value = await cb(context)
+        context && scope.popContext()
+        return value
+      }
     }
-    const value = await unwrap(context, cb)
-    return { ...value, typeInfo: node.typeInfo }
+
+    let context: Contextual | undefined
+    if (node.context) {
+      context = {
+        value: await visit(node.context),
+        typeInfo: node.context.typeInfo,
+      }
+    }
+
+    return context?.value instanceof NullSelection
+      ? context.value
+      : await unwrap(context, cb)
   }
 
-  function requireCtx(
-    node: CExpr,
-    visit: (node: Expr) => MaybePromise<Value>,
-    cb: (context: Value) => MaybePromise<Value>,
-  ): Promise<Value> {
-    return ctx(node, visit, () => {
-      invariant(scope.context, new QuerySyntaxError('Unresolved context'))
-      return cb(scope.context)
-    })
-  }
-
-  const visitor: AsyncExhaustiveVisitor<void, Value> = {
+  const visitor: AsyncInterpretVisitor<void, any> = {
     /**
      * Expression nodes
      */
@@ -156,103 +144,97 @@ export async function execute(
           const module = node.name.value
           const external = await modules.get(module)
           invariant(external, new ValueReferenceError(module))
-          const { raw: inputs } = await visit(node.inputs)
-          const output = await execute(external, inputs, hooks, modules)
-          return { raw: output, typeInfo: node.typeInfo }
+          const inputs = await visit(node.inputs)
+          return await execute(external, inputs as any, hooks, modules)
         })
       },
     },
 
     TemplateExpr(node) {
-      const els = node.elements.map(el => ('offset' in el ? el.value : el.raw))
-      const hasUndefined = els.some(el => el === undefined)
-      const value = hasUndefined ? undefined : els.join('')
-      return { raw: value, typeInfo: node.typeInfo }
+      const firstNull = node.elements.find(el => el instanceof NullSelection)
+      if (firstNull) {
+        return firstNull
+      }
+      return node.elements
+        .map(el =>
+          typeof el === 'object' && el && 'offset' in el ? el.value : el,
+        )
+        .join('')
     },
 
     IdentifierExpr(node) {
       const value = scope.vars[node.value.value]
-      invariant(value, new ValueReferenceError(node.value.value))
+      invariant(value !== undefined, new ValueReferenceError(node.value.value))
       return value
     },
 
     SliceExpr: {
       async enter(node, visit) {
-        return ctx(node, visit, async () => {
+        return ctx(node, visit, async context => {
           const { slice } = node
           const fauxSelector = `slice@${slice.line}:${slice.col}`
           const value = await hooks.slice(
             slice.value,
-            scope.context ? toValue(scope.context) : {},
-            scope.context?.raw ?? {},
+            context ? toValue(context.value, context.typeInfo) : {},
+            context?.value ?? {},
           )
-          return { raw: value, typeInfo: node.typeInfo, selector: fauxSelector }
+          return value === undefined ? new NullSelection(fauxSelector) : value
         })
       },
     },
 
     SelectorExpr: {
       async enter(node, visit) {
-        return requireCtx(node, visit, async context => {
-          const { raw: selector } = await visit(node.selector)
-
+        return ctx(node, visit, async context => {
+          const selector = await visit(node.selector)
           if (typeof selector !== 'string') {
-            return { raw: selector, typeInfo: node.typeInfo }
+            return selector
           }
-          const { raw: subject, typeInfo: ctype } = context
-          const args = [subject, selector, node.expand] as const
+          const args = [context!.value, selector, node.expand] as const
 
-          const ret = (result: unknown) => ({
-            raw: result,
-            typeInfo: node.typeInfo,
-            selector,
-          })
-
-          switch (ctype.type) {
-            case Type.Html:
-              return ret(html.select(...args))
-            case Type.Js:
-              return ret(js.select(...args))
-            case Type.Headers:
-              return ret(headers.select(...args))
-            case Type.Cookies:
-              return ret(cookies.select(...args))
-            default:
-              return ret(json.select(...args))
+          function select() {
+            switch (context!.typeInfo.type) {
+              case Type.Html:
+                return html.select(...args)
+              case Type.Js:
+                return js.select(...args)
+              case Type.Headers:
+                return headers.select(...args)
+              case Type.Cookies:
+                return cookies.select(...args)
+              default:
+                return json.select(...args)
+            }
           }
+
+          const result = select()
+          return result === undefined ? new NullSelection(selector) : result
         })
       },
     },
 
     ModifierExpr: {
       async enter(node, visit) {
-        return requireCtx(node, visit, async context => {
+        return ctx(node, visit, async context => {
           const mod = node.value.value
-          const doc = toValue(context)
-          const { raw: options } = await visit(node.options)
-          invariant(
-            typeof doc === 'string',
-            new ValueTypeError('Modifier requires string input'),
-          )
-          const ret = (result: unknown) => ({
-            raw: result,
-            typeInfo: node.typeInfo,
-          })
+          const doc = toValue(context!.value, context!.typeInfo)
+
           switch (mod) {
             case 'html':
-              return ret(html.parse(doc))
+              return html.parse(doc)
             case 'js':
-              return ret(js.parse(doc))
+              return js.parse(doc)
             case 'json':
-              return ret(json.parse(doc))
+              return json.parse(doc)
             case 'cookies':
-              return ret(cookies.parse(doc))
+              return cookies.parse(doc)
             case 'link': {
+              const options = await visit(node.options)
               const resolved = http.constructUrl(
-                context.raw,
+                scope.context,
                 options.base ?? undefined,
               )
-              return ret(resolved ?? undefined)
+              return resolved ?? new NullSelection('@link')
             }
             default:
               throw new ValueReferenceError(`Unsupported modifier: ${mod}`)
@@ -264,16 +246,16 @@ export async function execute(
     ObjectLiteralExpr: {
       async enter(node, visit) {
         return ctx(node, visit, async () => {
-          const obj: Record<string, unknown> = {}
+          const obj: Record<string, any> = {}
           for (const entry of node.entries) {
             const value = await visit(entry.value)
             entry.optional || assert(value)
-            if (value.raw !== undefined) {
+            if (!(value instanceof NullSelection)) {
               const key = await visit(entry.key)
-              obj[key.raw] = value.raw
+              obj[key] = value
             }
           }
-          return { raw: obj, typeInfo: node.typeInfo }
+          return obj
         })
       },
     },
@@ -293,27 +275,16 @@ export async function execute(
 
     async RequestExpr(node) {
       const method = node.method.value
-      const url = node.url.raw
-      const body = node.body?.raw || ''
-
-      invariant(
-        typeof url === 'string',
-        new ValueTypeError('Request URL expected string'),
-      )
-      invariant(
-        typeof body === 'string',
-        new ValueTypeError('Request body expected string'),
-      )
-
-      const res = await http.request(
+      const url = node.url
+      const body = node.body ?? ''
+      return await http.request(
         method,
         url,
-        node.headers.raw,
-        mapValues(node.blocks, b => b.raw),
+        node.headers,
+        node.blocks,
         body,
         hooks.request,
       )
-      return { raw: res, typeInfo: node.typeInfo }
     },
 
     /**
@@ -336,21 +307,16 @@ export async function execute(
     InputDeclStmt: {
       async enter(node, visit) {
         const inputName = node.id.value
-        const isOptional = node.optional || !!node.defaultValue
         let inputValue = json.select(inputs, inputName, false)
-        invariant(
-          inputValue !== undefined || isOptional,
-          new NullInputError(inputName),
-        )
-        if (inputValue === undefined && node.defaultValue) {
-          inputValue = (await visit(node.defaultValue)).raw
+        if (inputValue === undefined) {
+          if (!node.optional) {
+            throw new NullInputError(inputName)
+          }
+          inputValue = node.defaultValue
+            ? await visit(node.defaultValue)
+            : new NullSelection(`input:${inputName}`)
         }
-        scope.vars[inputName] = {
-          raw: inputValue,
-          typeInfo: { type: Type.Value },
-          selector: `input:${inputName}`,
-        }
-        return SKIP
+        scope.vars[inputName] = inputValue
       },
     },
 
@@ -374,12 +340,15 @@ export async function execute(
         if (ex) {
           scope.extracted = ex
         }
-        return SKIP
       },
     },
   }
 
   await visit(program, visitor)
+
   const ex = scope.pop()
-  return ex ? toValue(ex) : null
+  const retType: any = program.body.find(
+    stmt => stmt.kind === NodeKind.ExtractStmt,
+  )
+  return ex ? toValue(ex, retType.value.typeInfo) : null
 }

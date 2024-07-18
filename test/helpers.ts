@@ -1,8 +1,29 @@
 import { expect } from 'bun:test'
 import dedent from 'dedent'
+import { dump } from 'js-yaml'
+import type { Program } from '@getlang/parser/ast'
 import { parse, desugar, print } from '@getlang/parser'
-import { execute as exec } from '@getlang/get'
+import { executeAST as exec } from '@getlang/get'
 import type { Hooks } from '@getlang/lib'
+
+const DEBUG = Boolean(process.env.AST)
+
+function printYaml(ast: Program) {
+  console.log('\n---- execute ast ----')
+  console.log(
+    dump(ast, {
+      indent: 4,
+      replacer(_, value) {
+        if (typeof value === 'object' && value) {
+          if ('offset' in value && 'lineBreaks' in value && 'value' in value) {
+            return `TOKEN(${value.value})`
+          }
+        }
+        return value
+      },
+    }),
+  )
+}
 
 expect.extend({
   headers(received: unknown, expected: Headers) {
@@ -33,7 +54,11 @@ export function helper() {
   ): any {
     const src = dedent(_src)
     collected.push(src)
-    return exec(src, inputs, hooks)
+
+    const ast = desugar(parse(src))
+    DEBUG && printYaml(ast)
+
+    return exec(ast, inputs, hooks)
   }
 
   function testIdempotency() {

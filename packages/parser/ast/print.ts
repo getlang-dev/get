@@ -2,8 +2,8 @@ import type { Doc } from 'prettier'
 import { doc } from 'prettier'
 import type { Node } from './ast.js'
 import { NodeKind } from './ast.js'
-import type { ExhaustiveVisitor } from './visitor.js'
-import { visit } from './visitor.js'
+import type { InterpretVisitor } from '../visitor/visitor.js'
+import { visit } from '../visitor/visitor.js'
 
 // NOTE: avoid using template interpolation with prettier.Doc
 // as the Doc may be a Doc array or Doc command
@@ -13,7 +13,7 @@ const {
   printer,
 } = doc
 
-const printVisitor: ExhaustiveVisitor<Doc> = {
+const printVisitor: InterpretVisitor<Doc> = {
   Program(node) {
     return join(hardline, node.body)
   },

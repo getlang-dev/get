@@ -1,5 +1,4 @@
 import * as scp from 'set-cookie-parser'
-import type { SelectFn } from './types.js'
 import { QuerySyntaxError, invariant } from '@getlang/lib'
 
 export const parse = (from: string) => {
@@ -7,10 +6,10 @@ export const parse = (from: string) => {
   return scp.parse(cookie, { map: true })
 }
 
-export const select: SelectFn<scp.CookieMap, string> = (
-  cookies,
-  path,
-  expand,
+export const select = (
+  cookies: scp.CookieMap,
+  path: string,
+  expand: boolean,
 ) => {
   invariant(!expand, new QuerySyntaxError('Cannot expand cookies selector'))
   return cookies[path]?.value
