@@ -1,4 +1,5 @@
-import type { AnyHtmlNode } from 'domhandler'
+import type { ElementType } from 'domelementtype'
+import type * as dh from 'domhandler'
 import { parse as parse5 } from 'parse5'
 import { adapter } from 'parse5-htmlparser2-tree-adapter'
 import xpath from '@getlang/xpath'
@@ -11,6 +12,14 @@ import {
   invariant,
 } from '@getlang/utils'
 import './patch-dom.js'
+
+declare class Attribute extends dh.Node {
+  type: ElementType.Text
+  get nodeType(): 2
+  value: string
+}
+
+export type AnyHtmlNode = dh.AnyNode | Attribute
 
 export const parse = (html: string): AnyHtmlNode => {
   return parse5(html, { treeAdapter: adapter })

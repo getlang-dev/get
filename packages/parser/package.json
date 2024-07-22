@@ -1,6 +1,6 @@
 {
   "name": "@getlang/parser",
-  "version": "0.0.18",
+  "version": "0.0.19",
   "license": "Apache-2.0",
   "type": "module",
   "exports": {
@@ -40,15 +40,13 @@
   },
   "dependencies": {
     "@getlang/utils": "workspace:^0.0.14",
+    "@types/moo": "^0.5.9",
+    "@types/nearley": "^2.11.5",
     "acorn": "^8.12.0",
     "acorn-globals": "^7.0.1",
     "globals": "^15.6.0",
     "moo": "^0.5.2",
     "nearley": "^2.20.1",
     "prettier": "^3.3.2"
-  },
-  "devDependencies": {
-    "@types/moo": "^0.5.9",
-    "@types/nearley": "^2.11.5"
   }
 }
