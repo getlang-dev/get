@@ -1,5 +1,5 @@
 import { describe, test, mock, expect } from 'bun:test'
-import { NullInputError } from '@getlang/lib'
+import { NullInputError } from '@getlang/utils'
 import { helper } from './helpers.js'
 
 const { execute, testIdempotency } = helper()

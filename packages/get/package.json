@@ -1,6 +1,6 @@
 {
   "name": "@getlang/get",
-  "version": "0.0.21",
+  "version": "0.0.22",
   "license": "Apache-2.0",
   "type": "module",
   "exports": {
@@ -17,20 +17,11 @@
   },
   "homepage": "https://getlang.dev",
   "dependencies": {
-    "@getlang/lib": "workspace:^0.0.13",
-    "@getlang/parser": "workspace:^0.0.17",
+    "@getlang/lib": "workspace:^0.0.1",
+    "@getlang/utils": "workspace:^0.0.14",
+    "@getlang/parser": "workspace:^0.0.18",
     "@getlang/xpath": "0.0.35-0",
-    "acorn": "^8.12.0",
-    "css-select": "^5.1.0",
-    "css-what": "^6.1.0",
-    "dom-serializer": "^2.0.0",
-    "domhandler": "^5.0.3",
-    "domutils": "^3.1.0",
-    "esquery": "^1.5.0",
-    "lodash-es": "^4.17.21",
-    "parse5": "^7.1.2",
-    "parse5-htmlparser2-tree-adapter": "^7.0.0",
-    "set-cookie-parser": "^2.6.0"
+    "lodash-es": "^4.17.21"
   },
   "devDependencies": {
     "@types/js-yaml": "^4.0.9",

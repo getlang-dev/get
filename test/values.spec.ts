@@ -1,10 +1,10 @@
 import { describe, test, mock, expect } from 'bun:test'
-import type { RequestHook } from '@getlang/lib'
+import type { RequestHook } from '@getlang/utils'
 import {
   SelectorSyntaxError,
   NullSelectionError,
   ConversionError,
-} from '@getlang/lib'
+} from '@getlang/utils'
 import { helper } from './helpers.js'
 
 const { execute, testIdempotency } = helper()

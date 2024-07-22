@@ -1,5 +1,5 @@
 import nearley from 'nearley'
-import { QuerySyntaxError } from '@getlang/lib'
+import { QuerySyntaxError } from '@getlang/utils'
 import grammar from './grammar.js'
 import lexer from './grammar/lexer.js'
 import type { Program } from './ast/ast.js'

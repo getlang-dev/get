@@ -1,4 +1,4 @@
-import { SliceError } from './errors.js'
+import { SliceError } from '@getlang/utils'
 
 export const runSlice = async (
   slice: string,

@@ -1,4 +1,4 @@
-import type { MaybePromise } from '@getlang/lib'
+import type { MaybePromise } from '@getlang/utils'
 import type { Node, Stmt, Expr } from '../ast/ast.js'
 
 type Transform<V, S, E> = V extends V

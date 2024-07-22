@@ -1,0 +1,19 @@
+{
+  "name": "@getlang/utils",
+  "version": "0.0.14",
+  "license": "Apache-2.0",
+  "type": "module",
+  "exports": {
+    "bun": "./index.ts",
+    "default": "./dist/index.js"
+  },
+  "bugs": {
+    "url": "https://github.com/getlang-dev/get/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/getlang-dev/get.git",
+    "directory": "packages/utils"
+  },
+  "homepage": "https://getlang.dev"
+}

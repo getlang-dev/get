@@ -5,7 +5,8 @@ import type { Stmt, Program, Expr, CExpr } from '@getlang/parser/ast'
 import { NodeKind } from '@getlang/parser/ast'
 import type { TypeInfo } from '@getlang/parser/typeinfo'
 import { Type } from '@getlang/parser/typeinfo'
-import type { Hooks, MaybePromise } from '@getlang/lib'
+import { http, html, json, js, headers, cookies } from '@getlang/lib'
+import type { Hooks, MaybePromise } from '@getlang/utils'
 import {
   invariant,
   NullSelectionError,
@@ -13,13 +14,7 @@ import {
   ValueReferenceError,
   ImportError,
   NullInputError,
-} from '@getlang/lib'
-import * as http from './net/http.js'
-import * as html from './values/html.js'
-import * as json from './values/json.js'
-import * as js from './values/js.js'
-import * as headers from './values/headers.js'
-import * as cookies from './values/cookies.js'
+} from '@getlang/utils'
 
 export type InternalHooks = {
   import: (module: string) => MaybePromise<Program>
@@ -46,9 +41,9 @@ function toValue(value: any, typeInfo: TypeInfo): any {
     case Type.Js:
       return js.toValue(value)
     case Type.Headers:
-      return Object.fromEntries(value)
+      return headers.toValue(value)
     case Type.Cookies:
-      return mapValues(value, c => c.value)
+      return cookies.toValue(value)
     case Type.List:
       return value.map((item: any) => toValue(item, typeInfo.of))
     case Type.Struct:
@@ -104,9 +99,7 @@ export async function execute(
       context: Contextual | undefined,
       cb: (ctx?: Contextual) => MaybePromise<any>,
     ): Promise<any> {
-      if (!context) {
-        return cb()
-      } else if (context.typeInfo.type === Type.List) {
+      if (context?.typeInfo.type === Type.List) {
         const list = []
         for (const item of context.value) {
           const itemCtx = { value: item, typeInfo: context.typeInfo.of }
@@ -217,8 +210,17 @@ export async function execute(
       async enter(node, visit) {
         return ctx(node, visit, async context => {
           const mod = node.value.value
-          const doc = toValue(context!.value, context!.typeInfo)
 
+          if (mod === 'link') {
+            const options = await visit(node.options)
+            const resolved = http.constructUrl(
+              scope.context,
+              options.base ?? undefined,
+            )
+            return resolved ?? new NullSelection('@link')
+          }
+
+          const doc = toValue(context!.value, context!.typeInfo)
           switch (mod) {
             case 'html':
               return html.parse(doc)
@@ -228,14 +230,6 @@ export async function execute(
               return json.parse(doc)
             case 'cookies':
               return cookies.parse(doc)
-            case 'link': {
-              const options = await visit(node.options)
-              const resolved = http.constructUrl(
-                scope.context,
-                options.base ?? undefined,
-              )
-              return resolved ?? new NullSelection('@link')
-            }
             default:
               throw new ValueReferenceError(`Unsupported modifier: ${mod}`)
           }
@@ -307,7 +301,7 @@ export async function execute(
     InputDeclStmt: {
       async enter(node, visit) {
         const inputName = node.id.value
-        let inputValue = json.select(inputs, inputName, false)
+        let inputValue = inputs[inputName]
         if (inputValue === undefined) {
           if (!node.optional) {
             throw new NullInputError(inputName)

@@ -1,4 +1,4 @@
-import { wait, waitMap } from '@getlang/lib'
+import { wait, waitMap } from '@getlang/utils'
 import type { Node } from '../ast/ast.js'
 import { NodeKind } from '../ast/ast.js'
 import type { TransformVisitor } from './transform.js'

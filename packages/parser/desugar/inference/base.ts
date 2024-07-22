@@ -1,4 +1,8 @@
-import { invariant, QuerySyntaxError, ValueReferenceError } from '@getlang/lib'
+import {
+  invariant,
+  QuerySyntaxError,
+  ValueReferenceError,
+} from '@getlang/utils'
 import type { Expr, RequestExpr, Stmt } from '../../ast/ast.js'
 import { NodeKind, t } from '../../ast/ast.js'
 import { RootScope } from '../../ast/scope.js'

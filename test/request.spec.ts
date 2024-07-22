@@ -7,7 +7,7 @@ import {
   beforeEach,
   afterEach,
 } from 'bun:test'
-import type { RequestHook } from '@getlang/lib'
+import type { RequestHook } from '@getlang/utils'
 import { helper } from './helpers.js'
 
 const { execute: _exec, testIdempotency } = helper()

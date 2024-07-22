@@ -1,10 +1,11 @@
-import type { Hooks } from '@getlang/lib'
-import { wait, ImportError, runSlice } from '@getlang/lib'
+import { slice } from '@getlang/lib'
+import type { Hooks } from '@getlang/utils'
+import { wait, ImportError } from '@getlang/utils'
 import { parse, desugar } from '@getlang/parser'
 import type { Program } from '@getlang/parser/ast'
-import { execute as exec } from './execute/execute.js'
-import type { InternalHooks } from './execute/execute.js'
-import * as http from './execute/net/http.js'
+import { execute as exec } from './execute.js'
+import type { InternalHooks } from './execute.js'
+import * as http from '../lib/net/http.js'
 
 export const version = '0.0.21'
 export type UserHooks = Partial<Hooks>
@@ -20,7 +21,7 @@ function buildHooks(hooks: UserHooks = {}): InternalHooks {
       return wait(hooks.import(module), src => desugar(parse(src)))
     },
     request: hooks.request ?? http.requestHook,
-    slice: hooks.slice ?? runSlice,
+    slice: hooks.slice ?? slice.runSlice,
   }
 }
 

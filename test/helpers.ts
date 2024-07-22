@@ -4,7 +4,7 @@ import { dump } from 'js-yaml'
 import type { Program } from '@getlang/parser/ast'
 import { parse, desugar, print } from '@getlang/parser'
 import { executeAST as exec } from '@getlang/get'
-import type { Hooks } from '@getlang/lib'
+import type { Hooks } from '@getlang/utils'
 
 const DEBUG = Boolean(process.env.AST)
 

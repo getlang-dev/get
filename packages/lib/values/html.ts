@@ -9,7 +9,7 @@ import {
   SelectorSyntaxError,
   NullSelectionError,
   invariant,
-} from '@getlang/lib'
+} from '@getlang/utils'
 import './patch-dom.js'
 
 export const parse = (html: string): AnyHtmlNode => {

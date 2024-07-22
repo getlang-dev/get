@@ -1,4 +1,8 @@
-import { invariant, QuerySyntaxError, ValueReferenceError } from '@getlang/lib'
+import {
+  invariant,
+  QuerySyntaxError,
+  ValueReferenceError,
+} from '@getlang/utils'
 import { NodeKind, type CExpr, type Expr } from '../../ast/ast.js'
 import { RootScope } from '../../ast/scope.js'
 import type { TransformVisitor, Visit } from '../../visitor/transform.js'
