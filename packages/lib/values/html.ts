@@ -19,13 +19,13 @@ declare class Attribute extends dh.Node {
   value: string
 }
 
-export type AnyHtmlNode = dh.AnyNode | Attribute
+export type AnyNode = dh.AnyNode | Attribute
 
-export const parse = (html: string): AnyHtmlNode => {
+export const parse = (html: string): AnyNode => {
   return parse5(html, { treeAdapter: adapter })
 }
 
-const selectXpath = (el: AnyHtmlNode, selector: string, expand: boolean) => {
+const selectXpath = (el: AnyNode, selector: string, expand: boolean) => {
   try {
     const parseXpath = new xpath.XPathParser()
     parseXpath.parse(selector)
@@ -33,7 +33,7 @@ const selectXpath = (el: AnyHtmlNode, selector: string, expand: boolean) => {
     throw new SelectorSyntaxError('XPath', selector, { cause: e })
   }
 
-  let root: AnyHtmlNode = el
+  let root: AnyNode = el
   if (el.nodeType === 9) {
     // Document -> HtmlElement
     const html = el.childNodes.find(x => x.nodeType === 1 && x.name === 'html')
@@ -48,7 +48,7 @@ const selectXpath = (el: AnyHtmlNode, selector: string, expand: boolean) => {
   return result.length ? result[0] : undefined
 }
 
-const selectCss = (el: AnyHtmlNode, selector: string, expand: boolean) => {
+const selectCss = (el: AnyNode, selector: string, expand: boolean) => {
   try {
     parseCss(selector)
   } catch (e) {
@@ -61,13 +61,13 @@ const selectCss = (el: AnyHtmlNode, selector: string, expand: boolean) => {
   return result === null ? undefined : result
 }
 
-export const select = (el: AnyHtmlNode, selector: string, expand: boolean) => {
+export const select = (el: AnyNode, selector: string, expand: boolean) => {
   return selector.startsWith('xpath:')
     ? selectXpath(el, selector.slice(6), expand)
     : selectCss(el, selector, expand)
 }
 
-export const toValue = (el: AnyHtmlNode) => {
+export const toValue = (el: AnyNode) => {
   let str = ''
   if (el.nodeType === 2) {
     str = el.value

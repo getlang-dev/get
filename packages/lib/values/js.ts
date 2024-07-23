@@ -9,7 +9,7 @@ export const parse = (js: string): AnyNode => {
 
 export const select = (node: AnyNode, selector: string, expand: boolean) => {
   try {
-    const matches = esquery(node, selector)
+    const matches = esquery(node as any, selector)
     if (expand) {
       return matches
     }
