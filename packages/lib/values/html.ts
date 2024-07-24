@@ -10,8 +10,9 @@ import {
   NullSelectionError,
   invariant,
 } from '@getlang/utils'
-import './patch-dom.js'
-import './getlang__xpath.js'
+import './html/patch-dom.js'
+import './html/types.ext.js'
+import './html/types.js'
 
 export const parse = (html: string): AnyNode => {
   return parse5(html, { treeAdapter: adapter })

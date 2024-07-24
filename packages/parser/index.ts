@@ -1,5 +1,3 @@
-/// <reference types="./types.d.ts" />
-
 import nearley from 'nearley'
 import { QuerySyntaxError } from '@getlang/utils'
 import grammar from './grammar.js'
