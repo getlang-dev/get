@@ -1,5 +1,6 @@
 {
   "compilerOptions": {
+    "customConditions": ["bun"],
     "esModuleInterop": true,
     "skipLibCheck": true,
     "target": "es2022",
@@ -15,8 +16,6 @@
     "outDir": "../dist",
     "sourceMap": true,
     "declaration": true,
-    "lib": ["es2022", "dom", "dom.iterable"],
-    // customizations
-    "customConditions": ["bun"]
+    "lib": ["es2022", "dom", "dom.iterable"]
   }
 }

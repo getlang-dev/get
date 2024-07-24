@@ -1,8 +1,19 @@
 // @sideEffects
+import type { ElementType } from 'domelementtype'
 import { compareDocumentPosition } from 'domutils'
 import ds from 'dom-serializer'
 import type { AnyNode } from 'domhandler'
 import { Node, Element } from 'domhandler'
+
+declare module 'domhandler' {
+  class Attribute extends Node {
+    type: ElementType.Text
+    get nodeType(): 2
+    value: string
+  }
+
+  type AnyHtmlNode = AnyNode | Attribute
+}
 
 function main() {
   ;(Node.prototype as any).compareDocumentPosition = function (other: AnyNode) {
