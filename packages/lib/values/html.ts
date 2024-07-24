@@ -1,5 +1,4 @@
-import type { ElementType } from 'domelementtype'
-import type * as dh from 'domhandler'
+import type { AnyNode } from 'domhandler'
 import { parse as parse5 } from 'parse5'
 import { adapter } from 'parse5-htmlparser2-tree-adapter'
 import xpath from '@getlang/xpath'
@@ -14,14 +13,6 @@ import {
 import './patch-dom.js'
 import './getlang__xpath.js'
 
-declare class Attribute extends dh.Node {
-  type: ElementType.Text
-  get nodeType(): 2
-  value: string
-}
-
-export type AnyNode = dh.AnyNode | Attribute
-
 export const parse = (html: string): AnyNode => {
   return parse5(html, { treeAdapter: adapter })
 }
@@ -34,7 +25,7 @@ const selectXpath = (el: AnyNode, selector: string, expand: boolean) => {
     throw new SelectorSyntaxError('XPath', selector, { cause: e })
   }
 
-  let root: AnyNode = el
+  let root = el
   if (el.nodeType === 9) {
     // Document -> HtmlElement
     const html = el.childNodes.find(x => x.nodeType === 1 && x.name === 'html')
