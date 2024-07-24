@@ -4,6 +4,7 @@ import globals from 'globals'
 import type { TransformVisitor } from '../../visitor/transform.js'
 import { t } from '../../ast/ast.js'
 import { createToken } from '../utils.js'
+import './acorn-globals.js'
 
 const browserGlobals = [
   ...Object.keys(globals.browser),

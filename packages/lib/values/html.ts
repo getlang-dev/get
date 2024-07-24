@@ -12,6 +12,7 @@ import {
   invariant,
 } from '@getlang/utils'
 import './patch-dom.js'
+import './getlang__xpath.js'
 
 declare class Attribute extends dh.Node {
   type: ElementType.Text
