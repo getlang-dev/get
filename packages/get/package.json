@@ -1,6 +1,6 @@
 {
   "name": "@getlang/get",
-  "version": "0.0.29",
+  "version": "0.0.30",
   "license": "Apache-2.0",
   "type": "module",
   "exports": {
@@ -17,7 +17,7 @@
   },
   "homepage": "https://getlang.dev",
   "dependencies": {
-    "@getlang/lib": "workspace:^0.0.7",
+    "@getlang/lib": "workspace:^0.0.8",
     "@getlang/utils": "workspace:^0.0.14",
     "@getlang/parser": "workspace:^0.0.23",
     "lodash-es": "^4.17.21"

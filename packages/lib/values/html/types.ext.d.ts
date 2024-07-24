@@ -1,12 +1,12 @@
 import type { ElementType } from 'domelementtype'
-import type * as dh from 'domhandler'
+import { Node, type AnyNode } from 'domhandler'
 
 declare module 'domhandler' {
-  class Attribute extends dh.Node {
+  class Attribute extends Node {
     type: ElementType.Text
     get nodeType(): 2
     value: string
   }
 
-  export type AnyNode = dh.ParentNode | dh.ChildNode | Attribute
+  type AnyHtmlNode = AnyNode | Attribute
 }

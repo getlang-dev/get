@@ -1,7 +1,10 @@
 declare module '@getlang/xpath' {
-  import type { AnyNode } from 'domhandler'
+  import type { AnyHtmlNode } from 'domhandler'
 
-  export function select(selector: string, node: AnyNode): Array<AnyNode>
+  export function select(
+    selector: string,
+    node: AnyHtmlNode,
+  ): Array<AnyHtmlNode>
 
   export class XPathParser {
     parse(selector: string): unknown

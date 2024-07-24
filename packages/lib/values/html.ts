@@ -1,4 +1,4 @@
-import type { AnyNode } from 'domhandler'
+import type { AnyHtmlNode } from 'domhandler'
 import { parse as parse5 } from 'parse5'
 import { adapter } from 'parse5-htmlparser2-tree-adapter'
 import xpath from '@getlang/xpath'
@@ -14,11 +14,11 @@ import './html/patch-dom.js'
 import './html/types.ext.js'
 import './html/types.js'
 
-export const parse = (html: string): AnyNode => {
+export const parse = (html: string): AnyHtmlNode => {
   return parse5(html, { treeAdapter: adapter })
 }
 
-const selectXpath = (el: AnyNode, selector: string, expand: boolean) => {
+const selectXpath = (el: AnyHtmlNode, selector: string, expand: boolean) => {
   try {
     const parseXpath = new xpath.XPathParser()
     parseXpath.parse(selector)
@@ -41,7 +41,7 @@ const selectXpath = (el: AnyNode, selector: string, expand: boolean) => {
   return result.length ? result[0] : undefined
 }
 
-const selectCss = (el: AnyNode, selector: string, expand: boolean) => {
+const selectCss = (el: AnyHtmlNode, selector: string, expand: boolean) => {
   try {
     parseCss(selector)
   } catch (e) {
@@ -54,13 +54,13 @@ const selectCss = (el: AnyNode, selector: string, expand: boolean) => {
   return result === null ? undefined : result
 }
 
-export const select = (el: AnyNode, selector: string, expand: boolean) => {
+export const select = (el: AnyHtmlNode, selector: string, expand: boolean) => {
   return selector.startsWith('xpath:')
     ? selectXpath(el, selector.slice(6), expand)
     : selectCss(el, selector, expand)
 }
 
-export const toValue = (el: AnyNode) => {
+export const toValue = (el: AnyHtmlNode) => {
   let str = ''
   if (el.nodeType === 2) {
     str = el.value
