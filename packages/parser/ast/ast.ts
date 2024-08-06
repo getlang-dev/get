@@ -178,8 +178,8 @@ const assignmentStmt = (
 ): AssignmentStmt => ({
   kind: NodeKind.AssignmentStmt,
   name,
-  value,
   optional,
+  value,
 })
 
 const declImportStmt = (id: Token): DeclImportStmt => ({
@@ -232,8 +232,8 @@ const requestExpr = (
 const functionExpr = (body: Stmt[], context?: Expr): FunctionExpr => ({
   kind: NodeKind.FunctionExpr,
   body,
-  context,
   typeInfo: { type: Type.Value },
+  context,
 })
 
 const identifierExpr = (value: Token): IdentifierExpr => ({
@@ -249,10 +249,10 @@ const selectorExpr = (
   context?: Expr,
 ): SelectorExpr => ({
   kind: NodeKind.SelectorExpr,
-  selector,
   expand,
-  context,
+  selector,
   typeInfo: { type: Type.Value },
+  context,
 })
 
 const modifierExpr = (
@@ -263,8 +263,8 @@ const modifierExpr = (
   kind: NodeKind.ModifierExpr,
   value,
   options,
-  context,
   typeInfo: { type: Type.Value },
+  context,
 })
 
 const objectLiteralExpr = (
@@ -273,8 +273,8 @@ const objectLiteralExpr = (
 ): ObjectLiteralExpr => ({
   kind: NodeKind.ObjectLiteralExpr,
   entries,
-  context,
   typeInfo: { type: Type.Value },
+  context,
 })
 
 const moduleCallExpr = (
@@ -285,15 +285,15 @@ const moduleCallExpr = (
   kind: NodeKind.ModuleCallExpr,
   name,
   inputs,
-  context,
   typeInfo: { type: Type.Value },
+  context,
 })
 
 const sliceExpr = (slice: Token, context?: Expr): SliceExpr => ({
   kind: NodeKind.SliceExpr,
   slice,
-  context,
   typeInfo: { type: Type.Value },
+  context,
 })
 
 const templateExpr = (elements: (Expr | Token)[]): TemplateExpr => ({
@@ -315,12 +315,14 @@ export const t = {
 
   // EXPRESSIONS
   requestExpr,
-  functionExpr,
   identifierExpr,
+  templateExpr,
+
+  // CONTEXTUAL EXPRESSIONS
   selectorExpr,
   modifierExpr,
-  moduleCallExpr,
-  objectLiteralExpr,
   sliceExpr,
-  templateExpr,
+  objectLiteralExpr,
+  functionExpr,
+  moduleCallExpr,
 }

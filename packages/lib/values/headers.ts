@@ -1,3 +1,5 @@
+import { NullSelection } from '@getlang/utils'
+
 export const select = (headers: Headers, selector: string, expand: boolean) => {
   if (expand && selector === 'set-cookie') {
     return headers.getSetCookie()
@@ -6,7 +8,7 @@ export const select = (headers: Headers, selector: string, expand: boolean) => {
   if (expand) {
     return result ? result.split(',').map(x => x.trimStart()) : []
   }
-  return result === null ? undefined : result
+  return result === null ? new NullSelection(selector) : result
 }
 
 export const toValue = (headers: Headers) => {

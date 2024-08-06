@@ -64,15 +64,14 @@ describe('values', () => {
 
   test('arrow prefix on context selector', async () => {
     // nested scope context is an element of `list`
-    // `-> length` in the nested scope selects from this context
-    // using String.prototype.length
+    // `n` in the nested scope selects from this context
     const result = await execute(`
-      set list = \`['one','two','three']\`
+      set list = \`[{n:'one'},{n:'two'},{n:'three'}]\`
       extract $list => $ -> (
-        extract -> length
+        extract n
       )
     `)
-    expect(result).toEqual([3, 3, 5])
+    expect(result).toEqual(['one', 'two', 'three'])
   })
 
   test('make reference to context variable ($)', async () => {
@@ -95,7 +94,7 @@ describe('values', () => {
     result = await execute(`
       set list = \`[{a: 1}, {a: 2}]\`
       extract $list -> (
-        extract -> length
+        extract [1].a
       )
     `)
     expect(result).toEqual(2)
@@ -103,13 +102,13 @@ describe('values', () => {
 
   test('list of lists', async () => {
     const result = await execute(`
-        set data = \`[ {list: ["one", "two"]}, {list: ["three", "four"]} ]\`
-        extract $data => $ => list -> length
+        set data = \`[ {list: [{n: "one"}, {n: "two"}]}, {list: [{n: "three"}, {n: "four"}]} ]\`
+        extract $data => $ => list -> n
       `)
 
     expect(result).toEqual([
-      [3, 3],
-      [5, 4],
+      ['one', 'two'],
+      ['three', 'four'],
     ])
   })
 
@@ -153,12 +152,12 @@ describe('values', () => {
 
     test('wide arrow expansion', async () => {
       const result = await execute(`
-        set json = \`'{"data": { "list": ["item one", "item two"] } }'\`
+        set json = \`'{"data": { "list": [{"name": "item one"}, {"name": "item two"}] } }'\`
         extract $json -> @json => data.list -> (
-          extract -> length
+          extract name
         )
       `)
-      expect(result).toEqual([8, 8])
+      expect(result).toEqual(['item one', 'item two'])
     })
   })
 

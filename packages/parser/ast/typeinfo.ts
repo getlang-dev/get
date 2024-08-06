@@ -7,10 +7,7 @@ export enum Type {
   List = 'list',
   Struct = 'struct',
   Never = 'never',
-}
-
-type ScalarType = {
-  type: Exclude<Type, Type.List | Type.Struct>
+  Maybe = 'maybe',
 }
 
 export type List = {
@@ -18,12 +15,21 @@ export type List = {
   of: TypeInfo
 }
 
+export type Maybe = {
+  type: Type.Maybe
+  option: TypeInfo
+}
+
 export type Struct = {
   type: Type.Struct
   schema: Record<string, TypeInfo>
 }
 
-export type TypeInfo = ScalarType | List | Struct
+type ScalarType = {
+  type: Exclude<Type, Type.List | Type.Struct | Type.Maybe>
+}
+
+export type TypeInfo = ScalarType | List | Struct | Maybe
 
 export function tequal(a: TypeInfo, b: TypeInfo): boolean {
   if (a.type === 'list' && b.type === 'list') {
@@ -36,6 +42,8 @@ export function tequal(a: TypeInfo, b: TypeInfo): boolean {
       const bv = b.schema[ak]
       return bv && tequal(av, bv)
     })
+  } else if (a.type === 'maybe' && b.type === 'maybe') {
+    return tequal(a.option, b.option)
   } else {
     return a.type === b.type
   }

@@ -11,6 +11,7 @@ import {
   SelectorSyntaxError,
   NullSelectionError,
   invariant,
+  NullSelection,
 } from '@getlang/utils'
 import './html/patch-dom.js'
 
@@ -38,7 +39,7 @@ const selectXpath = (el: AnyHtmlNode, selector: string, expand: boolean) => {
   if (expand) {
     return result
   }
-  return result.length ? result[0] : undefined
+  return result.length ? result[0] : new NullSelection(selector)
 }
 
 const selectCss = (el: AnyHtmlNode, selector: string, expand: boolean) => {
@@ -51,7 +52,7 @@ const selectCss = (el: AnyHtmlNode, selector: string, expand: boolean) => {
   if (expand) {
     return result ?? []
   }
-  return result === null ? undefined : result
+  return result === null ? new NullSelection(selector) : result
 }
 
 export const select = (el: AnyHtmlNode, selector: string, expand: boolean) => {

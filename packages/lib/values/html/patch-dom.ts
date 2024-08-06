@@ -1,6 +1,5 @@
 // @sideEffects
 import type { ElementType } from 'domelementtype'
-import { compareDocumentPosition } from 'domutils'
 import ds from 'dom-serializer'
 import type { AnyNode } from 'domhandler'
 import { Node, Element } from 'domhandler'
@@ -16,10 +15,6 @@ declare module 'domhandler' {
 }
 
 function main() {
-  ;(Node.prototype as any).compareDocumentPosition = function (other: AnyNode) {
-    return compareDocumentPosition(this, other)
-  }
-
   Element.prototype.toString = function () {
     return ds(this)
   }

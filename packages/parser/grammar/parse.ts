@@ -93,8 +93,8 @@ export const object: PP = d => {
 
 export const objectEntry: PP = ([identifier, optional, , , value]) => ({
   key: t.templateExpr([identifier]),
-  value,
   optional: Boolean(optional),
+  value,
 })
 
 export const objectEntryShorthandSelect: PP = ([identifier, optional]) => {

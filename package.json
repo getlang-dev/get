@@ -1,17 +1,17 @@
 {
   "name": "get",
-  "private": true,
-  "license": "Apache-2.0",
-  "workspaces": ["packages/*", "test"],
-  "scripts": {
-    "lint": "tsc --noEmit -p test && biome lint",
-    "format": "biome format --write",
-    "pub": "sh scripts/publish.sh"
-  },
   "devDependencies": {
     "@biomejs/biome": "1.8.2",
     "@changesets/cli": "^2.27.5",
     "@types/bun": "^1.1.5",
     "typescript": "^5.5.2"
-  }
+  },
+  "license": "Apache-2.0",
+  "private": true,
+  "scripts": {
+    "lint": "tsc --noEmit -p test && biome lint",
+    "format": "biome format --write",
+    "pub": "sh scripts/publish.sh"
+  },
+  "workspaces": ["packages/*", "test"]
 }

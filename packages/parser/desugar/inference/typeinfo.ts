@@ -3,7 +3,7 @@ import {
   QuerySyntaxError,
   ValueReferenceError,
 } from '@getlang/utils'
-import { NodeKind, type CExpr, type Expr } from '../../ast/ast.js'
+import { NodeKind, type CExpr, type Expr, t } from '../../ast/ast.js'
 import { RootScope } from '../../ast/scope.js'
 import type { TransformVisitor, Visit } from '../../visitor/transform.js'
 import { traceVisitor } from '../trace.js'
@@ -15,24 +15,46 @@ function clone(a: unknown) {
 }
 
 function unwrap(typeInfo: TypeInfo) {
-  if (typeInfo.type === Type.List) {
-    return unwrap(typeInfo.of)
+  switch (typeInfo.type) {
+    case Type.List:
+      return unwrap(typeInfo.of)
+    case Type.Maybe:
+      return unwrap(typeInfo.option)
+    default:
+      return typeInfo
   }
-  return typeInfo
-}
-
-function rewrap(
-  typeInfo: TypeInfo | undefined,
-  itemTypeInfo: TypeInfo,
-): TypeInfo {
-  if (typeInfo?.type !== Type.List) {
-    return clone(itemTypeInfo)
-  }
-  return { ...typeInfo, of: rewrap(typeInfo.of, itemTypeInfo) }
 }
 
 export function inferTypeInfo(): TransformVisitor {
   const scope = new RootScope<Expr>()
+
+  let optional = false
+  function setOptional<T>(opt: boolean, cb: () => T): T {
+    const last = optional
+    optional = opt
+    const ret = cb()
+    optional = last
+    return ret
+  }
+
+  function rewrap(
+    typeInfo: TypeInfo | undefined,
+    itemTypeInfo: TypeInfo,
+  ): TypeInfo {
+    switch (typeInfo?.type) {
+      case Type.List:
+        return { ...typeInfo, of: rewrap(typeInfo.of, itemTypeInfo) }
+      case Type.Maybe: {
+        const option = rewrap(typeInfo.option, itemTypeInfo)
+        if (option.type === Type.Maybe || !optional) {
+          return option
+        }
+        return { ...typeInfo, option }
+      }
+      default:
+        return clone(itemTypeInfo)
+    }
+  }
 
   function itemVisit(node: CExpr, visit: Visit): Visit {
     return child => {
@@ -43,7 +65,7 @@ export function inferTypeInfo(): TransformVisitor {
         ...scope.context,
         typeInfo: unwrap(scope.context.typeInfo),
       })
-      const xnode = visit(child)
+      const xnode = setOptional(false, () => visit(child))
       scope.popContext()
       return xnode
     }
@@ -54,6 +76,27 @@ export function inferTypeInfo(): TransformVisitor {
 
   return {
     ...trace,
+
+    InputDeclStmt: {
+      enter(node, visit) {
+        const xnode = { ...node }
+        const dv = node.defaultValue
+        xnode.defaultValue = dv && setOptional(node.optional, () => visit(dv))
+        const input = t.identifierExpr(node.id)
+        if (node.optional) {
+          input.typeInfo = { type: Type.Maybe, option: input.typeInfo }
+        }
+        scope.vars[node.id.value] = input
+        return xnode
+      },
+    },
+
+    AssignmentStmt: {
+      enter(node, visit) {
+        const value = setOptional(node.optional, () => visit(node.value))
+        return trace.AssignmentStmt({ ...node, value })
+      },
+    },
 
     IdentifierExpr(node) {
       const id = node.value.value
@@ -81,15 +124,8 @@ export function inferTypeInfo(): TransformVisitor {
     SliceExpr: {
       enter(node, visit) {
         const xnode = trace.SliceExpr.enter(node, itemVisit(node, visit))
-        const typeInfo: TypeInfo = { type: Type.Value }
-        return { ...xnode, typeInfo: rewrap(xnode.context?.typeInfo, typeInfo) }
-      },
-    },
-
-    ModuleCallExpr: {
-      enter(node, visit) {
-        const xnode = trace.ModuleCallExpr.enter(node, itemVisit(node, visit))
-        const typeInfo: TypeInfo = { type: Type.Value }
+        let typeInfo: TypeInfo = { type: Type.Value }
+        if (optional) typeInfo = { type: Type.Maybe, option: typeInfo }
         return { ...xnode, typeInfo: rewrap(xnode.context?.typeInfo, typeInfo) }
       },
     },
@@ -100,6 +136,7 @@ export function inferTypeInfo(): TransformVisitor {
         let typeInfo: TypeInfo = unwrap(
           xnode.context?.typeInfo ?? { type: Type.Value },
         )
+
         if (typeInfo.type === Type.Struct) {
           typeInfo = selectTypeInfo(typeInfo, xnode.selector) ?? {
             type: Type.Value,
@@ -110,7 +147,12 @@ export function inferTypeInfo(): TransformVisitor {
         ) {
           typeInfo = { type: Type.Value }
         }
-        if (xnode.expand) typeInfo = { type: Type.List, of: typeInfo }
+
+        if (xnode.expand) {
+          typeInfo = { type: Type.List, of: typeInfo }
+        } else if (optional) {
+          typeInfo = { type: Type.Maybe, option: typeInfo }
+        }
         return { ...xnode, typeInfo: rewrap(xnode.context?.typeInfo, typeInfo) }
       },
     },
@@ -147,8 +189,17 @@ export function inferTypeInfo(): TransformVisitor {
       enter(node, visit) {
         const xnode = trace.ObjectLiteralExpr.enter(
           node,
-          itemVisit(node, visit),
+          itemVisit(node, child => {
+            if (child === node.context) return visit(child)
+            const entry = node.entries.find(e => e.value === child)
+            invariant(
+              entry,
+              new QuerySyntaxError('Object entry missing typeinfo'),
+            )
+            return setOptional(entry.optional, () => visit(child))
+          }),
         )
+
         const typeInfo: TypeInfo = {
           type: Type.Struct,
           schema: Object.fromEntries(
@@ -163,6 +214,15 @@ export function inferTypeInfo(): TransformVisitor {
             }),
           ),
         }
+
+        return { ...xnode, typeInfo: rewrap(xnode.context?.typeInfo, typeInfo) }
+      },
+    },
+
+    ModuleCallExpr: {
+      enter(node, visit) {
+        const xnode = trace.ModuleCallExpr.enter(node, itemVisit(node, visit))
+        const typeInfo: TypeInfo = { type: Type.Value }
         return { ...xnode, typeInfo: rewrap(xnode.context?.typeInfo, typeInfo) }
       },
     },

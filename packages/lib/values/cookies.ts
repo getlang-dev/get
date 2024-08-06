@@ -1,6 +1,6 @@
 import * as scp from 'set-cookie-parser'
 import { mapValues } from 'lodash-es'
-import { QuerySyntaxError, invariant } from '@getlang/utils'
+import { QuerySyntaxError, invariant, NullSelection } from '@getlang/utils'
 
 export const parse = (source: string) => {
   const cookie = scp.splitCookiesString(source)
@@ -13,7 +13,7 @@ export const select = (
   expand: boolean,
 ) => {
   invariant(!expand, new QuerySyntaxError('Cannot expand cookies selector'))
-  return cookies[selector]?.value
+  return cookies[selector]?.value ?? new NullSelection(selector)
 }
 
 export const toValue = (cookies: scp.CookieMap) => {

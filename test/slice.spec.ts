@@ -69,7 +69,7 @@ describe('slice', () => {
       set html = \`'<ul><li>one</li><li>two</li></ul>'\`
       extract $html -> @html -> xpath://li -> \`$\`
     `)
-    expect(result).toEqual('two')
+    expect(result).toEqual('one')
   })
 
   it('provides a variable for raw context ($$)', async () => {
@@ -114,7 +114,9 @@ describe('slice', () => {
       const result = execute(`
         extract \`({}).no.no.yes\`
       `)
-      return expect(result).rejects.toThrow(new SliceError())
+      return expect(result).rejects.toThrow(
+        /^An exception was thrown by the client-side slice/,
+      )
     })
   })
 

@@ -14,6 +14,7 @@ import {
   ValueReferenceError,
   ImportError,
   NullInputError,
+  NullSelection,
 } from '@getlang/utils'
 
 export type InternalHooks = {
@@ -23,16 +24,6 @@ export type InternalHooks = {
 }
 
 type Contextual = { value: any; typeInfo: TypeInfo }
-
-class NullSelection {
-  constructor(public selector: string) {}
-}
-
-function assert(value: any) {
-  if (value instanceof NullSelection) {
-    throw new NullSelectionError(value.selector)
-  }
-}
 
 function toValue(value: any, typeInfo: TypeInfo): any {
   switch (typeInfo.type) {
@@ -48,6 +39,8 @@ function toValue(value: any, typeInfo: TypeInfo): any {
       return value.map((item: any) => toValue(item, typeInfo.of))
     case Type.Struct:
       return mapValues(value, (v, k) => toValue(v, typeInfo.schema[k]!))
+    case Type.Maybe:
+      return toValue(value, typeInfo.option)
     case Type.Value:
       return value
   }
@@ -106,12 +99,12 @@ export async function execute(
           list.push(await unwrap(itemCtx, cb))
         }
         return list
-      } else {
-        context && scope.pushContext(context.value)
-        const value = await cb(context)
-        context && scope.popContext()
-        return value
       }
+
+      context && scope.pushContext(context.value)
+      const value = await cb(context)
+      context && scope.popContext()
+      return value
     }
 
     let context: Contextual | undefined
@@ -122,9 +115,14 @@ export async function execute(
       }
     }
 
-    return context?.value instanceof NullSelection
-      ? context.value
-      : await unwrap(context, cb)
+    if (context?.value instanceof NullSelection) {
+      if (node.typeInfo.type === Type.Maybe) {
+        return context.value
+      }
+      throw new NullSelectionError(context.value.selector)
+    }
+
+    return unwrap(context, cb)
   }
 
   const visitor: AsyncInterpretVisitor<void, any> = {
@@ -171,7 +169,13 @@ export async function execute(
             context ? toValue(context.value, context.typeInfo) : {},
             context?.value ?? {},
           )
-          return value === undefined ? new NullSelection(fauxSelector) : value
+          if (value !== undefined) {
+            return value
+          } else if (node.typeInfo.type === Type.Maybe) {
+            return new NullSelection(fauxSelector)
+          } else {
+            throw new NullSelectionError(fauxSelector)
+          }
         })
       },
     },
@@ -185,8 +189,10 @@ export async function execute(
           }
           const args = [context!.value, selector, node.expand] as const
 
-          function select() {
-            switch (context!.typeInfo.type) {
+          function select(typeInfo: TypeInfo) {
+            switch (typeInfo.type) {
+              case Type.Maybe:
+                return select(typeInfo.option)
               case Type.Html:
                 return html.select(...args)
               case Type.Js:
@@ -200,8 +206,14 @@ export async function execute(
             }
           }
 
-          const result = select()
-          return result === undefined ? new NullSelection(selector) : result
+          const result = select(context!.typeInfo)
+          if (
+            result instanceof NullSelection &&
+            node.typeInfo.type !== Type.Maybe
+          ) {
+            throw new NullSelectionError(selector)
+          }
+          return result
         })
       },
     },
@@ -243,7 +255,6 @@ export async function execute(
           const obj: Record<string, any> = {}
           for (const entry of node.entries) {
             const value = await visit(entry.value)
-            entry.optional || assert(value)
             if (!(value instanceof NullSelection)) {
               const key = await visit(entry.key)
               obj[key] = value
@@ -315,7 +326,6 @@ export async function execute(
     },
 
     AssignmentStmt(node) {
-      node.optional || assert(node.value)
       scope.vars[node.name.value] = node.value
     },
 
@@ -324,7 +334,9 @@ export async function execute(
     },
 
     ExtractStmt(node) {
-      assert(node.value)
+      if (node.value instanceof NullSelection) {
+        throw new NullSelectionError(node.value.selector)
+      }
       scope.extracted = node.value
     },
 

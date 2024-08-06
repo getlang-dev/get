@@ -47,11 +47,11 @@ expect.extend({
 export function helper() {
   const collected: string[] = []
 
-  function execute(
+  async function execute(
     _src: string,
     inputs?: Record<string, unknown>,
     hooks?: Partial<Hooks>,
-  ): any {
+  ): Promise<any> {
     const src = dedent(_src)
     collected.push(src)
 
