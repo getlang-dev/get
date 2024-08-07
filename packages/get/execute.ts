@@ -25,6 +25,13 @@ export type InternalHooks = {
 
 type Contextual = { value: any; typeInfo: TypeInfo }
 
+function assert(value: any) {
+  if (value instanceof NullSelection) {
+    throw new NullSelectionError(value.selector)
+  }
+  return value
+}
+
 function toValue(value: any, typeInfo: TypeInfo): any {
   switch (typeInfo.type) {
     case Type.Html:
@@ -109,19 +116,12 @@ export async function execute(
 
     let context: Contextual | undefined
     if (node.context) {
-      context = {
-        value: await visit(node.context),
-        typeInfo: node.context.typeInfo,
-      }
+      let value = await visit(node.context)
+      const optional = node.typeInfo.type === Type.Maybe
+      value = optional ? value : assert(value)
+      if (value instanceof NullSelection) return value
+      context = { value, typeInfo: node.context.typeInfo }
     }
-
-    if (context?.value instanceof NullSelection) {
-      if (node.typeInfo.type === Type.Maybe) {
-        return context.value
-      }
-      throw new NullSelectionError(context.value.selector)
-    }
-
     return unwrap(context, cb)
   }
 
@@ -163,19 +163,13 @@ export async function execute(
       async enter(node, visit) {
         return ctx(node, visit, async context => {
           const { slice } = node
-          const fauxSelector = `slice@${slice.line}:${slice.col}`
           const value = await hooks.slice(
             slice.value,
             context ? toValue(context.value, context.typeInfo) : {},
             context?.value ?? {},
           )
-          if (value !== undefined) {
-            return value
-          } else if (node.typeInfo.type === Type.Maybe) {
-            return new NullSelection(fauxSelector)
-          } else {
-            throw new NullSelectionError(fauxSelector)
-          }
+          const optional = node.typeInfo.type === Type.Maybe
+          return optional ? value : assert(value)
         })
       },
     },
@@ -206,14 +200,9 @@ export async function execute(
             }
           }
 
-          const result = select(context!.typeInfo)
-          if (
-            result instanceof NullSelection &&
-            node.typeInfo.type !== Type.Maybe
-          ) {
-            throw new NullSelectionError(selector)
-          }
-          return result
+          const value = select(context!.typeInfo)
+          const optional = node.typeInfo.type === Type.Maybe
+          return optional ? value : assert(value)
         })
       },
     },
@@ -334,10 +323,7 @@ export async function execute(
     },
 
     ExtractStmt(node) {
-      if (node.value instanceof NullSelection) {
-        throw new NullSelectionError(node.value.selector)
-      }
-      scope.extracted = node.value
+      scope.extracted = assert(node.value)
     },
 
     Program: {

@@ -4,11 +4,11 @@ export const select = (headers: Headers, selector: string, expand: boolean) => {
   if (expand && selector === 'set-cookie') {
     return headers.getSetCookie()
   }
-  const result = headers.get(selector)
+  const value = headers.get(selector)
   if (expand) {
-    return result ? result.split(',').map(x => x.trimStart()) : []
+    return value ? value.split(',').map(x => x.trimStart()) : []
   }
-  return result === null ? new NullSelection(selector) : result
+  return value === null ? new NullSelection(selector) : value
 }
 
 export const toValue = (headers: Headers) => {

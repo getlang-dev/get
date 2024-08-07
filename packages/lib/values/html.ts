@@ -35,11 +35,11 @@ const selectXpath = (el: AnyHtmlNode, selector: string, expand: boolean) => {
     root = html
   }
 
-  const result = xpath.select(selector, root)
+  const value = xpath.select(selector, root)
   if (expand) {
-    return result
+    return value
   }
-  return result.length ? result[0] : new NullSelection(selector)
+  return value.length ? value[0] : new NullSelection(selector)
 }
 
 const selectCss = (el: AnyHtmlNode, selector: string, expand: boolean) => {
@@ -48,11 +48,11 @@ const selectCss = (el: AnyHtmlNode, selector: string, expand: boolean) => {
   } catch (e) {
     throw new SelectorSyntaxError('CSS', selector, { cause: e })
   }
-  const result = expand ? selectAll(selector, el) : selectOne(selector, el)
+  const value = expand ? selectAll(selector, el) : selectOne(selector, el)
   if (expand) {
-    return result ?? []
+    return value ?? []
   }
-  return result === null ? new NullSelection(selector) : result
+  return value === null ? new NullSelection(selector) : value
 }
 
 export const select = (el: AnyHtmlNode, selector: string, expand: boolean) => {

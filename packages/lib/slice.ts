@@ -1,4 +1,4 @@
-import { SliceError } from '@getlang/utils'
+import { SliceError, NullSelection } from '@getlang/utils'
 
 export const runSlice = async (
   slice: string,
@@ -7,7 +7,8 @@ export const runSlice = async (
 ) => {
   try {
     const fn = new Function('$', '$$', slice)
-    return await fn(context, raw)
+    const value = await fn(context, raw)
+    return value === undefined ? new NullSelection('<slice>') : value
   } catch (e) {
     throw new SliceError({ cause: e })
   }
