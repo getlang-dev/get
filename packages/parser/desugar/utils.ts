@@ -1,7 +1,7 @@
 import { toPath } from 'lodash-es'
 import type { Expr, RequestExpr } from '../ast/ast.js'
 import { NodeKind, t } from '../ast/ast.js'
-import type { TypeInfo, Struct } from '../ast/typeinfo.js'
+import type { Struct, TypeInfo } from '../ast/typeinfo.js'
 import { Type } from '../ast/typeinfo.js'
 
 export const render = (template: Expr) => {

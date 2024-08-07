@@ -1,13 +1,13 @@
 import {
-  invariant,
   QuerySyntaxError,
   ValueReferenceError,
+  invariant,
 } from '@getlang/utils'
-import { NodeKind, type CExpr, type Expr, t } from '../../ast/ast.js'
+import { type CExpr, type Expr, NodeKind, t } from '../../ast/ast.js'
 import { RootScope } from '../../ast/scope.js'
+import { Type, type TypeInfo } from '../../ast/typeinfo.js'
 import type { TransformVisitor, Visit } from '../../visitor/transform.js'
 import { traceVisitor } from '../trace.js'
-import { Type, type TypeInfo } from '../../ast/typeinfo.js'
 import { render, selectTypeInfo } from '../utils.js'
 
 function clone(a: unknown) {

@@ -1,4 +1,4 @@
-import { SliceError, NullSelection } from '@getlang/utils'
+import { NullSelection, SliceError } from '@getlang/utils'
 
 export const runSlice = async (
   slice: string,

@@ -1,4 +1,4 @@
-import type { Node, Expr, Stmt } from '../ast/ast.js'
+import type { Expr, Node, Stmt } from '../ast/ast.js'
 import type { TypeInfo } from '../ast/typeinfo.js'
 
 type FilterNarrow<T> = Expr extends T

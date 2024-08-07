@@ -1,6 +1,6 @@
-import * as scp from 'set-cookie-parser'
+import { NullSelection, QuerySyntaxError, invariant } from '@getlang/utils'
 import { mapValues } from 'lodash-es'
-import { QuerySyntaxError, invariant, NullSelection } from '@getlang/utils'
+import * as scp from 'set-cookie-parser'
 
 export const parse = (source: string) => {
   const cookie = scp.splitCookiesString(source)

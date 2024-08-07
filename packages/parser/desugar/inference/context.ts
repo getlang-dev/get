@@ -1,10 +1,10 @@
-import { invariant, QuerySyntaxError } from '@getlang/utils'
+import { QuerySyntaxError, invariant } from '@getlang/utils'
 import type { CExpr, Expr, RequestExpr, Stmt } from '../../ast/ast.js'
 import { NodeKind, t } from '../../ast/ast.js'
 import { RootScope } from '../../ast/scope.js'
 import type { TransformVisitor } from '../../visitor/transform.js'
-import { createToken, getContentMod, template } from '../utils.js'
 import { traceVisitor } from '../trace.js'
+import { createToken, getContentMod, template } from '../utils.js'
 
 type Parsers = Map<RequestExpr, [mods: Set<string>, index: number]>
 

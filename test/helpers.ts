@@ -1,10 +1,10 @@
 import { expect } from 'bun:test'
+import { executeAST as exec } from '@getlang/get'
+import { desugar, parse, print } from '@getlang/parser'
+import type { Program } from '@getlang/parser/ast'
+import type { Hooks } from '@getlang/utils'
 import dedent from 'dedent'
 import { dump } from 'js-yaml'
-import type { Program } from '@getlang/parser/ast'
-import { parse, desugar, print } from '@getlang/parser'
-import { executeAST as exec } from '@getlang/get'
-import type { Hooks } from '@getlang/utils'
 
 const DEBUG = Boolean(process.env.AST)
 

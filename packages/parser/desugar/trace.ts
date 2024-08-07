@@ -1,7 +1,7 @@
-import type { Expr, CExpr } from '../ast/ast.js'
+import type { CExpr, Expr } from '../ast/ast.js'
 import { t } from '../ast/ast.js'
 import type { RootScope } from '../ast/scope.js'
-import type { Visit, TransformVisitor } from '../visitor/transform.js'
+import type { TransformVisitor, Visit } from '../visitor/transform.js'
 
 export function traceVisitor(scope: RootScope<Expr>) {
   function ctx<C extends CExpr>(node: C, visit: Visit, cb: (tnode: C) => C) {

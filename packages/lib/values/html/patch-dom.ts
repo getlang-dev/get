@@ -1,8 +1,8 @@
+import ds from 'dom-serializer'
 // @sideEffects
 import type { ElementType } from 'domelementtype'
-import ds from 'dom-serializer'
 import type { AnyNode } from 'domhandler'
-import { Node, Element } from 'domhandler'
+import { Element, Node } from 'domhandler'
 
 declare module 'domhandler' {
   class Attribute extends Node {

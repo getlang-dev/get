@@ -3,8 +3,8 @@
 import { parse } from 'acorn'
 import detect from 'acorn-globals'
 import globals from 'globals'
-import type { TransformVisitor } from '../../visitor/transform.js'
 import { t } from '../../ast/ast.js'
+import type { TransformVisitor } from '../../visitor/transform.js'
 import { createToken } from '../utils.js'
 
 const browserGlobals = [

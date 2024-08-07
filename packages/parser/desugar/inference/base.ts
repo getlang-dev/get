@@ -1,14 +1,14 @@
 import {
-  invariant,
   QuerySyntaxError,
   ValueReferenceError,
+  invariant,
 } from '@getlang/utils'
 import type { Expr, RequestExpr, Stmt } from '../../ast/ast.js'
 import { NodeKind, t } from '../../ast/ast.js'
 import { RootScope } from '../../ast/scope.js'
 import type { TransformVisitor } from '../../visitor/transform.js'
-import { createToken, render, template } from '../utils.js'
 import { traceVisitor } from '../trace.js'
+import { createToken, render, template } from '../utils.js'
 
 type Urls = Map<RequestExpr, [index: number]>
 

@@ -1,18 +1,18 @@
 /// <reference types="./html/types.d.ts" />
 
-import type { AnyHtmlNode } from 'domhandler'
-import { parse as parse5 } from 'parse5'
-import { adapter } from 'parse5-htmlparser2-tree-adapter'
+import {
+  NullSelection,
+  NullSelectionError,
+  SelectorSyntaxError,
+  invariant,
+} from '@getlang/utils'
 import xpath from '@getlang/xpath'
-import { textContent } from 'domutils'
 import { selectAll, selectOne } from 'css-select'
 import { parse as parseCss } from 'css-what'
-import {
-  SelectorSyntaxError,
-  NullSelectionError,
-  invariant,
-  NullSelection,
-} from '@getlang/utils'
+import type { AnyHtmlNode } from 'domhandler'
+import { textContent } from 'domutils'
+import { parse as parse5 } from 'parse5'
+import { adapter } from 'parse5-htmlparser2-tree-adapter'
 import './html/patch-dom.js'
 
 export const parse = (html: string): AnyHtmlNode => {

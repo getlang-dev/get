@@ -2,16 +2,33 @@
   "name": "get",
   "devDependencies": {
     "@biomejs/biome": "1.8.2",
-    "@changesets/cli": "^2.27.5",
-    "@types/bun": "^1.1.5",
-    "typescript": "^5.5.2"
+    "@changesets/cli": "^2.27.7",
+    "@types/bun": "^1.1.6",
+    "knip": "^5.27.1",
+    "typescript": "^5.5.4"
   },
   "license": "Apache-2.0",
   "private": true,
   "scripts": {
-    "lint": "tsc --noEmit -p test && biome lint",
-    "format": "biome format --write",
-    "pub": "sh scripts/publish.sh"
+    "format": "biome check --write",
+    "lint": "bun lint:check && bun lint:types && bun lint:unused",
+    "lint:check": "biome check",
+    "lint:types": "tsc --noEmit -p test",
+    "lint:unused": "knip --no-gitignore",
+    "deps": "bunx taze major -r",
+    "pub": "bash scripts/publish.sh"
   },
-  "workspaces": ["packages/*", "test"]
+  "workspaces": [
+    "packages/*",
+    "test"
+  ],
+  "knip": {
+    "vitest": {},
+    "ignoreDependencies": [
+      "@changesets/cli"
+    ],
+    "ignoreBinaries": [
+      "open"
+    ]
+  }
 }

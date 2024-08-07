@@ -1,4 +1,4 @@
-import { describe, test, it, expect } from 'bun:test'
+import { describe, expect, it, test } from 'bun:test'
 import { SliceError } from '@getlang/utils'
 import { helper } from './helpers.js'
 

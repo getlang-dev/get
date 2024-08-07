@@ -1,12 +1,12 @@
+import {
+  ConversionError,
+  NullSelection,
+  SelectorSyntaxError,
+  invariant,
+} from '@getlang/utils'
 import { parse as acorn } from 'acorn'
 import type { AnyNode } from 'acorn'
 import esquery from 'esquery'
-import {
-  SelectorSyntaxError,
-  ConversionError,
-  invariant,
-  NullSelection,
-} from '@getlang/utils'
 
 export const parse = (js: string): AnyNode => {
   return acorn(js, { ecmaVersion: 'latest' })

@@ -1,5 +1,5 @@
-import { get } from 'lodash-es'
 import { NullSelection } from '@getlang/utils'
+import { get } from 'lodash-es'
 
 export const parse = (json: string) => JSON.parse(json)
 

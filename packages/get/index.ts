@@ -1,8 +1,8 @@
-import { slice, http } from '@getlang/lib'
-import type { Hooks } from '@getlang/utils'
-import { wait, ImportError } from '@getlang/utils'
-import { parse, desugar } from '@getlang/parser'
+import { http, slice } from '@getlang/lib'
+import { desugar, parse } from '@getlang/parser'
 import type { Program } from '@getlang/parser/ast'
+import type { Hooks } from '@getlang/utils'
+import { ImportError, wait } from '@getlang/utils'
 import { execute as exec } from './execute.js'
 import type { InternalHooks } from './execute.js'
 

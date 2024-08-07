@@ -1,7 +1,7 @@
 import moo from 'moo'
-import { ws, identifier, identifierExpr, popAll } from './lex/shared.js'
-import { templateUntil, interpExpr } from './lex/templates.js'
+import { identifier, identifierExpr, popAll, ws } from './lex/shared.js'
 import { slice, slice_block } from './lex/slice.js'
+import { interpExpr, templateUntil } from './lex/templates.js'
 
 const verbs = ['GET', 'PUT', 'POST', 'PATCH', 'DELETE']
 const keywords = ['import', 'inputs', 'set']
@@ -128,4 +128,3 @@ const lexer: any = moo.states({
 })
 
 export default lexer
-export { identifier }

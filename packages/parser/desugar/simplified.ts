@@ -1,9 +1,9 @@
-import { invariant, QuerySyntaxError } from '@getlang/utils'
+import { QuerySyntaxError, invariant } from '@getlang/utils'
 import type { Program } from '../ast/ast.js'
 import { NodeKind } from '../ast/ast.js'
 import { visit } from '../visitor/visitor.js'
-import { inferContext } from './inference/context.js'
 import { inferBase } from './inference/base.js'
+import { inferContext } from './inference/context.js'
 import { inferSliceDeps } from './inference/slicedeps.js'
 import { inferTypeInfo } from './inference/typeinfo.js'
 

@@ -5,6 +5,7 @@
   "dependencies": {
     "@getlang/get": "workspace:*",
     "@getlang/parser": "workspace:*",
+    "@getlang/utils": "workspace:*",
     "dedent": "^1.5.3"
   },
   "devDependencies": {

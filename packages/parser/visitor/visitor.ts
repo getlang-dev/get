@@ -1,8 +1,8 @@
 import { wait, waitMap } from '@getlang/utils'
 import type { Node } from '../ast/ast.js'
 import { NodeKind } from '../ast/ast.js'
+import type { AsyncInterpretVisitor, InterpretVisitor } from './interpret.js'
 import type { TransformVisitor } from './transform.js'
-import type { InterpretVisitor, AsyncInterpretVisitor } from './interpret.js'
 
 export type { TransformVisitor, InterpretVisitor, AsyncInterpretVisitor }
 

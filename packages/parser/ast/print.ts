@@ -1,9 +1,9 @@
 import type { Doc } from 'prettier'
 import { doc } from 'prettier'
-import type { Node } from './ast.js'
-import { NodeKind } from './ast.js'
 import type { InterpretVisitor } from '../visitor/visitor.js'
 import { visit } from '../visitor/visitor.js'
+import type { Node } from './ast.js'
+import { NodeKind } from './ast.js'
 
 // NOTE: avoid using template interpolation with prettier.Doc
 // as the Doc may be a Doc array or Doc command
