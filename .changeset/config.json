@@ -1,6 +1,6 @@
 {
   "$schema": "https://unpkg.com/@changesets/config@3.0.1/schema.json",
-  "changelog": false,
+  "changelog": ["@changesets/changelog-github", { "repo": "getlang-dev/get" }],
   "commit": false,
   "fixed": [],
   "linked": [],

@@ -1,20 +1,15 @@
 {
   "name": "get",
-  "devDependencies": {
-    "@biomejs/biome": "1.8.2",
-    "@changesets/cli": "^2.27.7",
-    "@types/bun": "^1.1.6",
-    "knip": "^5.27.1",
-    "typescript": "^5.5.4"
-  },
   "license": "Apache-2.0",
   "private": true,
+  "packageManager": "bun@1.1.20",
   "scripts": {
     "format": "biome check --write",
-    "lint": "bun lint:check && bun lint:types && bun lint:unused",
+    "lint": "bun lint:check && bun lint:types && bun lint:unused && bun lint:repo",
     "lint:check": "biome check",
     "lint:types": "tsc --noEmit -p test",
     "lint:unused": "knip --no-gitignore",
+    "lint:repo": "sherif",
     "deps": "bunx taze major -r",
     "pub": "bash scripts/publish.sh"
   },
@@ -22,6 +17,14 @@
     "packages/*",
     "test"
   ],
+  "devDependencies": {
+    "@biomejs/biome": "1.8.2",
+    "@changesets/cli": "^2.27.7",
+    "@types/bun": "^1.1.6",
+    "knip": "^5.27.1",
+    "sherif": "^0.10.0",
+    "typescript": "^5.5.4"
+  },
   "knip": {
     "vitest": {},
     "ignoreDependencies": [

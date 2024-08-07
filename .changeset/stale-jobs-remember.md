@@ -5,4 +5,4 @@
 "@getlang/utils": minor
 ---
 
-x
+Release v0.1.0
