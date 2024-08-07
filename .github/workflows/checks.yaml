@@ -1,5 +1,4 @@
-name: default
-on: push
+on: workflow_call
 
 jobs:
   checks:
