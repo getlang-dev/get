@@ -2,8 +2,6 @@
 
 set -e
 
-# changeset version
-
 tsc -p packages
 
 for dir in dist/*; do
@@ -17,5 +15,3 @@ changeset publish
 
 rm -rf dist packages/*/dist
 git restore packages/*/package.json
-
-git push --follow-tags
