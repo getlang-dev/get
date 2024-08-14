@@ -110,9 +110,9 @@ export function inferBase(): TransformVisitor {
       return { ...node, body: insertUrls(node.body, urls) }
     },
 
-    FunctionExpr: {
+    SubqueryExpr: {
       enter(node, visit) {
-        const xnode = trace.FunctionExpr.enter(node, visit)
+        const xnode = trace.SubqueryExpr.enter(node, visit)
         return { ...xnode, body: insertUrls(xnode.body, urls) }
       },
     },

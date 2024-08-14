@@ -81,7 +81,7 @@ export const assignment: PP = ([, , name, optional, , , , expr]) =>
 
 export const extract: PP = ([, , exports]) => t.extractStmt(exports)
 
-export const fn: PP = ([, , stmts]) => t.functionExpr(stmts)
+export const subquery: PP = ([, , stmts]) => t.subqueryExpr(stmts)
 
 export const moduleCall: PP = ([name, , optInputs]) =>
   t.moduleCallExpr(name, optInputs?.[0])

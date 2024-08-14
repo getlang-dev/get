@@ -17,7 +17,7 @@ export enum NodeKind {
   IdentifierExpr = 'IdentifierExpr',
   SelectorExpr = 'SelectorExpr',
   ModifierExpr = 'ModifierExpr',
-  FunctionExpr = 'FunctionExpr',
+  SubqueryExpr = 'SubqueryExpr',
   ModuleCallExpr = 'ModuleCallExpr',
   ObjectLiteralExpr = 'ObjectLiteralExpr',
   SliceExpr = 'SliceExpr',
@@ -114,8 +114,8 @@ type ModifierExpr = {
   typeInfo: TypeInfo
 }
 
-type FunctionExpr = {
-  kind: NodeKind.FunctionExpr
+type SubqueryExpr = {
+  kind: NodeKind.SubqueryExpr
   body: Stmt[]
   context?: Expr
   typeInfo: TypeInfo
@@ -158,7 +158,7 @@ export type Expr =
   | IdentifierExpr
   | SelectorExpr
   | ModifierExpr
-  | FunctionExpr
+  | SubqueryExpr
   | ModuleCallExpr
   | ObjectLiteralExpr
   | SliceExpr
@@ -229,8 +229,8 @@ const requestExpr = (
   typeInfo: { type: Type.Value },
 })
 
-const functionExpr = (body: Stmt[], context?: Expr): FunctionExpr => ({
-  kind: NodeKind.FunctionExpr,
+const subqueryExpr = (body: Stmt[], context?: Expr): SubqueryExpr => ({
+  kind: NodeKind.SubqueryExpr,
   body,
   typeInfo: { type: Type.Value },
   context,
@@ -323,6 +323,6 @@ export const t = {
   modifierExpr,
   sliceExpr,
   objectLiteralExpr,
-  functionExpr,
+  subqueryExpr,
   moduleCallExpr,
 }

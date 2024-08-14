@@ -151,7 +151,7 @@ describe('modules', () => {
     expect(result).toEqual({ test: true })
   })
 
-  test('func scope with context', async () => {
+  test('subquery scope with context', async () => {
     const result = await execute(`
       set x = \`{ test: true }\`
       extract $x -> ( extract $ )
@@ -159,7 +159,7 @@ describe('modules', () => {
     expect(result).toEqual({ test: true })
   })
 
-  test('func scope with closures', async () => {
+  test('subquery scope with closures', async () => {
     const result = await execute(`
       set x = \`{ test: true }\`
       extract (

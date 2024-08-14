@@ -175,9 +175,9 @@ export function inferTypeInfo(): TransformVisitor {
       },
     },
 
-    FunctionExpr: {
+    SubqueryExpr: {
       enter(node, visit) {
-        const xnode = trace.FunctionExpr.enter(node, itemVisit(node, visit))
+        const xnode = trace.SubqueryExpr.enter(node, itemVisit(node, visit))
         const typeInfo = xnode.body.find(
           stmt => stmt.kind === NodeKind.ExtractStmt,
         )?.value.typeInfo ?? { type: Type.Never }

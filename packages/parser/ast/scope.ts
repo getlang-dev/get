@@ -52,7 +52,7 @@ export class RootScope<T> {
 
   set extracted(data: T) {
     if (this.scope.extracted !== undefined) {
-      console.warn('Functions must contain a single extract statement')
+      console.warn('Subqueries must contain a single extract statement')
     } else {
       this.scope.extracted = data
     }
