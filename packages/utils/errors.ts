@@ -34,10 +34,6 @@ export class SliceError extends RuntimeError {
 
 export class SliceSyntaxError extends RuntimeError {
   public override name = 'SliceSyntaxError'
-
-  constructor(options?: ErrorOptions) {
-    super('Could not parse slice', options)
-  }
 }
 
 export class ConversionError extends RuntimeError {

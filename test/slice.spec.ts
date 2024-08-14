@@ -54,6 +54,20 @@ describe('slice', () => {
     })
   })
 
+  it('can reference and convert context', async () => {
+    const result = await execute(
+      `
+        set html = \`'<main><h1>title</h1><p>para 1</p><p>para 2</p></main>'\`
+
+        extract $html -> @html => h1, p -> (
+          set raw = \`$$.outerHTML\`
+          extract $raw
+        )
+      `,
+    )
+    expect(result).toEqual(['<h1>title</h1>', '<p>para 1</p>', '<p>para 2</p>'])
+  })
+
   it('supports escaped backticks', async () => {
     const result = await execute('extract `\\`escaped\\``')
     expect(result).toEqual('escaped')

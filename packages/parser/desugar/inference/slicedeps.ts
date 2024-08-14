@@ -1,9 +1,10 @@
 /// <reference types="./acorn-globals.d.ts" />
 
-import { parse } from 'acorn'
+import { SliceSyntaxError, invariant } from '@getlang/utils'
+import { type Program, parse } from 'acorn'
 import detect from 'acorn-globals'
 import globals from 'globals'
-import { t } from '../../ast/ast.js'
+import { type Expr, t } from '../../ast/ast.js'
 import type { TransformVisitor } from '../../visitor/transform.js'
 import { createToken } from '../utils.js'
 
@@ -12,11 +13,16 @@ const browserGlobals = [
   ...Object.keys(globals.builtin),
 ]
 
-const analyzeSlice = (_source: string, includeDeps: boolean) => {
-  const ast = parse(_source, {
-    ecmaVersion: 'latest',
-    allowReturnOutsideFunction: true,
-  })
+const analyzeSlice = (_source: string, analyzeDeps: boolean) => {
+  let ast: Program
+  try {
+    ast = parse(_source, {
+      ecmaVersion: 'latest',
+      allowReturnOutsideFunction: true,
+    })
+  } catch (e) {
+    throw new SliceSyntaxError('Could not parse slice', { cause: e })
+  }
 
   let source = _source
 
@@ -25,26 +31,30 @@ const analyzeSlice = (_source: string, includeDeps: boolean) => {
     source = `return ${source}`
   }
 
-  if (!includeDeps) {
-    return { source, deps: [] }
+  const deps: string[] = []
+  if (analyzeDeps) {
+    for (const dep of detect(ast).map(id => id.name)) {
+      if (!browserGlobals.includes(dep)) {
+        deps.push(dep)
+      }
+    }
   }
 
-  // detect globals and load them from context
-  const deps = detect(ast)
-    .map(id => id.name)
-    .filter(id => !browserGlobals.includes(id))
+  const usesContext = deps.some(d => ['$', '$$'].includes(d))
+  const usesVars = deps.some(d => !['$', '$$'].includes(d))
 
-  if (deps.includes('$') || deps.includes('$$')) {
-    return { source, deps: [] }
-  }
+  invariant(
+    !(usesContext && usesVars),
+    new SliceSyntaxError('Slice must not use context ($) and outer variables'),
+  )
 
-  if (deps.length) {
+  if (usesVars) {
     const contextVars = deps.join(', ')
     const loadContext = `const { ${contextVars} } = $\n`
     source = loadContext + source
   }
 
-  return { source, deps }
+  return { source, deps, usesContext }
 }
 
 export function inferSliceDeps(): TransformVisitor {
@@ -52,16 +62,19 @@ export function inferSliceDeps(): TransformVisitor {
     SliceExpr(node) {
       const stat = analyzeSlice(node.slice.value, !node.context)
       const slice = createToken(stat.source)
-      if (stat.deps.length === 0) {
-        return { ...node, slice }
+      let context: Expr | undefined = node.context
+      if (!node.context) {
+        if (stat.usesContext) {
+          context = t.identifierExpr(createToken(''))
+        } else if (stat.deps.length) {
+          const deps = stat.deps.map(id => ({
+            key: t.templateExpr([createToken(id)]),
+            value: t.identifierExpr(createToken(id)),
+            optional: false,
+          }))
+          context = t.objectLiteralExpr(deps)
+        }
       }
-      const deps = stat.deps.map(id => ({
-        key: t.templateExpr([createToken(id)]),
-        value: t.identifierExpr(createToken(id)),
-        optional: false,
-      }))
-
-      const context = t.objectLiteralExpr(deps)
       return { ...node, slice, context }
     },
   }

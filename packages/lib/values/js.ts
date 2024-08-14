@@ -2,6 +2,7 @@ import {
   ConversionError,
   NullSelection,
   SelectorSyntaxError,
+  SliceSyntaxError,
   invariant,
 } from '@getlang/utils'
 import { parse as acorn } from 'acorn'
@@ -9,7 +10,11 @@ import type { AnyNode } from 'acorn'
 import esquery from 'esquery'
 
 export const parse = (js: string): AnyNode => {
-  return acorn(js, { ecmaVersion: 'latest' })
+  try {
+    return acorn(js, { ecmaVersion: 'latest' })
+  } catch (e) {
+    throw new SliceSyntaxError('Could not parse slice', { cause: e })
+  }
 }
 
 export const select = (node: AnyNode, selector: string, expand: boolean) => {
