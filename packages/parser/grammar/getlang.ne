@@ -43,12 +43,12 @@ drill -> (%drill_arrow _):? expression {% p.drillContext %}
 
 ### EXPR
 expression -> (template | slice | modifier) {% p.idd %}
-expression -> (object | function | module_call) {% p.idd %}
+expression -> (object | subquery | module_call) {% p.idd %}
 expression -> id_expr {% p.identifier %}
 
 
-### FUNCTIONS
-function -> "(" _ statements _ ")" {% p.fn %}
+### SUBQUERIES
+subquery -> "(" _ statements _ ")" {% p.subquery %}
 module_call -> id_expr "(" object:? ")" {% p.moduleCall %}
 
 

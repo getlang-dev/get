@@ -82,9 +82,9 @@ export function inferContext(): TransformVisitor {
       return { ...node, body: insertParsers(node.body, parsers) }
     },
 
-    FunctionExpr: {
+    SubqueryExpr: {
       enter(node, visit) {
-        const xnode = trace.FunctionExpr.enter(node, visit)
+        const xnode = trace.SubqueryExpr.enter(node, visit)
         return { ...xnode, body: insertParsers(xnode.body, parsers) }
       },
     },

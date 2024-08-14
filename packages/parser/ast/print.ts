@@ -197,14 +197,16 @@ const printVisitor: InterpretVisitor<Doc> = {
     return node.context ? [node.context, indent([line, '-> ', slice])] : slice
   },
 
-  FunctionExpr(node) {
-    const fn = [
+  SubqueryExpr(node) {
+    const subquery = [
       '(',
       indent(node.body.flatMap(x => [hardline, x])),
       hardline,
       ')',
     ]
-    return node.context ? [node.context, indent([line, '-> ', fn])] : fn
+    return node.context
+      ? [node.context, indent([line, '-> ', subquery])]
+      : subquery
   },
 }
 

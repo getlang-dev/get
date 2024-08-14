@@ -35,7 +35,7 @@ export function traceVisitor(scope: RootScope<Expr>) {
     },
 
     // contextual expressions
-    FunctionExpr: {
+    SubqueryExpr: {
       enter(node, visit) {
         return ctx(node, visit, node => {
           scope.push()

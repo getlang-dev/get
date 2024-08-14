@@ -254,13 +254,13 @@ export async function execute(
       },
     },
 
-    FunctionExpr: {
+    SubqueryExpr: {
       async enter(node, visit) {
         return ctx(node, visit, async () => {
           const ex = await executeBody(visit, node.body, scope.context)
           invariant(
             ex,
-            new QuerySyntaxError('Function missing extract statement'),
+            new QuerySyntaxError('Subquery missing extract statement'),
           )
           return ex
         })
