@@ -5,10 +5,11 @@ import type { TransformVisitor, Visit } from '../visitor/transform.js'
 
 export function traceVisitor(scope: RootScope<Expr>) {
   function ctx<C extends CExpr>(node: C, visit: Visit, cb: (tnode: C) => C) {
-    const context = node.context && visit(node.context)
-    context && scope.pushContext(context)
+    if (!node.context) return cb(node)
+    const context = visit(node.context)
+    scope.pushContext(context)
     const xnode = cb({ ...node, context })
-    context && scope.popContext()
+    scope.popContext()
     return xnode
   }
 
@@ -84,7 +85,7 @@ export function traceVisitor(scope: RootScope<Expr>) {
 
     SliceExpr: {
       enter(node, visit) {
-        // contains no additional expressions beyond .context
+        // contains no additional expressions (only .context)
         return ctx(node, visit, node => node)
       },
     },

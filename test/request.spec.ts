@@ -279,6 +279,20 @@ describe('request', () => {
       `)
       expect(result).toEqual({ whicha: 1, whichb: 2 })
     })
+
+    it('updates subquery context', async () => {
+      const result = await execute(`
+        set x? = \`'<p>'\` -> @html -> (
+          GET http://example.com
+
+          extract h1
+        )
+
+        extract $x
+      `)
+
+      expect(result).toEqual('test')
+    })
   })
 
   describe('inference', () => {
