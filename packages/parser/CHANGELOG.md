@@ -1,5 +1,11 @@
 # @getlang/parser
 
+## 0.2.1
+
+### Patch Changes
+
+- [#16](https://github.com/getlang-dev/get/pull/16) [`1c17b8d`](https://github.com/getlang-dev/get/commit/1c17b8dc6a2f417fb7948d35531b8eb970f345cc) Thanks [@mattfysh](https://github.com/mattfysh)! - bugfix: subquery context switching
+
 ## 0.2.0
 
 ### Minor Changes
