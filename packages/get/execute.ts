@@ -119,7 +119,9 @@ export async function execute(
       let value = await visit(node.context)
       const optional = node.typeInfo.type === Type.Maybe
       value = optional ? value : assert(value)
-      if (value instanceof NullSelection) return value
+      if (value instanceof NullSelection) {
+        return value
+      }
       context = { value, typeInfo: node.context.typeInfo }
     }
     return unwrap(context, cb)

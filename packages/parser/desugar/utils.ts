@@ -19,7 +19,9 @@ export function selectTypeInfo(
   selector: Expr,
 ): TypeInfo | null {
   const sel = render(selector)
-  if (!sel) return null
+  if (!sel) {
+    return null
+  }
   return toPath(sel).reduce<TypeInfo>(
     (acc, cur) =>
       (acc.type === Type.Struct && acc.schema[cur]) || { type: Type.Value },

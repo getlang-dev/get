@@ -100,8 +100,10 @@ describe('modules', () => {
 
   test('imports cache', async () => {
     const importHook = mock(async (module: string) => {
-      if (module === 'Top') return `extract \`"top"\``
-      if (module === 'Mid')
+      if (module === 'Top') {
+        return `extract \`"top"\``
+      }
+      if (module === 'Mid') {
         return `
         import Top
         set inputA = \`"foo"\`
@@ -110,6 +112,7 @@ describe('modules', () => {
           midValue: \`"mid"\`
         }
       `
+      }
       throw new Error(`Unexpected import: ${module}`)
     })
 

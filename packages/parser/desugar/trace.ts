@@ -5,7 +5,9 @@ import type { TransformVisitor, Visit } from '../visitor/transform.js'
 
 export function traceVisitor(scope: RootScope<Expr>) {
   function ctx<C extends CExpr>(node: C, visit: Visit, cb: (tnode: C) => C) {
-    if (!node.context) return cb(node)
+    if (!node.context) {
+      return cb(node)
+    }
     const context = visit(node.context)
     scope.pushContext(context)
     const xnode = cb({ ...node, context })

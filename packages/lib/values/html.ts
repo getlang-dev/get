@@ -66,7 +66,7 @@ export const toValue = (el: AnyHtmlNode) => {
   if (el.nodeType === 2) {
     str = el.value
   } else if (textContent(el)) {
-    str = textContent(el)
+    str = textContent(el).replaceAll(/\s+/g, ' ')
   }
   return str.trim()
 }
