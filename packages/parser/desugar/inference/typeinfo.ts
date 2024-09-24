@@ -10,8 +10,13 @@ import type { TransformVisitor, Visit } from '../../visitor/transform.js'
 import { traceVisitor } from '../trace.js'
 import { render, selectTypeInfo } from '../utils.js'
 
-function clone(a: unknown) {
-  return JSON.parse(JSON.stringify(a))
+const modTypeMap: Record<string, TypeInfo> = {
+  html: { type: Type.Html },
+  json: { type: Type.Value },
+  js: { type: Type.Js },
+  headers: { type: Type.Headers },
+  cookies: { type: Type.Cookies },
+  link: { type: Type.Value },
 }
 
 function unwrap(typeInfo: TypeInfo) {
@@ -22,6 +27,26 @@ function unwrap(typeInfo: TypeInfo) {
       return unwrap(typeInfo.option)
     default:
       return typeInfo
+  }
+}
+
+function rewrap(
+  typeInfo: TypeInfo | undefined,
+  itemTypeInfo: TypeInfo,
+  optional: boolean,
+): TypeInfo {
+  switch (typeInfo?.type) {
+    case Type.List:
+      return { ...typeInfo, of: rewrap(typeInfo.of, itemTypeInfo, optional) }
+    case Type.Maybe: {
+      const option = rewrap(typeInfo.option, itemTypeInfo, optional)
+      if (option.type === Type.Maybe || !optional) {
+        return option
+      }
+      return { ...typeInfo, option }
+    }
+    default:
+      return structuredClone(itemTypeInfo)
   }
 }
 
@@ -37,41 +62,27 @@ export function inferTypeInfo(): TransformVisitor {
     return ret
   }
 
-  function rewrap(
-    typeInfo: TypeInfo | undefined,
-    itemTypeInfo: TypeInfo,
-  ): TypeInfo {
-    switch (typeInfo?.type) {
-      case Type.List:
-        return { ...typeInfo, of: rewrap(typeInfo.of, itemTypeInfo) }
-      case Type.Maybe: {
-        const option = rewrap(typeInfo.option, itemTypeInfo)
-        if (option.type === Type.Maybe || !optional) {
-          return option
-        }
-        return { ...typeInfo, option }
+  function ctx<C extends CExpr>(cb: (tnode: C, ivisit: Visit) => C) {
+    return function enter(node: C, visit: Visit): C {
+      if (!node.context) {
+        return cb(node, visit)
       }
-      default:
-        return clone(itemTypeInfo)
+      const context = visit(node.context)
+      const itemContext: any = {
+        ...context,
+        typeInfo: unwrap(context.typeInfo),
+      }
+
+      const ivisit: Visit = child =>
+        child === itemContext ? itemContext : visit(child)
+
+      const xnode = cb({ ...node, context: itemContext }, ivisit)
+
+      const typeInfo = rewrap(context.typeInfo, xnode.typeInfo, optional)
+      return { ...xnode, context, typeInfo }
     }
   }
 
-  function itemVisit(node: CExpr, visit: Visit): Visit {
-    return child => {
-      if (child === node.context || !scope.context?.typeInfo) {
-        return visit(child)
-      }
-      scope.pushContext({
-        ...scope.context,
-        typeInfo: unwrap(scope.context.typeInfo),
-      })
-      const xnode = setOptional(false, () => visit(child))
-      scope.popContext()
-      return xnode
-    }
-  }
-
-  // SliceExpr and ModuleCallExpr use default Type.Value
   const trace = traceVisitor(scope)
 
   return {
@@ -102,8 +113,7 @@ export function inferTypeInfo(): TransformVisitor {
       const id = node.value.value
       const value = scope.vars[id]
       invariant(value, new ValueReferenceError(node.value.value))
-      const { typeInfo } = value
-      return { ...node, typeInfo: clone(typeInfo) }
+      return { ...node, typeInfo: structuredClone(value.typeInfo) }
     },
 
     RequestExpr(node) {
@@ -122,19 +132,19 @@ export function inferTypeInfo(): TransformVisitor {
     },
 
     SliceExpr: {
-      enter(node, visit) {
-        const xnode = trace.SliceExpr.enter(node, itemVisit(node, visit))
+      enter: ctx((node, visit) => {
+        const xnode = trace.SliceExpr.enter(node, visit)
         let typeInfo: TypeInfo = { type: Type.Value }
         if (optional) {
           typeInfo = { type: Type.Maybe, option: typeInfo }
         }
-        return { ...xnode, typeInfo: rewrap(xnode.context?.typeInfo, typeInfo) }
-      },
+        return { ...xnode, typeInfo }
+      }),
     },
 
     SelectorExpr: {
-      enter(node, visit) {
-        const xnode = trace.SelectorExpr.enter(node, itemVisit(node, visit))
+      enter: ctx((node, visit) => {
+        const xnode = trace.SelectorExpr.enter(node, visit)
         let typeInfo: TypeInfo = unwrap(
           xnode.context?.typeInfo ?? { type: Type.Value },
         )
@@ -155,54 +165,44 @@ export function inferTypeInfo(): TransformVisitor {
         } else if (optional) {
           typeInfo = { type: Type.Maybe, option: typeInfo }
         }
-        return { ...xnode, typeInfo: rewrap(xnode.context?.typeInfo, typeInfo) }
-      },
+
+        return { ...xnode, typeInfo }
+      }),
     },
 
     ModifierExpr: {
-      enter(node, visit) {
-        const modTypeMap: Record<string, TypeInfo> = {
-          html: { type: Type.Html },
-          json: { type: Type.Value },
-          js: { type: Type.Js },
-          headers: { type: Type.Headers },
-          cookies: { type: Type.Cookies },
-          link: { type: Type.Value },
-        }
-        const xnode = trace.ModifierExpr.enter(node, itemVisit(node, visit))
+      enter: ctx((node, visit) => {
+        const xnode = trace.ModifierExpr.enter(node, visit)
         const mod = xnode.value.value
         const typeInfo = modTypeMap[mod]
         invariant(typeInfo, new QuerySyntaxError(`Unknown modifier: ${mod}`))
-        return { ...xnode, typeInfo: rewrap(xnode.context?.typeInfo, typeInfo) }
-      },
+        return { ...xnode, typeInfo }
+      }),
     },
 
     SubqueryExpr: {
-      enter(node, visit) {
-        const xnode = trace.SubqueryExpr.enter(node, itemVisit(node, visit))
+      enter: ctx((node, visit) => {
+        const xnode = trace.SubqueryExpr.enter(node, visit)
         const typeInfo = xnode.body.find(
           stmt => stmt.kind === NodeKind.ExtractStmt,
         )?.value.typeInfo ?? { type: Type.Never }
-        return { ...xnode, typeInfo: rewrap(xnode.context?.typeInfo, typeInfo) }
-      },
+        return { ...xnode, typeInfo }
+      }),
     },
 
     ObjectLiteralExpr: {
-      enter(node, visit) {
-        const xnode = trace.ObjectLiteralExpr.enter(
-          node,
-          itemVisit(node, child => {
-            if (child === node.context) {
-              return visit(child)
-            }
-            const entry = node.entries.find(e => e.value === child)
-            invariant(
-              entry,
-              new QuerySyntaxError('Object entry missing typeinfo'),
-            )
-            return setOptional(entry.optional, () => visit(child))
-          }),
-        )
+      enter: ctx((node, visit) => {
+        const xnode = trace.ObjectLiteralExpr.enter(node, child => {
+          if (child === node.context) {
+            return visit(child)
+          }
+          const entry = node.entries.find(e => e.value === child)
+          invariant(
+            entry,
+            new QuerySyntaxError('Object entry missing typeinfo'),
+          )
+          return setOptional(entry.optional, () => visit(child))
+        })
 
         const typeInfo: TypeInfo = {
           type: Type.Struct,
@@ -219,16 +219,16 @@ export function inferTypeInfo(): TransformVisitor {
           ),
         }
 
-        return { ...xnode, typeInfo: rewrap(xnode.context?.typeInfo, typeInfo) }
-      },
+        return { ...xnode, typeInfo }
+      }),
     },
 
     ModuleCallExpr: {
-      enter(node, visit) {
-        const xnode = trace.ModuleCallExpr.enter(node, itemVisit(node, visit))
+      enter: ctx((node, visit) => {
+        const xnode = trace.ModuleCallExpr.enter(node, visit)
         const typeInfo: TypeInfo = { type: Type.Value }
-        return { ...xnode, typeInfo: rewrap(xnode.context?.typeInfo, typeInfo) }
-      },
+        return { ...xnode, typeInfo }
+      }),
     },
   }
 }
