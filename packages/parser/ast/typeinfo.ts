@@ -37,7 +37,9 @@ export function tequal(a: TypeInfo, b: TypeInfo): boolean {
   } else if (a.type === 'struct' && b.type === 'struct') {
     const ax = Object.entries(a.schema)
     const bx = Object.entries(b.schema)
-    if (ax.length !== bx.length) return false
+    if (ax.length !== bx.length) {
+      return false
+    }
     return ax.every(([ak, av]) => {
       const bv = b.schema[ak]
       return bv && tequal(av, bv)

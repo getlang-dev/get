@@ -2,7 +2,7 @@
   "name": "get",
   "license": "Apache-2.0",
   "private": true,
-  "packageManager": "bun@1.1.22",
+  "packageManager": "bun@1.1.29",
   "scripts": {
     "format": "biome check --write",
     "lint": "bun lint:check && bun lint:types && bun lint:unused && bun lint:repo",
@@ -20,11 +20,11 @@
   "devDependencies": {
     "@biomejs/biome": "1.8.2",
     "@changesets/changelog-github": "^0.5.0",
-    "@changesets/cli": "^2.27.7",
-    "@types/bun": "^1.1.6",
-    "knip": "^5.27.2",
-    "sherif": "^0.10.0",
-    "typescript": "^5.5.4"
+    "@changesets/cli": "^2.27.8",
+    "@types/bun": "^1.1.10",
+    "knip": "^5.30.5",
+    "sherif": "^1.0.0",
+    "typescript": "^5.6.2"
   },
   "knip": {
     "vitest": {},
@@ -36,7 +36,10 @@
     ],
     "workspaces": {
       "packages/parser": {
-        "entry": ["index.ts", "grammar.ts"]
+        "entry": [
+          "index.ts",
+          "grammar.ts"
+        ]
       }
     }
   }

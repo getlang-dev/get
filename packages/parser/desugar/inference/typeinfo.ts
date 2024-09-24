@@ -125,7 +125,9 @@ export function inferTypeInfo(): TransformVisitor {
       enter(node, visit) {
         const xnode = trace.SliceExpr.enter(node, itemVisit(node, visit))
         let typeInfo: TypeInfo = { type: Type.Value }
-        if (optional) typeInfo = { type: Type.Maybe, option: typeInfo }
+        if (optional) {
+          typeInfo = { type: Type.Maybe, option: typeInfo }
+        }
         return { ...xnode, typeInfo: rewrap(xnode.context?.typeInfo, typeInfo) }
       },
     },
@@ -190,7 +192,9 @@ export function inferTypeInfo(): TransformVisitor {
         const xnode = trace.ObjectLiteralExpr.enter(
           node,
           itemVisit(node, child => {
-            if (child === node.context) return visit(child)
+            if (child === node.context) {
+              return visit(child)
+            }
             const entry = node.entries.find(e => e.value === child)
             invariant(
               entry,
