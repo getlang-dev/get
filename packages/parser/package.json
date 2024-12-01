@@ -5,23 +5,23 @@
   "type": "module",
   "exports": {
     ".": {
-      "bun": "./index.ts",
+      "bun": "./src/index.ts",
       "default": "./dist/index.js"
     },
     "./ast": {
-      "bun": "./ast/ast.ts",
+      "bun": "./src/ast/ast.ts",
       "default": "./dist/ast/ast.js"
     },
     "./scope": {
-      "bun": "./ast/scope.ts",
+      "bun": "./src/ast/scope.ts",
       "default": "./dist/ast/scope.js"
     },
     "./typeinfo": {
-      "bun": "./ast/typeinfo.ts",
+      "bun": "./src/ast/typeinfo.ts",
       "default": "./dist/ast/typeinfo.js"
     },
     "./visitor": {
-      "bun": "./visitor/visitor.ts",
+      "bun": "./src/visitor/visitor.ts",
       "default": "./dist/visitor/visitor.js"
     }
   },
@@ -35,20 +35,20 @@
   },
   "homepage": "https://getlang.dev",
   "scripts": {
-    "compile": "nearleyc grammar/getlang.ne -o grammar.ts",
-    "railroad": "nearley-railroad grammar/getlang.ne -o grammar.html && open grammar.html"
+    "compile": "nearleyc src/grammar/getlang.ne -o src/grammar.ts",
+    "railroad": "nearley-railroad src/grammar/getlang.ne -o grammar.html && open grammar.html"
   },
   "dependencies": {
     "@getlang/utils": "workspace:^0.1.1",
     "@types/moo": "^0.5.9",
     "@types/nearley": "^2.11.5",
-    "acorn": "^8.12.1",
+    "acorn": "^8.14.0",
     "acorn-globals": "^7.0.1",
-    "globals": "^15.9.0",
+    "globals": "^15.12.0",
     "lodash-es": "^4.17.21",
     "moo": "^0.5.2",
     "nearley": "^2.20.1",
-    "prettier": "^3.3.3"
+    "prettier": "^3.4.1"
   },
   "devDependencies": {
     "@types/lodash-es": "^4.17.12"

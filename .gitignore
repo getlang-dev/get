@@ -1,7 +1,3 @@
 node_modules
 *.log
 dist
-
-# placed here to ensure files are included with npm
-packages/parser/grammar.ts
-packages/parser/grammar.html

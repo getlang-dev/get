@@ -2,7 +2,7 @@
   "$schema": "./node_modules/@biomejs/biome/configuration_schema.json",
   "files": {
     "include": ["packages/**/*", "test/**/*"],
-    "ignore": ["packages/parser/grammar.ts"]
+    "ignore": ["packages/parser/src/grammar.ts"]
   },
   "organizeImports": {
     "enabled": true
