@@ -7,6 +7,7 @@ import dedent from 'dedent'
 import { dump } from 'js-yaml'
 
 const DEBUG = Boolean(process.env.AST)
+export const SELSYN = true
 
 function printYaml(ast: Program) {
   console.log('\n---- execute ast ----')

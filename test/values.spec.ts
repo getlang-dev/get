@@ -5,7 +5,7 @@ import {
   NullSelectionError,
   SelectorSyntaxError,
 } from '@getlang/utils'
-import { helper } from './helpers.js'
+import { SELSYN, helper } from './helpers.js'
 
 const { execute, testIdempotency } = helper()
 
@@ -178,7 +178,7 @@ describe('values', () => {
       expect(result).toEqual('welcome')
     })
 
-    test('css parsing error @selsyn', () => {
+    test.if(SELSYN)('css parsing error', () => {
       const result = execute(`
         set html = \`'<div>test</div>'\`
         extract $html -> @html -> p/*&@#^
@@ -204,7 +204,7 @@ describe('values', () => {
       expect(result).toEqual('intro')
     })
 
-    test('xpath parsing error @selsyn', async () => {
+    test.if(SELSYN)('xpath parsing error', async () => {
       const result = execute(`
         set html = \`'<div>test</div>'\`
         extract $html -> @html -> xpath:p/*&@#^
@@ -252,7 +252,7 @@ describe('values', () => {
       expect(result.child).toEqual(2)
     })
 
-    test('esquery parsing error @selsyn', () => {
+    test.if(SELSYN)('esquery parsing error', () => {
       const result = execute(`
         set js = \`'console.log(1 + 2)'\`
         extract $js -> @js -> Litera#$*& ><<>F
