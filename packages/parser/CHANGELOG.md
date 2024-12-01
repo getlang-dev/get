@@ -1,5 +1,14 @@
 # @getlang/parser
 
+## 0.2.2
+
+### Patch Changes
+
+- [#23](https://github.com/getlang-dev/get/pull/23) [`28d0ca8`](https://github.com/getlang-dev/get/commit/28d0ca8dcf840cfc70f002d06a48cace834edcf9) Thanks [@mattfysh](https://github.com/mattfysh)! - workspace layout updates
+
+- Updated dependencies [[`28d0ca8`](https://github.com/getlang-dev/get/commit/28d0ca8dcf840cfc70f002d06a48cace834edcf9)]:
+  - @getlang/utils@0.1.2
+
 ## 0.2.1
 
 ### Patch Changes
