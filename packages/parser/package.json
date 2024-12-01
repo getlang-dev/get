@@ -39,7 +39,7 @@
     "railroad": "nearley-railroad src/grammar/getlang.ne -o grammar.html && open grammar.html"
   },
   "dependencies": {
-    "@getlang/utils": "^0.1.1",
+    "@getlang/utils": "workspace:^0.1.1",
     "@types/moo": "^0.5.9",
     "@types/nearley": "^2.11.5",
     "acorn": "^8.14.0",
