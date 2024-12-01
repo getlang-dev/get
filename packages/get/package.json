@@ -4,7 +4,7 @@
   "license": "Apache-2.0",
   "type": "module",
   "exports": {
-    "bun": "./index.ts",
+    "bun": "./src/index.ts",
     "default": "./dist/index.js"
   },
   "bugs": {
@@ -17,9 +17,9 @@
   },
   "homepage": "https://getlang.dev",
   "dependencies": {
-    "@getlang/lib": "workspace:^0.1.1",
-    "@getlang/parser": "workspace:^0.2.0",
-    "@getlang/utils": "workspace:^0.1.1",
+    "@getlang/lib": "^0.1.1",
+    "@getlang/parser": "^0.2.0",
+    "@getlang/utils": "^0.1.1",
     "lodash-es": "^4.17.21"
   },
   "devDependencies": {

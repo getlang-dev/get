@@ -2,13 +2,10 @@
 
 set -e
 
-tsc -p packages
-
-for dir in dist/*; do
-  pkg=$(basename "$dir")
-  mv "$dir" "packages/$pkg/dist"
-  sed -i.bak 's/workspace://g' "packages/$pkg/package.json" && \
-    rm "packages/$pkg/package.json.bak"
+for dir in packages/*; do
+  tsc -p $dir
+  sed -i.bak 's/workspace://g' "$dir/package.json"
+  rm "$dir/package.json.bak"
 done
 
 changeset publish

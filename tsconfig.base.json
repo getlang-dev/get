@@ -13,7 +13,7 @@
     "noUncheckedIndexedAccess": true,
     "noImplicitOverride": true,
     "module": "NodeNext",
-    "outDir": "../dist",
+    "outDir": "${configDir}/dist",
     "sourceMap": true,
     "declaration": true,
     "lib": ["es2022", "dom", "dom.iterable"]
