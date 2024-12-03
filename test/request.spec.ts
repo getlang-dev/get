@@ -14,7 +14,8 @@ const { execute: _exec, testIdempotency } = helper()
 
 const requestHook = mock<RequestHook>()
 
-const execute = (src: string) => _exec(src, {}, { request: requestHook })
+const execute = (src: string, inputs: Record<string, unknown> = {}) =>
+  _exec(src, inputs, { request: requestHook })
 
 beforeEach(() => {
   requestHook.mockResolvedValue({
@@ -248,6 +249,63 @@ describe('request', () => {
           }),
         ),
         body: '{"bar":"bar"}',
+      })
+    })
+
+    test('optional template groups', async () => {
+      await execute(`
+        set foo? = \`undefined\`
+
+        GET https://example.com/pre$[/:foo]/post
+        X-Foo: $foo
+        X-Bar: bar
+        X-Baz: baz$[$foo]zza
+      `)
+
+      expect(requestHook).toHaveBeenCalledWith('https://example.com/pre/post', {
+        method: 'GET',
+        headers: expect.headers(
+          new Headers({
+            'X-Bar': 'bar',
+            'X-Baz': 'bazzza',
+          }),
+        ),
+      })
+    })
+
+    test('nested template parts', async () => {
+      const src = `
+        inputs { x?, y? }
+
+        GET https://getlang.dev
+        Header: aa$[bb\${x}cc$[dd\${y}ee]ff]gg
+      `
+
+      await execute(src)
+      await execute(src, { x: '0x0' })
+      await execute(src, { y: '0y0' })
+      await execute(src, { x: '0x0', y: '0y0' })
+
+      expect(requestHook).toHaveBeenCalledWith('https://getlang.dev/', {
+        method: 'GET',
+        headers: expect.headers(new Headers({ Header: 'aagg' })),
+      })
+
+      expect(requestHook).toHaveBeenCalledWith('https://getlang.dev/', {
+        method: 'GET',
+        headers: expect.headers(new Headers({ Header: 'aabb0x0ccffgg' })),
+      })
+
+      expect(requestHook).toHaveBeenCalledWith('https://getlang.dev/', {
+        method: 'GET',
+        headers: expect.headers(new Headers({ Header: 'aagg' })),
+      })
+
+      expect(requestHook).toHaveBeenCalledWith('https://getlang.dev/', {
+        method: 'GET',
+        headers: expect.headers(
+          new Headers({ Header: 'aabb0x0ccdd0y0eeffgg' }),
+        ),
       })
     })
   })

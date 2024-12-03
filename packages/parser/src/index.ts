@@ -7,6 +7,8 @@ import lexer from './grammar/lexer.js'
 export { print } from './ast/print.js'
 export { desugar } from './desugar/simplified.js'
 
+export { lexer }
+
 export function parse(source: string): Program {
   const parser = new nearley.Parser(nearley.Grammar.fromCompiled(grammar))
   try {

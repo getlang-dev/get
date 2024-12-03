@@ -143,10 +143,12 @@ export async function execute(
       },
     },
 
-    TemplateExpr(node) {
+    TemplateExpr(node, path) {
       const firstNull = node.elements.find(el => el instanceof NullSelection)
       if (firstNull) {
-        return firstNull
+        const parents = path.slice(0, -1)
+        const isRoot = !parents.find(n => n.kind === NodeKind.TemplateExpr)
+        return isRoot ? firstNull : ''
       }
       return node.elements
         .map(el =>
