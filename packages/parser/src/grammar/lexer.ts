@@ -1,7 +1,12 @@
 import moo from 'moo'
 import { identifier, identifierExpr, popAll, ws } from './lex/shared.js'
 import { slice, slice_block } from './lex/slice.js'
-import { interpExpr, templateUntil } from './lex/templates.js'
+import {
+  interpExpr,
+  interpTmpl,
+  interpTmplParams,
+  templateUntil,
+} from './lex/templates.js'
 
 const verbs = ['GET', 'PUT', 'POST', 'PATCH', 'DELETE']
 const keywords = ['import', 'inputs', 'set']
@@ -10,7 +15,7 @@ const modifiers = ['html', 'json', 'js', 'cookies', 'link', 'headers']
 const keywordsObj = Object.fromEntries(keywords.map(k => [`kw_${k}`, k]))
 
 const exprOpeners = {
-  lbrack: '{',
+  lbrace: '{',
   lparent: '(',
   identifier_expr: {
     match: identifierExpr,
@@ -53,7 +58,7 @@ const main = {
     push: 'expr',
   },
   comma: ',',
-  rbrack: '}',
+  rbrace: '}',
   rparen: ')',
   optmark: '?',
   ...exprOpeners,
@@ -118,13 +123,15 @@ const lexer: any = moo.states({
   $all: { err: moo.error },
   main,
   expr,
-  template: templateUntil(/\n|->|=>/),
+  template: templateUntil(/\n|->|=>/, { interpTemplate: false }),
   request,
-  requestUrl: templateUntil(/\n/, { interpSymbols: ['$:'], next: 'request' }),
+  requestUrl: templateUntil(/\n/, { interpParams: true, next: 'request' }),
   requestKey: templateUntil(/:/),
   requestValue: templateUntil(/\n/),
   requestBody: templateUntil(/\n[^\S\r\n]*\[\/body\]/),
   interpExpr,
+  interpTmpl,
+  interpTmplParams,
 })
 
 export default lexer

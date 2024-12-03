@@ -8,7 +8,7 @@ export type { TransformVisitor, InterpretVisitor, AsyncInterpretVisitor }
 
 interface NodeVisitor {
   enter?: (node: Node, visit: (c: Node) => any) => any
-  exit?: (node: any, originalNode: Node) => any
+  exit?: (node: any, path: Node[], originalNode: Node) => any
 }
 
 type Visitor =
@@ -20,31 +20,38 @@ export function visit<N extends Node, V extends Visitor>(
   node: N,
   visitor: V,
 ): any {
-  function transform<T>(value: T, isRoot?: boolean): any {
-    if (!isRoot && isNode(value)) {
-      return visit(value, visitor)
+  function impl<N extends Node>(node: N, path: Node[]) {
+    function transform<T>(value: T, isRoot?: boolean): any {
+      if (!isRoot && isNode(value)) {
+        return impl(value, path)
+      } else if (Array.isArray(value)) {
+        return waitMap(value, el => transform(el))
+      } else if (typeof value === 'object' && value) {
+        const entries = waitMap(Object.entries(value), e =>
+          wait(transform(e[1]), v => [e[0], v]),
+        )
+        return wait(entries, e => Object.fromEntries(e))
+      } else {
+        return value
+      }
     }
-    if (Array.isArray(value)) {
-      return waitMap(value, el => transform(el))
-    }
-    if (typeof value === 'object' && value) {
-      const entries = waitMap(Object.entries(value), e =>
-        wait(transform(e[1]), v => [e[0], v]),
-      )
-      return wait(entries, e => Object.fromEntries(e))
-    }
-    return value
+
+    const config = visitor[node.kind] ?? {}
+
+    const { enter, exit } = (
+      typeof config === 'function' ? { exit: config } : config
+    ) as NodeVisitor
+
+    path.push(node)
+    const tnode = enter?.(node, n => impl(n, path)) ?? transform(node, true)
+    const xnode = wait(tnode, t => exit?.(t, path, node) ?? t)
+    return wait(xnode, x => {
+      path.pop()
+      return x
+    })
   }
 
-  const config = visitor[node.kind] ?? {}
-  const nodeVisitor = (
-    typeof config === 'function' ? { exit: config } : config
-  ) as NodeVisitor
-  const { enter, exit } = nodeVisitor
-  const tnode = enter
-    ? enter(node, n => visit(n, visitor))
-    : transform(node, true)
-  return wait(tnode, t => (exit ? exit(t, node) : t))
+  return impl(node, [])
 }
 
 function isNode(value: unknown): value is Node {

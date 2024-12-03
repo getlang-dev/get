@@ -60,8 +60,9 @@ object_entry -> id_expr "?":? {% p.objectEntryShorthandIdent %}
 
 
 ### LITERALS
-template -> (%literal | %interpvar | interp_expr):+ {% p.template %}
+template -> (%literal | %interpvar | interp_expr | interp_tmpl):+ {% p.template %}
 interp_expr -> "${" _ %identifier _ "}" {% p.interpExpr %}
+interp_tmpl -> "$[" _ template _ "]" {% p.interpTmpl %}
 slice -> %slice {% p.slice %}
 modifier -> %modifier ("(" object ")"):? {% p.modifier %}
 id_expr -> %identifier_expr {% id %}

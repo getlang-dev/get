@@ -89,7 +89,7 @@ const printVisitor: InterpretVisitor<Doc> = {
     return group(['extract ', node.value])
   },
 
-  ObjectLiteralExpr(node, orig) {
+  ObjectLiteralExpr(node, _path, orig) {
     const shorthand: Doc[] = []
     const shouldBreak = orig.entries.some(
       e => e.value.kind === NodeKind.SelectorExpr,
@@ -131,21 +131,24 @@ const printVisitor: InterpretVisitor<Doc> = {
     return node.context ? [node.context, indent([line, '-> ', obj])] : obj
   },
 
-  TemplateExpr(node, orig) {
+  TemplateExpr(node, _path, orig) {
     return node.elements.map((el, i) => {
       const origEl = orig.elements[i]
       if (!origEl) {
         throw new Error('Unmatched object literal entry')
       } else if ('offset' in origEl) {
         return origEl.value
+      }
+
+      if (typeof el !== 'string' && !Array.isArray(el)) {
+        throw new Error(`Unsupported template node: ${el.type} command`)
+      } else if (origEl.kind === NodeKind.TemplateExpr) {
+        return ['$[', el, ']']
       } else if (origEl.kind !== NodeKind.IdentifierExpr) {
         throw new Error(`Unexpected template node: ${origEl?.kind}`)
       }
 
       // strip the leading `$` character
-      if (typeof el !== 'string' && !Array.isArray(el)) {
-        throw new Error(`Unsupported template node: ${el.type} command`)
-      }
       let ret = el.slice(1)
 
       const nextEl = node.elements[i + 1]
@@ -174,7 +177,7 @@ const printVisitor: InterpretVisitor<Doc> = {
     return [node.context, indent([line, arrow, node.selector])]
   },
 
-  ModifierExpr(node, orig) {
+  ModifierExpr(node, _path, orig) {
     const mod: Doc[] = ['@', node.value.value]
     if (orig.options.entries.length) {
       mod.push('(', node.options, ')')

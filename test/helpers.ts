@@ -35,6 +35,10 @@ expect.extend({
       }
     }
 
+    console.log(
+      Object.fromEntries(received as any),
+      Object.fromEntries(expected as any),
+    )
     const pass = this.equals(
       Object.fromEntries(received as any),
       Object.fromEntries(expected as any),

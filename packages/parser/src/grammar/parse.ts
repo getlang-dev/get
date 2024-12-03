@@ -141,19 +141,26 @@ export const identifier: PP = ([id]) => {
 
 export const template: PP = d => {
   // filter out any empty tokens (that were used for peeking)
-  let elements = d[0].filter((dd: any) => !!dd[0].value)
+  let elements = d[0].filter((dd: any) => dd[0].kind || dd[0].value)
 
   // create the AST nodes for each element
-  elements = elements.flatMap((dd: any, i: number) => {
-    const token = dd[0]
+  elements = d[0].flatMap((dd: any, i: number) => {
+    const element = dd[0]
 
-    switch (token.type) {
+    if (element.kind) {
+      if (element.kind !== 'TemplateExpr') {
+        throw new Error(`Unexpected template element: ${element.kind}`)
+      }
+      return element
+    }
+
+    switch (element.type) {
       case 'interpvar':
       case 'identifier':
-        return t.identifierExpr(token)
+        return t.identifierExpr(element)
 
       case 'literal': {
-        let { value } = token
+        let { value } = element
         if (i === 0) {
           value = value.trimLeft()
         }
@@ -163,19 +170,19 @@ export const template: PP = d => {
         if (!value) {
           return []
         }
-        return { ...token, value }
+        return { ...element, value }
       }
 
       default:
-        throw new QuerySyntaxError(`Unkown template element: ${token.type}`)
+        throw new QuerySyntaxError(`Unknown template element: ${element.type}`)
     }
   })
 
   return t.templateExpr(elements)
 }
 
-// limited support, simple identifier passthrough for now
 export const interpExpr: PP = ([, , token]) => token
+export const interpTmpl: PP = ([, , template]) => template
 
 export const slice: PP = d => t.sliceExpr(d[0])
 
