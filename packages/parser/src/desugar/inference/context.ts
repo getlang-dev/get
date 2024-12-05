@@ -34,12 +34,12 @@ function insertParsers(stmts: Stmt[], parsers: Parsers) {
         if (mod === 'cookies') {
           expr = t.selectorExpr(tx.template('set-cookie'), false, expr)
         }
-        expr = t.callExpr(tx.createToken(mod), undefined, expr)
+        expr = t.callExpr(tx.token(mod), undefined, expr)
       }
 
       const id = `__${mod}_${index}`
       const optional = mod === 'cookies'
-      return t.assignmentStmt(tx.createToken(id), expr, optional)
+      return t.assignmentStmt(tx.token(id), expr, optional)
     })
     return [stmt, ...parserStmts]
   })

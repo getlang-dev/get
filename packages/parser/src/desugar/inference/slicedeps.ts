@@ -61,7 +61,7 @@ export function inferSliceDeps(): TransformVisitor {
   return {
     SliceExpr(node) {
       const stat = analyzeSlice(node.slice.value, !node.context)
-      const slice = tx.createToken(stat.source)
+      const slice = tx.token(stat.source)
       let context: Expr | undefined = node.context
       if (!node.context) {
         if (stat.usesContext) {

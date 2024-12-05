@@ -26,7 +26,7 @@ function insertUrls(stmts: Stmt[], urls: Urls) {
     const selector = tx.template('url')
     const expr: Expr = t.selectorExpr(selector, false, contextId)
     const id = `__url_${index}`
-    const assign = t.assignmentStmt(tx.createToken(id), expr, false)
+    const assign = t.assignmentStmt(tx.token(id), expr, false)
     return [stmt, assign]
   })
 }
@@ -89,11 +89,7 @@ export function inferLinks(): TransformVisitor {
                 ) {
                   return e
                 }
-                const value = t.callExpr(
-                  tx.createToken('link'),
-                  undefined,
-                  e.value,
-                )
+                const value = t.callExpr(tx.token('link'), undefined, e.value)
                 return { ...e, value }
               }),
             },
