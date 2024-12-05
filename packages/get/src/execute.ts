@@ -17,10 +17,8 @@ import {
 } from '@getlang/utils'
 import { mapValues } from 'lodash-es'
 
-export type InternalHooks = {
+export type InternalHooks = Omit<Hooks, 'import'> & {
   import: (module: string) => MaybePromise<Program>
-  request: Hooks['request']
-  slice: Hooks['slice']
 }
 
 type Contextual = { value: any; typeInfo: TypeInfo }
@@ -59,10 +57,6 @@ class Modules {
 
   import(module: string) {
     this.cache[module] ??= this.importHook(module)
-    return this.cache[module]
-  }
-
-  get(module: string) {
     return this.cache[module]
   }
 }
@@ -131,18 +125,6 @@ export async function execute(
     /**
      * Expression nodes
      */
-    ModuleCallExpr: {
-      async enter(node, visit) {
-        return ctx(node, visit, async () => {
-          const module = node.name.value
-          const external = await modules.get(module)
-          invariant(external, new ValueReferenceError(module))
-          const inputs = await visit(node.inputs)
-          return await execute(external, inputs as any, hooks, modules)
-        })
-      },
-    },
-
     TemplateExpr(node, path) {
       const firstNull = node.elements.find(el => el instanceof NullSelection)
       if (firstNull) {
@@ -211,22 +193,37 @@ export async function execute(
       },
     },
 
-    ModifierExpr: {
+    CallExpr: {
       async enter(node, visit) {
         return ctx(node, visit, async context => {
-          const mod = node.value.value
+          const callee = node.callee.value
+          const inputs = await visit(node.inputs)
 
-          if (mod === 'link') {
-            const options = await visit(node.options)
+          if (node.calltype === 'module') {
+            let external: Program
+            try {
+              external = await modules.import(callee)
+            } catch (e) {
+              throw new ImportError(`Failed to import module: ${callee}`, {
+                cause: e,
+              })
+            }
+            const raster = toValue(inputs, node.inputs.typeInfo)
+            return hooks.call(callee, inputs, raster, () =>
+              execute(external, inputs, hooks, modules),
+            )
+          }
+
+          if (callee === 'link') {
             const resolved = http.constructUrl(
               scope.context,
-              options.base ?? undefined,
+              inputs.base ?? undefined,
             )
             return resolved ?? new NullSelection('@link')
           }
 
           const doc = toValue(context!.value, context!.typeInfo)
-          switch (mod) {
+          switch (callee) {
             case 'html':
               return html.parse(doc)
             case 'js':
@@ -236,7 +233,7 @@ export async function execute(
             case 'cookies':
               return cookies.parse(doc)
             default:
-              throw new ValueReferenceError(`Unsupported modifier: ${mod}`)
+              throw new ValueReferenceError(`Unsupported modifier: ${callee}`)
           }
         })
       },
@@ -290,17 +287,6 @@ export async function execute(
      */
 
     DeclInputsStmt() {},
-
-    async DeclImportStmt(node) {
-      const module = node.id.value
-      try {
-        await modules.import(module)
-      } catch (e) {
-        throw new ImportError(`Failed to import module: ${module}`, {
-          cause: e,
-        })
-      }
-    },
 
     InputDeclStmt: {
       async enter(node, visit) {

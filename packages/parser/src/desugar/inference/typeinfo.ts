@@ -12,11 +12,9 @@ import { render, selectTypeInfo } from '../utils.js'
 
 const modTypeMap: Record<string, TypeInfo> = {
   html: { type: Type.Html },
-  json: { type: Type.Value },
   js: { type: Type.Js },
   headers: { type: Type.Headers },
   cookies: { type: Type.Cookies },
-  link: { type: Type.Value },
 }
 
 function unwrap(typeInfo: TypeInfo) {
@@ -170,12 +168,11 @@ export function inferTypeInfo(): TransformVisitor {
       }),
     },
 
-    ModifierExpr: {
+    CallExpr: {
       enter: ctx((node, visit) => {
-        const xnode = trace.ModifierExpr.enter(node, visit)
-        const mod = xnode.value.value
-        const typeInfo = modTypeMap[mod]
-        invariant(typeInfo, new QuerySyntaxError(`Unknown modifier: ${mod}`))
+        const xnode = trace.CallExpr.enter(node, visit)
+        const callee = xnode.callee.value
+        const typeInfo = modTypeMap[callee] ?? { type: Type.Value }
         return { ...xnode, typeInfo }
       }),
     },
@@ -219,14 +216,6 @@ export function inferTypeInfo(): TransformVisitor {
           ),
         }
 
-        return { ...xnode, typeInfo }
-      }),
-    },
-
-    ModuleCallExpr: {
-      enter: ctx((node, visit) => {
-        const xnode = trace.ModuleCallExpr.enter(node, visit)
-        const typeInfo: TypeInfo = { type: Type.Value }
         return { ...xnode, typeInfo }
       }),
     },

@@ -43,8 +43,10 @@ export function visit<N extends Node, V extends Visitor>(
     ) as NodeVisitor
 
     path.push(node)
-    const tnode = enter?.(node, n => impl(n, path)) ?? transform(node, true)
-    const xnode = wait(tnode, t => exit?.(t, path, node) ?? t)
+    const tnode = enter
+      ? enter(node, n => impl(n, path))
+      : transform(node, true)
+    const xnode = wait(tnode, t => (exit ? exit(t, path, node) : t))
     return wait(xnode, x => {
       path.pop()
       return x

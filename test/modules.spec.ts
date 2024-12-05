@@ -1,5 +1,5 @@
 import { describe, expect, mock, test } from 'bun:test'
-import { NullInputError } from '@getlang/utils'
+import { type Hooks, NullInputError } from '@getlang/utils'
 import { helper } from './helpers.js'
 
 const { execute, testIdempotency } = helper()
@@ -82,12 +82,9 @@ describe('modules', () => {
     })
   })
 
-  test('imports', async () => {
+  test('calls', async () => {
     const importHook = mock(() => 'extract { token: `"abc"` }')
-    const src = `
-      import Auth
-      extract { auth: $Auth() }
-    `
+    const src = 'extract { auth: @Auth }'
     const result = await execute(src, {}, { import: importHook })
 
     expect(result).toEqual({
@@ -105,10 +102,9 @@ describe('modules', () => {
       }
       if (module === 'Mid') {
         return `
-        import Top
         set inputA = \`"foo"\`
         extract {
-          topValue: $Top({ $inputA })
+          topValue: @Top({ $inputA })
           midValue: \`"mid"\`
         }
       `
@@ -116,26 +112,23 @@ describe('modules', () => {
       throw new Error(`Unexpected import: ${module}`)
     })
 
-    const src = `
-      import Top
-      import Mid
+    const callHook = mock<Hooks['call']>((_module, _inputs, _raster, execute) =>
+      execute(),
+    )
 
+    const src = `
       set inputA = \`"foo"\`
 
       extract {
-        topValue: $Top({ $inputA })
-        midValue: $Mid()
+        topValue: @Top({ $inputA })
+        midValue: @Mid
         botValue: \`"bot"\`
       }
     `
 
-    const result = await execute(src, {}, { import: importHook })
+    const hooks = { import: importHook, call: callHook }
+    const result = await execute(src, {}, hooks)
 
-    // Top should only importHook & execute once
-    // FIXME: asserting on importHook doesn't fully assert the module wasn't re-run
-    //        e.g. if the runtime caches the source string result of `importHook`
-    //        (which it currently doesn't)
-    expect(importHook).toHaveBeenCalledTimes(2)
     expect(result).toEqual({
       topValue: 'top',
       midValue: {
@@ -143,6 +136,89 @@ describe('modules', () => {
         midValue: 'mid',
       },
       botValue: 'bot',
+    })
+
+    expect(importHook).toHaveBeenCalledTimes(2)
+    expect(callHook).toHaveBeenCalledTimes(3)
+  })
+
+  test('links', async () => {
+    const requestHook = mock<Hooks['request']>()
+
+    requestHook.mockResolvedValue({
+      status: 200,
+      headers: new Headers(),
+      body: `
+        <!doctype html>
+        <ul>
+          <li class="result">
+            <a href="/products/1">Deck o cards</a>
+            <p class="description">Casino grade playing cards</p>
+          </li>
+        </ul>
+        <div class="pager">
+          <a class="next" href="/?s=gifts&page=2">next</a>
+        </div>
+      `,
+    })
+
+    const src = `
+      inputs { query, page? }
+
+      GET https://search.com/
+      [query]
+      s: $query
+      page: $page
+
+      set results = => li.result -> @Product({
+        @link: a
+        name: a
+        desc: p.description
+      })
+
+      extract {
+        items: $results
+        pager: .pager -> {
+          next: @Search) a.next
+          prev: @Search) a.prev
+        }
+      }
+    `
+
+    const importHook = mock<Hooks['import']>(
+      () => `
+      inputs { id }
+      GET https://search.com/products/:id
+    `,
+    )
+
+    const callHook = mock<Hooks['call']>(async (module, _inputs, raster) => ({
+      '@module': module,
+      ...raster,
+    }))
+
+    const hooks = { import: importHook, call: callHook, request: requestHook }
+    const result = await execute(src, { query: 'gifts' }, hooks)
+
+    expect(result).toEqual({
+      items: [
+        {
+          '@module': 'Product',
+          '@link': 'https://search.com/products/1',
+          name: 'Deck o cards',
+          desc: 'Casino grade playing cards',
+        },
+      ],
+      pager: {
+        next: {
+          '@module': 'Search',
+          '@link': 'https://search.com/?s=gifts&page=2',
+        },
+        prev: {
+          '@module': 'Search',
+          '@link': undefined,
+        },
+      },
     })
   })
 

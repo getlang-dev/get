@@ -6,7 +6,7 @@ import detect from 'acorn-globals'
 import globals from 'globals'
 import { type Expr, t } from '../../ast/ast.js'
 import type { TransformVisitor } from '../../visitor/transform.js'
-import { createToken } from '../utils.js'
+import { tx } from '../utils.js'
 
 const browserGlobals = [
   ...Object.keys(globals.browser),
@@ -61,17 +61,15 @@ export function inferSliceDeps(): TransformVisitor {
   return {
     SliceExpr(node) {
       const stat = analyzeSlice(node.slice.value, !node.context)
-      const slice = createToken(stat.source)
+      const slice = tx.createToken(stat.source)
       let context: Expr | undefined = node.context
       if (!node.context) {
         if (stat.usesContext) {
-          context = t.identifierExpr(createToken(''))
+          context = tx.ident('')
         } else if (stat.deps.length) {
-          const deps = stat.deps.map(id => ({
-            key: t.templateExpr([createToken(id)]),
-            value: t.identifierExpr(createToken(id)),
-            optional: false,
-          }))
+          const deps = stat.deps.map(id =>
+            t.objectEntry(tx.template(id), tx.ident(id)),
+          )
           context = t.objectLiteralExpr(deps)
         }
       }

@@ -447,6 +447,30 @@ describe('request', () => {
 
       expect(result).toEqual(['https://bar.com/foo'])
     })
+
+    it('resolved standalone links to context url', async () => {
+      const src = `
+        inputs { query, page? }
+
+        GET https://example.com/search/:query
+        [query]
+        page: $page
+
+        extract {
+          url: @link
+        }
+      `
+
+      const page1 = await execute(src, { query: 'any' })
+      expect(page1).toEqual({
+        url: 'https://example.com/search/any',
+      })
+
+      const page2 = await execute(src, { query: 'any', page: 2 })
+      expect(page2).toEqual({
+        url: 'https://example.com/search/any?page=2',
+      })
+    })
   })
 
   describe('non-body selectors', () => {
