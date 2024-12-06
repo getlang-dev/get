@@ -31,6 +31,7 @@ type NodeConfig<
   ) => A extends true ? MaybePromise<TN> : TN,
   ExitVisitor = (
     node: TN,
+    path: Node[],
     originalNode: N,
   ) => A extends true ? MaybePromise<XN> : XN,
   EntryExitVisitor = (

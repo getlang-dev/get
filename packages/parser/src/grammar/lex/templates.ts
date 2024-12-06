@@ -16,44 +16,78 @@ export const until = (term: RegExp, opts: UntilOptions = {}) => {
 }
 
 type TemplateUntilOptions = {
-  interpSymbols?: string[]
+  interpTemplate?: boolean
+  interpParams?: boolean
   next?: string
 }
 
 export const templateUntil = (
   term: RegExp,
-  { interpSymbols = ['$'], next }: TemplateUntilOptions = {},
-) => ({
-  term: {
-    defaultType: 'literal',
-    match: new RegExp(`(?=${term.source})`),
-    lineBreaks: true,
-    ...(next ? { next } : { pop: 1 }),
-  },
-  interpexpr: {
-    match: '${',
-    push: 'interpExpr',
-  },
-  interpvar: {
-    match: new RegExp(`[${interpSymbols.join('')}]\\w+`),
-    value: (text: string) => text.slice(1),
-  },
-  literal: {
-    match: until(
-      new RegExp(`[${interpSymbols.join('')}]\\w|\\$|${term.source}`),
-    ),
-    value: (text: string) => text.replace(/\\(.)/g, '$1').replace(/\s/g, ' '),
-    lineBreaks: true,
-  },
-})
+  opts: TemplateUntilOptions = {},
+) => {
+  const { interpTemplate = true, interpParams = false, next } = opts
+  const interpSymbols = interpParams ? ['$:'] : ['$']
+  let interpTmplPush: string | undefined
+  if (interpTemplate) {
+    interpTmplPush = interpParams ? 'interpTmplParams' : 'interpTmpl'
+  }
+
+  return {
+    term: {
+      defaultType: 'literal',
+      match: new RegExp(`(?=${term.source})`),
+      lineBreaks: true,
+      ...(next ? { next } : { pop: 1 }),
+    },
+    interpexpr: {
+      match: '${',
+      push: 'interpExpr',
+    },
+    ...(interpTmplPush
+      ? {
+          interptmpl: {
+            match: '$[',
+            push: interpTmplPush,
+          },
+        }
+      : {}),
+    interpvar: {
+      match: new RegExp(`[${interpSymbols.join('')}]\\w+`),
+      value: (text: string) => text.slice(1),
+    },
+    literal: {
+      match: until(
+        new RegExp(`[${interpSymbols.join('')}]\\w|\\$|${term.source}`),
+      ),
+      value: (text: string) => text.replace(/\\(.)/g, '$1').replace(/\s/g, ' '),
+      lineBreaks: true,
+    },
+  }
+}
 
 // limited support for now, eventually to support expressions such as:
 //    ${a + b}
 export const interpExpr = {
   ws,
   identifier,
-  rbrack: {
+  rbrace: {
     match: '}',
     pop: 1,
   },
+}
+
+export const interpTmpl = {
+  rbrack: {
+    match: ']',
+    pop: 1,
+  },
+  ...templateUntil(/]/),
+}
+
+export const interpTmplParams = {
+  rbrack: {
+    match: ']',
+    pop: 1,
+  },
+  ...templateUntil(/]/, { interpParams: true }),
 }
