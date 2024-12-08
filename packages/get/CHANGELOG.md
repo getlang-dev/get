@@ -1,5 +1,16 @@
 # @getlang/get
 
+## 0.2.1
+
+### Patch Changes
+
+- [`3660548`](https://github.com/getlang-dev/get/commit/3660548d79dd24e13a74bf0d6f24c1fec512062d) Thanks [@mattfysh](https://github.com/mattfysh)! - prevent tsconfig publish
+
+- Updated dependencies [[`3660548`](https://github.com/getlang-dev/get/commit/3660548d79dd24e13a74bf0d6f24c1fec512062d)]:
+  - @getlang/parser@0.3.1
+  - @getlang/utils@0.1.4
+  - @getlang/lib@0.1.3
+
 ## 0.2.0
 
 ### Minor Changes
