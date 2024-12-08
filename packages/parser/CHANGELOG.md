@@ -1,5 +1,14 @@
 # @getlang/parser
 
+## 0.3.2
+
+### Patch Changes
+
+- [`aca9d92`](https://github.com/getlang-dev/get/commit/aca9d929e4877fc614b66740c9415f5bcd083c24) Thanks [@mattfysh](https://github.com/mattfysh)! - fix publish
+
+- Updated dependencies [[`aca9d92`](https://github.com/getlang-dev/get/commit/aca9d929e4877fc614b66740c9415f5bcd083c24)]:
+  - @getlang/utils@0.1.5
+
 ## 0.3.1
 
 ### Patch Changes
