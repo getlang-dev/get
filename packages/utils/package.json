@@ -16,8 +16,5 @@
     "directory": "packages/utils"
   },
   "homepage": "https://getlang.dev",
-  "files": [
-    "src",
-    "dist"
-  ]
+  "files": ["src", "dist"]
 }

@@ -53,8 +53,5 @@
   "devDependencies": {
     "@types/lodash-es": "^4.17.12"
   },
-  "files": [
-    "src",
-    "dist"
-  ]
+  "files": ["src", "dist"]
 }
