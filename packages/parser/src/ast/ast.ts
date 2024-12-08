@@ -8,7 +8,6 @@ export enum NodeKind {
   Program = 'Program',
   ExtractStmt = 'ExtractStmt',
   AssignmentStmt = 'AssignmentStmt',
-  DeclImportStmt = 'DeclImportStmt',
   DeclInputsStmt = 'DeclInputsStmt',
   InputDeclStmt = 'InputDeclStmt',
   RequestStmt = 'RequestStmt',
@@ -16,9 +15,8 @@ export enum NodeKind {
   TemplateExpr = 'TemplateExpr',
   IdentifierExpr = 'IdentifierExpr',
   SelectorExpr = 'SelectorExpr',
-  ModifierExpr = 'ModifierExpr',
+  CallExpr = 'CallExpr',
   SubqueryExpr = 'SubqueryExpr',
-  ModuleCallExpr = 'ModuleCallExpr',
   ObjectLiteralExpr = 'ObjectLiteralExpr',
   SliceExpr = 'SliceExpr',
 }
@@ -44,11 +42,6 @@ type AssignmentStmt = {
   name: Token
   value: Expr
   optional: boolean
-}
-
-type DeclImportStmt = {
-  kind: NodeKind.DeclImportStmt
-  id: Token
 }
 
 export type DeclInputsStmt = {
@@ -106,10 +99,11 @@ type SelectorExpr = {
   typeInfo: TypeInfo
 }
 
-type ModifierExpr = {
-  kind: NodeKind.ModifierExpr
-  value: Token
-  options: ObjectLiteralExpr
+type CallExpr = {
+  kind: NodeKind.CallExpr
+  callee: Token
+  calltype: 'module' | 'modifier'
+  inputs: ObjectLiteralExpr
   context?: Expr
   typeInfo: TypeInfo
 }
@@ -117,14 +111,6 @@ type ModifierExpr = {
 type SubqueryExpr = {
   kind: NodeKind.SubqueryExpr
   body: Stmt[]
-  context?: Expr
-  typeInfo: TypeInfo
-}
-
-type ModuleCallExpr = {
-  kind: NodeKind.ModuleCallExpr
-  name: Token
-  inputs: Expr
   context?: Expr
   typeInfo: TypeInfo
 }
@@ -147,7 +133,6 @@ export type Stmt =
   | Program
   | ExtractStmt
   | AssignmentStmt
-  | DeclImportStmt
   | DeclInputsStmt
   | InputDeclStmt
   | RequestStmt
@@ -157,9 +142,8 @@ export type Expr =
   | TemplateExpr
   | IdentifierExpr
   | SelectorExpr
-  | ModifierExpr
+  | CallExpr
   | SubqueryExpr
-  | ModuleCallExpr
   | ObjectLiteralExpr
   | SliceExpr
 
@@ -180,11 +164,6 @@ const assignmentStmt = (
   name,
   optional,
   value,
-})
-
-const declImportStmt = (id: Token): DeclImportStmt => ({
-  kind: NodeKind.DeclImportStmt,
-  id,
 })
 
 const declInputsStmt = (inputs: InputDeclStmt[]): DeclInputsStmt => ({
@@ -255,14 +234,15 @@ const selectorExpr = (
   context,
 })
 
-const modifierExpr = (
-  value: Token,
-  options: ObjectLiteralExpr = objectLiteralExpr([]),
+const callExpr = (
+  callee: Token,
+  inputs: ObjectLiteralExpr = objectLiteralExpr([]),
   context?: Expr,
-): ModifierExpr => ({
-  kind: NodeKind.ModifierExpr,
-  value,
-  options,
+): CallExpr => ({
+  kind: NodeKind.CallExpr,
+  callee,
+  calltype: /[A-Z]/.test(callee.value) ? 'module' : 'modifier',
+  inputs,
   typeInfo: { type: Type.Value },
   context,
 })
@@ -277,17 +257,11 @@ const objectLiteralExpr = (
   context,
 })
 
-const moduleCallExpr = (
-  name: Token,
-  inputs: Expr = objectLiteralExpr([]),
-  context?: Expr,
-): ModuleCallExpr => ({
-  kind: NodeKind.ModuleCallExpr,
-  name,
-  inputs,
-  typeInfo: { type: Type.Value },
-  context,
-})
+const objectEntry = (
+  key: Expr,
+  value: Expr,
+  optional = false,
+): ObjectEntry => ({ key, value, optional })
 
 const sliceExpr = (slice: Token, context?: Expr): SliceExpr => ({
   kind: NodeKind.SliceExpr,
@@ -307,7 +281,6 @@ export const t = {
 
   // STATEMENTS
   assignmentStmt,
-  declImportStmt,
   declInputsStmt,
   inputDeclStmt,
   extractStmt,
@@ -320,9 +293,9 @@ export const t = {
 
   // CONTEXTUAL EXPRESSIONS
   selectorExpr,
-  modifierExpr,
+  callExpr,
   sliceExpr,
   objectLiteralExpr,
+  objectEntry,
   subqueryExpr,
-  moduleCallExpr,
 }

@@ -1,22 +1,20 @@
 import { QuerySyntaxError, invariant } from '@getlang/utils'
 import { NodeKind, t } from '../ast/ast.js'
+import { tx } from '../desugar/utils.js'
 
 type PP = nearley.Postprocessor
 
-export const program: PP = ([, maybeHeader, body]) => {
-  const header = maybeHeader || []
-  const stmts = [...header, ...body]
+export const program: PP = ([, maybeInputs, body]) => {
+  const inputs = maybeInputs?.[0]
+  const stmts = inputs ? [inputs] : []
+  stmts.push(...body)
   return t.program(stmts)
 }
-
-export const header: PP = d => d[0].map((dd: any) => dd[0][0])
 
 export const statements: PP = ([stmt, stmts]) => [
   stmt,
   ...stmts.map((d: any) => d[1]),
 ]
-
-export const declImport: PP = ([, , id]) => t.declImportStmt(id)
 
 export const declInputs: PP = ([, , , , first, maybeRest]) => {
   const rest = maybeRest || []
@@ -30,15 +28,12 @@ export const inputDecl: PP = ([id, optional, maybeDefault]) => {
   return t.inputDeclStmt(id, Boolean(optional || defaultValue), defaultValue)
 }
 
-export const request: PP = ([
-  method,
-  url,
-  headerBlock,
-  namedBlocks,
-  maybeBody,
-]) => {
+export const request: PP = ([method, url, headerBlock, { blocks, body }]) => {
   const headers = headerBlock?.[1] ?? t.objectLiteralExpr([])
+  return t.requestStmt(t.requestExpr(method, url, headers, blocks, body))
+}
 
+export const requestBlocks: PP = ([namedBlocks, maybeBody]) => {
   const blocks: Record<string, unknown> = {}
   for (const [, block] of namedBlocks) {
     blocks[block.name] = block.entries
@@ -54,7 +49,7 @@ export const request: PP = ([
     }
   }
 
-  return t.requestStmt(t.requestExpr(method, url, headers, blocks, body))
+  return { blocks, body }
 }
 
 export const requestBlockNamed: PP = ([name, , entries]) => ({ name, entries })
@@ -83,29 +78,41 @@ export const extract: PP = ([, , exports]) => t.extractStmt(exports)
 
 export const subquery: PP = ([, , stmts]) => t.subqueryExpr(stmts)
 
-export const moduleCall: PP = ([name, , optInputs]) =>
-  t.moduleCallExpr(name, optInputs?.[0])
+export const call: PP = ([callee, maybeInputs]) =>
+  t.callExpr(callee, maybeInputs?.[1])
+
+export const link: PP = ([callee, _, link]) =>
+  t.callExpr(
+    callee,
+    t.objectLiteralExpr([t.objectEntry(tx.template('@link'), link, true)]),
+  )
 
 export const object: PP = d => {
   const entries = d[2].map((dd: any) => dd[0])
   return t.objectLiteralExpr(entries)
 }
 
-export const objectEntry: PP = ([identifier, optional, , , value]) => ({
-  key: t.templateExpr([identifier]),
-  optional: Boolean(optional),
-  value,
-})
+export const objectEntry: PP = ([callkey, identifier, optional, , , value]) => {
+  const key = {
+    ...identifier,
+    value: `${callkey ? '@' : ''}${identifier.value}`,
+  }
+  return {
+    key: t.templateExpr([key]),
+    value,
+    optional: Boolean(optional),
+  }
+}
 
 export const objectEntryShorthandSelect: PP = ([identifier, optional]) => {
   const value = t.templateExpr([identifier])
   const selector = t.selectorExpr(value, false)
-  return objectEntry([identifier, optional, null, null, selector])
+  return objectEntry([null, identifier, optional, null, null, selector])
 }
 
 export const objectEntryShorthandIdent: PP = ([identifier, optional]) => {
   const value = t.identifierExpr(identifier)
-  return objectEntry([identifier, optional, null, null, value])
+  return objectEntry([null, identifier, optional, null, null, value])
 }
 
 const expandingSelectors = [NodeKind.TemplateExpr, NodeKind.IdentifierExpr]
@@ -185,9 +192,6 @@ export const interpExpr: PP = ([, , token]) => token
 export const interpTmpl: PP = ([, , template]) => template
 
 export const slice: PP = d => t.sliceExpr(d[0])
-
-export const modifier: PP = ([value, maybeOptions]) =>
-  t.modifierExpr(value, maybeOptions?.[1])
 
 export const ws: PP = () => null
 

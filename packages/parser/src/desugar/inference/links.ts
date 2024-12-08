@@ -8,7 +8,7 @@ import { NodeKind, t } from '../../ast/ast.js'
 import { RootScope } from '../../ast/scope.js'
 import type { TransformVisitor } from '../../visitor/transform.js'
 import { traceVisitor } from '../trace.js'
-import { createToken, render, template } from '../utils.js'
+import { render, tx } from '../utils.js'
 
 type Urls = Map<RequestExpr, [index: number]>
 
@@ -22,16 +22,16 @@ function insertUrls(stmts: Stmt[], urls: Urls) {
       return stmt
     }
     const [index] = url
-    const contextId = t.identifierExpr(createToken(''))
-    const selector = template('url')
+    const contextId = tx.ident('')
+    const selector = tx.template('url')
     const expr: Expr = t.selectorExpr(selector, false, contextId)
     const id = `__url_${index}`
-    const assign = t.assignmentStmt(createToken(id), expr, false)
+    const assign = t.assignmentStmt(tx.token(id), expr, false)
     return [stmt, assign]
   })
 }
 
-export function inferBase(): TransformVisitor {
+export function inferLinks(): TransformVisitor {
   const scope = new RootScope<Expr>()
 
   const bases = new Map<Expr, RequestExpr>()
@@ -45,7 +45,7 @@ export function inferBase(): TransformVisitor {
     const [index] = urls.get(req) ?? [urls.size]
     urls.set(req, [index])
     const id = `__url_${index}`
-    const stub = t.identifierExpr(createToken(id))
+    const stub = tx.ident(id)
     scope.vars[id] ??= stub
     inherit(req, stub)
     return stub
@@ -73,26 +73,50 @@ export function inferBase(): TransformVisitor {
       },
     },
 
-    ModifierExpr: {
+    CallExpr: {
       enter(node, visit) {
-        const xnode = trace.ModifierExpr.enter(node, visit)
+        let tnode = node
+        if (tnode.calltype === 'module') {
+          tnode = {
+            ...tnode,
+            inputs: {
+              ...tnode.inputs,
+              entries: tnode.inputs.entries.map(e => {
+                if (
+                  render(e.key) !== '@link' ||
+                  (e.value.kind === NodeKind.CallExpr &&
+                    e.value.callee.value === 'link')
+                ) {
+                  return e
+                }
+                const value = t.callExpr(tx.token('link'), undefined, e.value)
+                return { ...e, value }
+              }),
+            },
+          }
+        }
+
+        const xnode = trace.CallExpr.enter(tnode, visit)
+
+        if (xnode.calltype === 'module') {
+          return xnode
+        }
+
         invariant(
-          xnode.kind === NodeKind.ModifierExpr &&
-            xnode.options.kind === NodeKind.ObjectLiteralExpr,
+          xnode.kind === NodeKind.CallExpr &&
+            xnode.inputs.kind === NodeKind.ObjectLiteralExpr,
           new QuerySyntaxError('Modifier options must be an object'),
         )
 
-        if (xnode.value.value === 'link' && xnode.context) {
+        if (xnode.callee.value === 'link' && xnode.context) {
           const contextBase = bases.get(xnode.context)
-          const hasBase = xnode.options.entries.some(
+          const hasBase = xnode.inputs.entries.some(
             e => render(e.key) === 'base',
           )
           if (contextBase && !hasBase) {
-            xnode.options.entries.push({
-              key: template('base'),
-              value: getUrl(contextBase),
-              optional: false,
-            })
+            xnode.inputs.entries.push(
+              t.objectEntry(tx.template('base'), getUrl(contextBase)),
+            )
           }
         }
         invariant(xnode.context, new QuerySyntaxError('Unresolved context'))

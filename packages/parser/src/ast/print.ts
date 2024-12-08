@@ -25,14 +25,6 @@ const printVisitor: InterpretVisitor<Doc> = {
     ])
   },
 
-  DeclImportStmt(node) {
-    return group(['import ', node.id.value])
-  },
-
-  ModuleCallExpr(node) {
-    return group(['$', node.name.value, '(', node.inputs, ')'])
-  },
-
   RequestExpr: {
     enter(node, visit) {
       const parts: Doc[] = [node.method.value, ' ', visit(node.url)]
@@ -177,12 +169,9 @@ const printVisitor: InterpretVisitor<Doc> = {
     return [node.context, indent([line, arrow, node.selector])]
   },
 
-  ModifierExpr(node, _path, orig) {
-    const mod: Doc[] = ['@', node.value.value]
-    if (orig.options.entries.length) {
-      mod.push('(', node.options, ')')
-    }
-    return node.context ? [node.context, indent([line, '-> ', mod])] : mod
+  CallExpr(node) {
+    const call: Doc[] = ['@', node.callee.value, '(', node.inputs, ')']
+    return node.context ? [node.context, indent([line, '-> ', call])] : call
   },
 
   SliceExpr(node) {

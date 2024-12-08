@@ -43,7 +43,7 @@ export function getContentMod(req: RequestExpr) {
   }
 }
 
-export function createToken(text: string, value = text) {
+function token(text: string, value = text) {
   return {
     text,
     value,
@@ -54,6 +54,12 @@ export function createToken(text: string, value = text) {
   }
 }
 
-export function template(contents: string) {
-  return t.templateExpr([createToken(contents)])
+function template(contents: string) {
+  return t.templateExpr([token(contents)])
 }
+
+function ident(id: string) {
+  return t.identifierExpr(token(id))
+}
+
+export const tx = { token, template, ident }

@@ -1,4 +1,4 @@
-import { identifier, ws } from './shared.js'
+import { patterns } from './shared.js'
 
 type UntilOptions = {
   prefix?: RegExp
@@ -26,10 +26,9 @@ export const templateUntil = (
   opts: TemplateUntilOptions = {},
 ) => {
   const { interpTemplate = true, interpParams = false, next } = opts
-  const interpSymbols = interpParams ? ['$:'] : ['$']
-  let interpTmplPush: string | undefined
-  if (interpTemplate) {
-    interpTmplPush = interpParams ? 'interpTmplParams' : 'interpTmpl'
+  const interpSymbols = ['$']
+  if (interpParams) {
+    interpSymbols.push(':')
   }
 
   return {
@@ -43,11 +42,11 @@ export const templateUntil = (
       match: '${',
       push: 'interpExpr',
     },
-    ...(interpTmplPush
+    ...(interpTemplate
       ? {
           interptmpl: {
             match: '$[',
-            push: interpTmplPush,
+            push: interpParams ? 'interpTmplParams' : 'interpTmpl',
           },
         }
       : {}),
@@ -67,16 +66,16 @@ export const templateUntil = (
 
 // limited support for now, eventually to support expressions such as:
 //    ${a + b}
-export const interpExpr = {
-  ws,
-  identifier,
+const interpExpr = {
+  ws: patterns.ws,
+  identifier: patterns.identifier,
   rbrace: {
     match: '}',
     pop: 1,
   },
 }
 
-export const interpTmpl = {
+const interpTmpl = {
   rbrack: {
     match: ']',
     pop: 1,
@@ -84,10 +83,17 @@ export const interpTmpl = {
   ...templateUntil(/]/),
 }
 
-export const interpTmplParams = {
+const interpTmplParams = {
   rbrack: {
     match: ']',
     pop: 1,
   },
   ...templateUntil(/]/, { interpParams: true }),
+}
+
+export const templateStates = {
+  template: templateUntil(/\n|->|=>/, { interpTemplate: false }),
+  interpExpr,
+  interpTmpl,
+  interpTmplParams,
 }

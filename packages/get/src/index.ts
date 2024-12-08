@@ -2,7 +2,7 @@ import { http, slice } from '@getlang/lib'
 import { desugar, parse } from '@getlang/parser'
 import type { Program } from '@getlang/parser/ast'
 import type { Hooks } from '@getlang/utils'
-import { ImportError, wait } from '@getlang/utils'
+import { ImportError, invariant, wait } from '@getlang/utils'
 import { execute as exec } from './execute.js'
 import type { InternalHooks } from './execute.js'
 
@@ -12,13 +12,13 @@ export type UserHooks = Partial<Hooks>
 function buildHooks(hooks: UserHooks = {}): InternalHooks {
   return {
     import: (module: string) => {
-      if (!hooks.import) {
-        throw new ImportError(
-          'Imports are not supported by the current runtime',
-        )
-      }
+      invariant(
+        hooks.import,
+        new ImportError('Imports are not supported by the current runtime'),
+      )
       return wait(hooks.import(module), src => desugar(parse(src)))
     },
+    call: hooks.call ?? ((_module, _inputs, _raster, execute) => execute()),
     request: hooks.request ?? http.requestHook,
     slice: hooks.slice ?? slice.runSlice,
   }

@@ -61,14 +61,6 @@ export function traceVisitor(scope: RootScope<Expr>) {
       },
     },
 
-    ModuleCallExpr: {
-      enter(node, visit) {
-        return ctx(node, visit, node => {
-          return { ...node, inputs: visit(node.inputs) }
-        })
-      },
-    },
-
     SelectorExpr: {
       enter(node, visit) {
         return ctx(node, visit, node => {
@@ -77,10 +69,10 @@ export function traceVisitor(scope: RootScope<Expr>) {
       },
     },
 
-    ModifierExpr: {
+    CallExpr: {
       enter(node, visit) {
         return ctx(node, visit, node => {
-          return { ...node, options: visit(node.options) }
+          return { ...node, inputs: visit(node.inputs) }
         })
       },
     },
