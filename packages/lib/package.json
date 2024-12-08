@@ -34,6 +34,5 @@
     "parse5": "^7.2.1",
     "parse5-htmlparser2-tree-adapter": "^7.1.0",
     "set-cookie-parser": "^2.7.1"
-  },
-  "files": ["src", "dist"]
+  }
 }

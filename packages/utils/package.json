@@ -15,6 +15,5 @@
     "url": "git+https://github.com/getlang-dev/get.git",
     "directory": "packages/utils"
   },
-  "homepage": "https://getlang.dev",
-  "files": ["src", "dist"]
+  "homepage": "https://getlang.dev"
 }
