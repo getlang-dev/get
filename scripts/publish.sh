@@ -5,7 +5,7 @@ set -e
 for dir in packages/*; do
   tsc -p $dir
   sed -i.bak 's/workspace://g' "$dir/package.json"
-  rm "$dir/package.json.bak" "tsconfig.json"
+  rm "$dir/package.json.bak" "$dir/tsconfig.json"
 done
 
 changeset publish
