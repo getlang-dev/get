@@ -1,5 +1,11 @@
 # @getlang/utils
 
+## 0.1.3
+
+### Patch Changes
+
+- [#28](https://github.com/getlang-dev/get/pull/28) [`f1bdc2c`](https://github.com/getlang-dev/get/commit/f1bdc2c8433a942f84503606790e8bcf4fb37477) Thanks [@mattfysh](https://github.com/mattfysh)! - page links
+
 ## 0.1.2
 
 ### Patch Changes
