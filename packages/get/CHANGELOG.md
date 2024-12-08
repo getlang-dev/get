@@ -1,5 +1,19 @@
 # @getlang/get
 
+## 0.2.0
+
+### Minor Changes
+
+- [#28](https://github.com/getlang-dev/get/pull/28) [`f1bdc2c`](https://github.com/getlang-dev/get/commit/f1bdc2c8433a942f84503606790e8bcf4fb37477) Thanks [@mattfysh](https://github.com/mattfysh)! - page links
+
+### Patch Changes
+
+- [#26](https://github.com/getlang-dev/get/pull/26) [`58bb154`](https://github.com/getlang-dev/get/commit/58bb1540f1fa50093b3a72ffb2446e7b1c6aacb0) Thanks [@mattfysh](https://github.com/mattfysh)! - interpolated template optionals
+
+- Updated dependencies [[`f1bdc2c`](https://github.com/getlang-dev/get/commit/f1bdc2c8433a942f84503606790e8bcf4fb37477), [`58bb154`](https://github.com/getlang-dev/get/commit/58bb1540f1fa50093b3a72ffb2446e7b1c6aacb0)]:
+  - @getlang/parser@0.3.0
+  - @getlang/utils@0.1.3
+
 ## 0.1.2
 
 ### Patch Changes
