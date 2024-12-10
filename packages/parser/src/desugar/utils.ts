@@ -29,7 +29,7 @@ export function selectTypeInfo(
   )
 }
 
-export function getContentMod(req: RequestExpr) {
+export function getContentField(req: RequestExpr) {
   const accept = req.headers.entries.find(
     e => render(e.key)?.toLowerCase() === 'accept',
   )
@@ -54,12 +54,16 @@ function token(text: string, value = text) {
   }
 }
 
-function template(contents: string) {
-  return t.templateExpr([token(contents)])
-}
-
 function ident(id: string) {
   return t.identifierExpr(token(id))
 }
 
-export const tx = { token, template, ident }
+function template(contents: string) {
+  return t.templateExpr([token(contents)])
+}
+
+function select(selector: string, context: Expr) {
+  return t.selectorExpr(template(selector), false, context)
+}
+
+export const tx = { token, ident, template, select }

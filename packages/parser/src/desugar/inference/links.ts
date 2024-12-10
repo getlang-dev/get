@@ -3,52 +3,21 @@ import {
   ValueReferenceError,
   invariant,
 } from '@getlang/utils'
-import type { Expr, RequestExpr, Stmt } from '../../ast/ast.js'
+import type { Expr, RequestExpr } from '../../ast/ast.js'
 import { NodeKind, t } from '../../ast/ast.js'
 import { RootScope } from '../../ast/scope.js'
 import type { TransformVisitor } from '../../visitor/transform.js'
+import type { RequestParsers } from '../reqparse.js'
 import { traceVisitor } from '../trace.js'
 import { render, tx } from '../utils.js'
 
-type Urls = Map<RequestExpr, [index: number]>
-
-function insertUrls(stmts: Stmt[], urls: Urls) {
-  return stmts.flatMap(stmt => {
-    const url =
-      stmt.kind === NodeKind.RequestStmt &&
-      stmt.request.kind === NodeKind.RequestExpr &&
-      urls.get(stmt.request)
-    if (!url) {
-      return stmt
-    }
-    const [index] = url
-    const contextId = tx.ident('')
-    const selector = tx.template('url')
-    const expr: Expr = t.selectorExpr(selector, false, contextId)
-    const id = `__url_${index}`
-    const assign = t.assignmentStmt(tx.token(id), expr, false)
-    return [stmt, assign]
-  })
-}
-
-export function inferLinks(): TransformVisitor {
+export function inferLinks(parsers: RequestParsers): TransformVisitor {
   const scope = new RootScope<Expr>()
 
   const bases = new Map<Expr, RequestExpr>()
   function inherit(c: Expr, n: Expr) {
     const base = bases.get(c)
     base && bases.set(n, base)
-  }
-
-  const urls: Urls = new Map()
-  function getUrl(req: RequestExpr) {
-    const [index] = urls.get(req) ?? [urls.size]
-    urls.set(req, [index])
-    const id = `__url_${index}`
-    const stub = tx.ident(id)
-    scope.vars[id] ??= stub
-    inherit(req, stub)
-    return stub
   }
 
   const trace = traceVisitor(scope)
@@ -115,7 +84,10 @@ export function inferLinks(): TransformVisitor {
           )
           if (contextBase && !hasBase) {
             xnode.inputs.entries.push(
-              t.objectEntry(tx.template('base'), getUrl(contextBase)),
+              t.objectEntry(
+                tx.template('base'),
+                tx.ident(parsers.lookup(contextBase, 'url')),
+              ),
             )
           }
         }
@@ -126,18 +98,19 @@ export function inferLinks(): TransformVisitor {
     },
 
     RequestExpr(node) {
+      parsers.visit(node)
       bases.set(node, node)
       return node
     },
 
     Program(node) {
-      return { ...node, body: insertUrls(node.body, urls) }
+      return { ...node, body: parsers.insert(node.body) }
     },
 
     SubqueryExpr: {
       enter(node, visit) {
         const xnode = trace.SubqueryExpr.enter(node, visit)
-        return { ...xnode, body: insertUrls(xnode.body, urls) }
+        return { ...xnode, body: parsers.insert(xnode.body) }
       },
     },
   }

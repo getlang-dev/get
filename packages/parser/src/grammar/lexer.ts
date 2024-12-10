@@ -1,6 +1,6 @@
 import moo from 'moo'
 import { requestStates } from './lex/request.js'
-import { patterns, popAll } from './lex/shared.js'
+import { patterns } from './lex/shared.js'
 import { slice, slice_block } from './lex/slice.js'
 import { templateStates } from './lex/templates.js'
 
@@ -9,17 +9,12 @@ const keywords = ['inputs', 'set']
 
 const keywordsObj = Object.fromEntries(keywords.map(k => [`kw_${k}`, k]))
 
-const shared = {
-  lbrace: '{',
-  lparen: '(',
-  identifier_expr: {
-    match: patterns.identifierExpr,
-    value: (text: string) => text.slice(1),
-  },
-}
-
 const main = {
   ws: patterns.ws,
+  nl: {
+    match: /\n/,
+    lineBreaks: true,
+  },
   comment: /--.*/,
   kw_extract: {
     match: /extract(?=\s)/,
@@ -46,16 +41,11 @@ const main = {
     match: patterns.identifier,
     type: moo.keywords(keywordsObj),
   },
-  ...shared,
-  comma: ',',
-  rbrace: '}',
-  rparen: ')',
-  optmark: '?',
-  callkey: '@',
-  nl: {
-    match: /\n/,
-    lineBreaks: true,
+  identifier_expr: {
+    match: patterns.identifierExpr,
+    value: (text: string) => text.slice(1),
   },
+  symbols: /[{}(),?@]/,
 }
 
 const expr = {
@@ -69,15 +59,22 @@ const expr = {
     match: patterns.link,
     value: (text: string) => text.slice(1, -1),
   },
-  ...popAll({
-    ...shared,
-    slice_block,
-    slice,
-    call: {
-      match: patterns.call,
-      value: (text: string) => text.slice(1),
-    },
-  }),
+  symbols: {
+    match: /[{(]/,
+    pop: 1,
+  },
+  identifier_expr: {
+    match: patterns.identifierExpr,
+    value: (text: string) => text.slice(1),
+    pop: 1,
+  },
+  slice_block,
+  slice,
+  call: {
+    match: patterns.call,
+    value: (text: string) => text.slice(1),
+    pop: 1,
+  },
   template: {
     defaultType: 'ws',
     match: /(?=.)/,

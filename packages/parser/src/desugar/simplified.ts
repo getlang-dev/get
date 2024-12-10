@@ -6,19 +6,27 @@ import { inferContext } from './inference/context.js'
 import { inferLinks } from './inference/links.js'
 import { inferSliceDeps } from './inference/slicedeps.js'
 import { inferTypeInfo } from './inference/typeinfo.js'
+import { RequestParsers } from './reqparse.js'
 
 export function desugar(ast: Program): Program {
+  const parsers = new RequestParsers()
+
   const visitors = [
-    inferContext(),
-    inferLinks(),
+    inferContext(parsers),
+    inferLinks(parsers),
     inferSliceDeps(),
     inferTypeInfo(),
   ]
 
-  const simplified = visitors.reduce(visit, ast)
+  const simplified = visitors.reduce((prev, curr) => {
+    parsers.reset()
+    return visit(prev, curr)
+  }, ast)
+
   invariant(
     simplified.kind === NodeKind.Program,
     new QuerySyntaxError('Desugar encountered unexpected error'),
   )
+
   return simplified
 }
