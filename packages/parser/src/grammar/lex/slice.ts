@@ -24,6 +24,7 @@ export const slice_block = {
   }),
   lineBreaks: true,
   value: getSliceBlockValue,
+  pop: 1,
 }
 
 export const slice = {
@@ -33,4 +34,5 @@ export const slice = {
   }),
   lineBreaks: true,
   value: getSliceValue,
+  pop: 1,
 }
