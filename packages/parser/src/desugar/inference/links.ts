@@ -86,7 +86,7 @@ export function inferLinks(parsers: RequestParsers): TransformVisitor {
             xnode.inputs.entries.push(
               t.objectEntry(
                 tx.template('base'),
-                tx.ident(parsers.lookup(contextBase, 'url')),
+                parsers.lookup(contextBase, 'url'),
               ),
             )
           }

@@ -20,7 +20,7 @@ export function inferContext(parsers: RequestParsers): TransformVisitor {
       invariant(from, new QuerySyntaxError('Unresolved context'))
       if (from.kind === NodeKind.RequestExpr) {
         const field = mod === 'link' ? 'url' : mod
-        resolved = tx.ident(parsers.lookup(from, field))
+        resolved = parsers.lookup(from, field)
       } else {
         resolved = tx.ident('')
       }

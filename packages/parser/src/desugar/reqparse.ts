@@ -32,7 +32,7 @@ export class RequestParsers {
     this.parsers[idx] ??= {}
     const parsers = this.parsers[idx]
     parsers[field] ??= { written: false }
-    return this.id(idx, field)
+    return tx.ident(this.id(idx, field))
   }
 
   private writeParser(idx: number, field: string): Stmt {
