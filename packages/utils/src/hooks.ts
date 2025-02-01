@@ -24,13 +24,15 @@ export type Hooks = {
   call: CallHook
 }
 
+export type UserHooks = Partial<Hooks>
+
 type RequestInit = {
   method?: string
   headers?: Headers
   body?: string
 }
 
-type Response = {
+export type Response = {
   status: number
   headers: Headers
   body?: string

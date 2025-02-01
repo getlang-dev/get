@@ -1,4 +1,8 @@
-export abstract class RuntimeError extends Error {}
+export abstract class RuntimeError extends Error {
+  toJSON() {
+    return { name: this.name, message: this.message }
+  }
+}
 
 export class FatalError extends RuntimeError {
   public override name = 'FatalError'

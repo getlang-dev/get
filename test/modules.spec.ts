@@ -1,5 +1,5 @@
-import { describe, expect, mock, test } from 'bun:test'
-import { type Hooks, NullInputError } from '@getlang/utils'
+import { describe, expect, test } from 'bun:test'
+import { NullInputError } from '@getlang/utils'
 import { helper } from './helpers.js'
 
 const { execute, testIdempotency } = helper()
@@ -83,72 +83,58 @@ describe('modules', () => {
   })
 
   test('calls', async () => {
-    const importHook = mock(() => 'extract { token: `"abc"` }')
-    const src = 'extract { auth: @Auth }'
-    const result = await execute(src, {}, { import: importHook })
-
+    const result = await execute({
+      Auth: 'extract { token: `"abc"` }',
+      Home: 'extract { auth: @Auth }',
+    })
     expect(result).toEqual({
       auth: {
         token: 'abc',
       },
     })
-    expect(importHook).toHaveBeenCalledWith('Auth')
-  })
-
-  test('imports cache', async () => {
-    const importHook = mock(async (module: string) => {
-      if (module === 'Top') {
-        return `extract \`"top"\``
-      }
-      if (module === 'Mid') {
-        return `
-        set inputA = \`"foo"\`
-        extract {
-          topValue: @Top({ $inputA })
-          midValue: \`"mid"\`
-        }
-      `
-      }
-      throw new Error(`Unexpected import: ${module}`)
-    })
-
-    const callHook = mock<Hooks['call']>((_module, _inputs, _raster, execute) =>
-      execute(),
-    )
-
-    const src = `
-      set inputA = \`"foo"\`
-
-      extract {
-        topValue: @Top({ $inputA })
-        midValue: @Mid
-        botValue: \`"bot"\`
-      }
-    `
-
-    const hooks = { import: importHook, call: callHook }
-    const result = await execute(src, {}, hooks)
-
-    expect(result).toEqual({
-      topValue: 'top',
-      midValue: {
-        topValue: 'top',
-        midValue: 'mid',
-      },
-      botValue: 'bot',
-    })
-
-    expect(importHook).toHaveBeenCalledTimes(2)
-    expect(callHook).toHaveBeenCalledTimes(3)
   })
 
   test('links', async () => {
-    const requestHook = mock<Hooks['request']>()
+    const modules = {
+      Product: `
+        extract {
+          _module: \`'Product'\`
+        }
+      `,
+      Search: `
+        extract {
+          _module: \`'Search'\`
+        }
+      `,
+      Home: `
+        inputs { query, page? }
 
-    requestHook.mockResolvedValue({
-      status: 200,
-      headers: new Headers(),
-      body: `
+        GET https://search.com/
+        [query]
+        s: $query
+        page: $page
+
+        set results = => li.result -> @Product({
+          @link: a
+          name: a
+          desc: p.description
+        })
+
+        extract {
+          items: $results
+          pager: .pager -> {
+            next: @Search) a.next
+            prev: @Search) a.prev
+          }
+        }
+      `,
+    }
+
+    const result = await execute(
+      modules,
+      { query: 'gifts' },
+      () =>
+        new Response(`
         <!doctype html>
         <ul>
           <li class="result">
@@ -159,51 +145,12 @@ describe('modules', () => {
         <div class="pager">
           <a class="next" href="/?s=gifts&page=2">next</a>
         </div>
-      `,
-    })
-
-    const src = `
-      inputs { query, page? }
-
-      GET https://search.com/
-      [query]
-      s: $query
-      page: $page
-
-      set results = => li.result -> @Product({
-        @link: a
-        name: a
-        desc: p.description
-      })
-
-      extract {
-        items: $results
-        pager: .pager -> {
-          next: @Search) a.next
-          prev: @Search) a.prev
-        }
-      }
-    `
-
-    const importHook = mock<Hooks['import']>(
-      () => `
-      inputs { id }
-      GET https://search.com/products/:id
-    `,
+      `),
     )
-
-    const callHook = mock<Hooks['call']>(async (module, _inputs, raster) => ({
-      '@module': module,
-      ...raster,
-    }))
-
-    const hooks = { import: importHook, call: callHook, request: requestHook }
-    const result = await execute(src, { query: 'gifts' }, hooks)
-
     expect(result).toEqual({
       items: [
         {
-          '@module': 'Product',
+          _module: 'Product',
           '@link': 'https://search.com/products/1',
           name: 'Deck o cards',
           desc: 'Casino grade playing cards',
@@ -211,11 +158,11 @@ describe('modules', () => {
       ],
       pager: {
         next: {
-          '@module': 'Search',
+          _module: 'Search',
           '@link': 'https://search.com/?s=gifts&page=2',
         },
         prev: {
-          '@module': 'Search',
+          _module: 'Search',
           '@link': undefined,
         },
       },

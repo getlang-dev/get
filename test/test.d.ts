@@ -1,7 +1,8 @@
-interface MyCustomMatchers {
-  headers(headers: globalThis.Headers): any
-}
 declare module 'bun:test' {
-  interface Matchers<T> extends MyCustomMatchers {}
-  interface AsymmetricMatchers extends MyCustomMatchers {}
+  interface AsymmetricMatchers {
+    toHaveServed(request: Request): void
+  }
+  interface Matchers<R> {
+    toHaveServed(request: Request): R
+  }
 }

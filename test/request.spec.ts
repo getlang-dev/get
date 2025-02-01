@@ -1,32 +1,25 @@
-import {
-  afterEach,
-  beforeEach,
-  describe,
-  expect,
-  it,
-  mock,
-  test,
-} from 'bun:test'
-import type { RequestHook } from '@getlang/utils'
-import { helper } from './helpers.js'
+import { beforeEach, describe, expect, mock, test } from 'bun:test'
+import { type Fetch, helper } from './helpers.js'
 
 const { execute: _exec, testIdempotency } = helper()
 
-const requestHook = mock<RequestHook>()
+const mockFetch = mock<Fetch>(
+  () =>
+    new Response('<!doctype html><h1>test</h1>', {
+      headers: {
+        'content-type': 'text/html',
+      },
+    }),
+)
 
-const execute = (src: string, inputs: Record<string, unknown> = {}) =>
-  _exec(src, inputs, { request: requestHook })
+const execute = (
+  src: string,
+  inputs: Record<string, unknown> = {},
+  fetch: Fetch = mockFetch,
+) => _exec(src, inputs, fetch)
 
 beforeEach(() => {
-  requestHook.mockResolvedValue({
-    status: 200,
-    headers: new Headers({ 'content-type': 'text/html' }),
-    body: '<!doctype html><h1>test</h1>',
-  })
-})
-
-afterEach(() => {
-  requestHook.mockClear()
+  mockFetch.mockClear()
 })
 
 describe('request', () => {
@@ -37,48 +30,50 @@ describe('request', () => {
 
         extract -> h1
       `)
-      expect(requestHook.mock.calls[0]?.[1]).toMatchObject({
-        method: 'GET',
-      })
+      expect(mockFetch).toHaveBeenCalledTimes(1)
+      expect(mockFetch).toHaveServed(
+        new Request('http://get.com', { method: 'GET' }),
+      )
       expect(result).toEqual('test')
     })
 
     test('post', async () => {
       await execute('POST http://post.com')
-      expect(requestHook.mock.calls[0]?.[1]).toMatchObject({
-        method: 'POST',
-      })
+      expect(mockFetch).toHaveServed(
+        new Request('http://post.com', { method: 'POST' }),
+      )
     })
 
     test('put', async () => {
       await execute('PUT http://put.com')
-      expect(requestHook.mock.calls[0]?.[1]).toMatchObject({
-        method: 'PUT',
-      })
+      expect(mockFetch).toHaveServed(
+        new Request('http://put.com', { method: 'PUT' }),
+      )
     })
 
     test('patch', async () => {
       await execute('PATCH http://patch.com')
-      expect(requestHook.mock.calls[0]?.[1]).toMatchObject({
-        method: 'PATCH',
-      })
+      expect(mockFetch).toHaveServed(
+        new Request('http://patch.com', { method: 'PATCH' }),
+      )
     })
 
     test('delete', async () => {
       await execute('DELETE http://delete.com')
-      expect(requestHook.mock.calls[0]?.[1]).toMatchObject({
-        method: 'DELETE',
-      })
+      expect(mockFetch).toHaveServed(
+        new Request('http://delete.com', { method: 'DELETE' }),
+      )
     })
   })
 
   describe('urls', () => {
     test('literal', async () => {
       await execute('GET http://get.com')
-      expect(requestHook).toHaveBeenCalledWith('http://get.com/', {
-        method: 'GET',
-        headers: expect.headers(new globalThis.Headers()),
-      })
+      expect(mockFetch).toHaveServed(
+        new Request('http://get.com', {
+          method: 'GET',
+        }),
+      )
     })
 
     test('identifier', async () => {
@@ -86,10 +81,11 @@ describe('request', () => {
         set ident = \`'http://ident.com'\`
         GET $ident
       `)
-      expect(requestHook).toHaveBeenCalledWith('http://ident.com/', {
-        method: 'GET',
-        headers: expect.headers(new Headers()),
-      })
+      expect(mockFetch).toHaveServed(
+        new Request('http://ident.com/', {
+          method: 'GET',
+        }),
+      )
     })
 
     test('interpolated', async () => {
@@ -97,12 +93,10 @@ describe('request', () => {
         set query = \`'monterey'\`
         GET https://boogle.com/search/$query
       `)
-      expect(requestHook).toHaveBeenCalledWith(
-        'https://boogle.com/search/monterey',
-        {
+      expect(mockFetch).toHaveServed(
+        new Request('https://boogle.com/search/monterey', {
           method: 'GET',
-          headers: expect.headers(new Headers()),
-        },
+        }),
       )
     })
 
@@ -111,12 +105,10 @@ describe('request', () => {
         set query = \`'big sur'\`
         GET https://ging.com/\${query}_results
       `)
-      expect(requestHook).toHaveBeenCalledWith(
-        'https://ging.com/big%20sur_results',
-        {
+      expect(mockFetch).toHaveServed(
+        new Request('https://ging.com/big%20sur_results', {
           method: 'GET',
-          headers: expect.headers(new Headers()),
-        },
+        }),
       )
     })
   })
@@ -130,15 +122,15 @@ describe('request', () => {
       Accept: application/json
     `)
 
-    expect(requestHook).toHaveBeenCalledWith('http://api.unweb.com/', {
-      method: 'GET',
-      headers: expect.headers(
-        new Headers({
+    expect(mockFetch).toHaveServed(
+      new Request('http://api.unweb.com/', {
+        method: 'GET',
+        headers: new Headers({
           Authorization: 'Bearer 123',
           Accept: 'application/json',
         }),
-      ),
-    })
+      }),
+    )
   })
 
   describe('blocks', () => {
@@ -155,16 +147,13 @@ describe('request', () => {
         c: interp$interp
       `)
 
-      expect(requestHook).toHaveBeenCalledWith(
-        'https://example.com/?a=literal&b=b&c=interpolated',
-        {
+      expect(mockFetch).toHaveServed(
+        new Request('https://example.com/?a=literal&b=b&c=interpolated', {
           method: 'GET',
-          headers: expect.headers(
-            new Headers({
-              'X-Test': 'true',
-            }),
-          ),
-        },
+          headers: new Headers({
+            'X-Test': 'true',
+          }),
+        }),
       )
     })
 
@@ -177,14 +166,14 @@ describe('request', () => {
         c: /here&we!are?
       `)
 
-      expect(requestHook).toHaveBeenCalledWith('https://example.com/', {
-        method: 'GET',
-        headers: expect.headers(
-          new Headers({
+      expect(mockFetch).toHaveServed(
+        new Request('https://example.com/', {
+          method: 'GET',
+          headers: new Headers({
             Cookie: 'a=A; b=123; c=%2Fhere%26we%21are%3F',
           }),
-        ),
-      })
+        }),
+      )
     })
 
     test('json body', async () => {
@@ -195,11 +184,12 @@ describe('request', () => {
         password: test
       `)
 
-      expect(requestHook).toHaveBeenCalledWith('https://example.com/login', {
-        method: 'POST',
-        headers: expect.headers(new Headers()),
-        body: '{"username":"admin","password":"test"}',
-      })
+      expect(mockFetch).toHaveServed(
+        new Request('https://example.com/login', {
+          method: 'POST',
+          body: '{"username":"admin","password":"test"}',
+        }),
+      )
     })
 
     test('raw body', async () => {
@@ -215,11 +205,13 @@ describe('request', () => {
         [/body]
       `)
 
-      expect(requestHook).toHaveBeenCalledWith('https://example.com/', {
-        method: 'POST',
-        headers: expect.headers(new Headers()),
-        body: "hello\n  g'day\n    welcome\n",
-      })
+      expect(mockFetch).toHaveServed(
+        new Request('https://example.com/', {
+          method: 'POST',
+          headers: new Headers(),
+          body: "hello\n  g'day\n    welcome\n",
+        }),
+      )
     })
 
     test('omits undefined', async () => {
@@ -240,16 +232,16 @@ describe('request', () => {
         bar: bar
       `)
 
-      expect(requestHook).toHaveBeenCalledWith('https://example.com/?bar=bar', {
-        method: 'GET',
-        headers: expect.headers(
-          new Headers({
+      expect(mockFetch).toHaveServed(
+        new Request('https://example.com/?bar=bar', {
+          method: 'GET',
+          headers: new Headers({
             'X-Bar': 'bar',
             Cookie: 'bar=bar',
           }),
-        ),
-        body: '{"bar":"bar"}',
-      })
+          body: '{"bar":"bar"}',
+        }),
+      )
     })
 
     test('optional template groups', async () => {
@@ -262,15 +254,15 @@ describe('request', () => {
         X-Baz: baz$[$foo]zza
       `)
 
-      expect(requestHook).toHaveBeenCalledWith('https://example.com/pre/post', {
-        method: 'GET',
-        headers: expect.headers(
-          new Headers({
+      expect(mockFetch).toHaveServed(
+        new Request('https://example.com/pre/post', {
+          method: 'GET',
+          headers: new Headers({
             'X-Bar': 'bar',
             'X-Baz': 'bazzza',
           }),
-        ),
-      })
+        }),
+      )
     })
 
     test('nested template parts', async () => {
@@ -286,43 +278,46 @@ describe('request', () => {
       await execute(src, { y: '0y0' })
       await execute(src, { x: '0x0', y: '0y0' })
 
-      expect(requestHook).toHaveBeenCalledWith('https://getlang.dev/', {
-        method: 'GET',
-        headers: expect.headers(new Headers({ Header: 'aagg' })),
-      })
+      expect(mockFetch).toHaveServed(
+        new Request('https://getlang.dev/', {
+          method: 'GET',
+          headers: new Headers({ Header: 'aagg' }),
+        }),
+      )
 
-      expect(requestHook).toHaveBeenCalledWith('https://getlang.dev/', {
-        method: 'GET',
-        headers: expect.headers(new Headers({ Header: 'aabb0x0ccffgg' })),
-      })
+      expect(mockFetch).toHaveServed(
+        new Request('https://getlang.dev/', {
+          method: 'GET',
+          headers: new Headers({ Header: 'aabb0x0ccffgg' }),
+        }),
+      )
 
-      expect(requestHook).toHaveBeenCalledWith('https://getlang.dev/', {
-        method: 'GET',
-        headers: expect.headers(new Headers({ Header: 'aagg' })),
-      })
+      expect(mockFetch).toHaveServed(
+        new Request('https://getlang.dev/', {
+          method: 'GET',
+          headers: new Headers({ Header: 'aagg' }),
+        }),
+      )
 
-      expect(requestHook).toHaveBeenCalledWith('https://getlang.dev/', {
-        method: 'GET',
-        headers: expect.headers(
-          new Headers({ Header: 'aabb0x0ccdd0y0eeffgg' }),
-        ),
-      })
+      expect(mockFetch).toHaveServed(
+        new Request('https://getlang.dev/', {
+          method: 'GET',
+          headers: new Headers({ Header: 'aabb0x0ccdd0y0eeffgg' }),
+        }),
+      )
     })
   })
 
   describe('context switching', () => {
-    it('updates context variable ($) dynamically', async () => {
-      requestHook.mockResolvedValueOnce({
-        status: 200,
-        headers: new Headers(),
-        body: '{"which":1}',
+    test('updates context variable ($) dynamically', async () => {
+      let fetched = 0
+      const mockFetch = mock<Fetch>(() => {
+        const which = ++fetched
+        return new Response(JSON.stringify({ which }))
       })
-      requestHook.mockResolvedValueOnce({
-        status: 200,
-        headers: new Headers(),
-        body: '{"which":2}',
-      })
-      const result = await execute(`
+
+      const result = await execute(
+        `
         GET https://example.com/api
         Accept: application/json
 
@@ -334,11 +329,15 @@ describe('request', () => {
         set whichb = $ -> body -> @json -> which
 
         extract { $whicha, $whichb }
-      `)
+      `,
+        {},
+        mockFetch,
+      )
+
       expect(result).toEqual({ whicha: 1, whichb: 2 })
     })
 
-    it('updates subquery context', async () => {
+    test('updates subquery context', async () => {
       const result = await execute(`
         set x? = \`'<p>'\` -> @html -> (
           GET http://example.com
@@ -354,22 +353,21 @@ describe('request', () => {
   })
 
   describe('inference', () => {
-    it('examines accept header', async () => {
-      requestHook.mockResolvedValue({
-        status: 200,
-        headers: new Headers(),
-        body: '{"works":true}',
-      })
-      const result = await execute(`
+    test('examines accept header', async () => {
+      const result = await execute(
+        `
         GET https://example.com/api
         Accept: application/json
 
         extract -> works
-      `)
+      `,
+        {},
+        () => new Response('{"works":true}'),
+      )
       expect(result).toEqual(true)
     })
 
-    it('can be overridden manually with explicit modifiers', async () => {
+    test('can be overridden manually with explicit modifiers', async () => {
       const result = await execute(`
         GET https://example.com/api
         Accept: application/json
@@ -381,17 +379,9 @@ describe('request', () => {
   })
 
   describe('url resolution', () => {
-    it('resolves urls against request context', async () => {
-      requestHook.mockResolvedValue({
-        status: 200,
-        headers: new Headers(),
-        body: `{
-          "link": "../xyz.html",
-          "html": "<div><a class='link' href='/from/root'>click here</a></div>"
-        }`,
-      })
-
-      const result = await execute(`
+    test('resolves urls against request context', async () => {
+      const result = await execute(
+        `
         GET https://base.com/a/b/c
         Accept: application/json
 
@@ -399,7 +389,16 @@ describe('request', () => {
           link1: link -> @link
           link2: html -> @html -> a -> @link
         }
-      `)
+      `,
+        {},
+        () =>
+          new Response(
+            JSON.stringify({
+              link: '../xyz.html',
+              html: "<div><a class='link' href='/from/root'>click here</a></div>",
+            }),
+          ),
+      )
 
       expect(result).toEqual({
         link1: 'https://base.com/a/xyz.html',
@@ -407,24 +406,23 @@ describe('request', () => {
       })
     })
 
-    it('resolves nested urls', async () => {
-      requestHook.mockResolvedValue({
-        status: 200,
-        headers: new Headers(),
-        body: `<div>
-          <a href="../xyz.html">first</a>
-          <a href="/from/root">second</a>
-        </div>`,
-      })
-
-      const result = await execute(`
+    test('resolves nested urls', async () => {
+      const result = await execute(
+        `
         GET https://base.com/a/b/c
 
         extract => a -> {
           text: $
           link: @link
         }
-      `)
+      `,
+        {},
+        () =>
+          new Response(`<div>
+          <a href="../xyz.html">first</a>
+          <a href="/from/root">second</a>
+        </div>`),
+      )
 
       expect(result).toEqual([
         { text: 'first', link: 'https://base.com/a/xyz.html' },
@@ -432,23 +430,21 @@ describe('request', () => {
       ])
     })
 
-    it('infers base inside list context', async () => {
-      requestHook.mockResolvedValue({
-        status: 200,
-        headers: new Headers(),
-        body: `<a href="/foo">click here</a>`,
-      })
-
-      const result = await execute(`
+    test('infers base inside list context', async () => {
+      const result = await execute(
+        `
           GET https://bar.com/with/links
 
           extract => a -> @link
-        `)
+        `,
+        {},
+        () => new Response(`<a href="/foo">click here</a>`),
+      )
 
       expect(result).toEqual(['https://bar.com/foo'])
     })
 
-    it('resolved standalone links to context url', async () => {
+    test('resolved standalone links to context url', async () => {
       const src = `
         inputs { query, page? }
 
@@ -485,19 +481,21 @@ describe('request', () => {
     })
 
     test('cookie', async () => {
-      requestHook.mockResolvedValue({
-        status: 200,
-        headers: new Headers({
-          'set-cookie':
-            'session=jZDE5MDBhNzczNDMzMTk4; Domain=.example.com; Path=/; Expires=Tue, 16 Jun 2026 07:31:59 GMT; Secure',
-        }),
-        body: '<!doctype html><h1>test</h1>',
-      })
-      const result = await execute(`
+      const result = await execute(
+        `
         GET https://example.com
 
         extract @cookies -> session
-        `)
+        `,
+        {},
+        () =>
+          new Response('<!doctype html><h1>test</h1>', {
+            headers: {
+              'set-cookie':
+                'session=jZDE5MDBhNzczNDMzMTk4; Domain=.example.com; Path=/; Expires=Tue, 16 Jun 2026 07:31:59 GMT; Secure',
+            },
+          }),
+      )
 
       expect(result).toEqual('jZDE5MDBhNzczNDMzMTk4')
     })

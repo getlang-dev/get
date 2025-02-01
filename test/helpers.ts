@@ -1,10 +1,14 @@
-import { expect } from 'bun:test'
 import { executeAST as exec } from '@getlang/get'
 import { desugar, parse, print } from '@getlang/parser'
 import type { Program } from '@getlang/parser/ast'
-import type { Hooks } from '@getlang/utils'
+import type { UserHooks } from '@getlang/utils'
+import { invariant } from '@getlang/utils'
+import type { Server } from 'bun'
 import dedent from 'dedent'
 import { dump } from 'js-yaml'
+import './expect.js'
+
+export type Fetch = Server['fetch']
 
 const DEBUG = Boolean(process.env.AST)
 export const SELSYN = true
@@ -26,37 +30,44 @@ function printYaml(ast: Program) {
   )
 }
 
-expect.extend({
-  headers(received: unknown, expected: Headers) {
-    if (!(received instanceof Headers)) {
-      return {
-        message: () => 'expected headers object',
-        pass: false,
-      }
-    }
-
-    const pass = this.equals(
-      Object.fromEntries(received as any),
-      Object.fromEntries(expected as any),
-    )
-
-    const message = () => 'todo'
-    return { pass, message }
-  },
-})
-
 export function helper() {
   const collected: string[] = []
 
   async function execute(
-    _src: string,
+    program: string | Record<string, string>,
     inputs?: Record<string, unknown>,
-    hooks?: Partial<Hooks>,
+    fetch?: Fetch,
   ): Promise<any> {
-    const src = dedent(_src)
-    collected.push(src)
+    const normalized = typeof program === 'string' ? { Home: program } : program
+    const modules: Record<string, string> = {}
+    for (const [name, source] of Object.entries(normalized)) {
+      modules[name] = dedent(source)
+      collected.push(source)
+    }
 
-    const ast = desugar(parse(src))
+    const hooks: UserHooks = {
+      call: async (_m, _i, raster, execute) => {
+        const value = await execute()
+        return { ...raster, ...value }
+      },
+      import(module) {
+        const src = modules[module]
+        invariant(src, `Failed to import module: ${module}`)
+        return dedent(src)
+      },
+      async request(url, opts) {
+        invariant(fetch, `Fetch required: ${url}`)
+        const res = await fetch(new Request(url, opts))
+        return {
+          status: res.status,
+          headers: res.headers,
+          body: await res.text(),
+        }
+      },
+    }
+
+    invariant(modules.Home, 'Expected module entry source')
+    const ast = desugar(parse(modules.Home))
     DEBUG && printYaml(ast)
 
     return exec(ast, inputs, hooks)

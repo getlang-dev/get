@@ -1,5 +1,4 @@
-import { describe, expect, mock, test } from 'bun:test'
-import type { RequestHook } from '@getlang/utils'
+import { describe, expect, test } from 'bun:test'
 import {
   ConversionError,
   NullSelectionError,
@@ -288,14 +287,9 @@ describe('values', () => {
   })
 
   test('headers', async () => {
-    const requestHook = mock<RequestHook>()
     const headers = new Headers({ foo: 'bar', baz: 'quux' })
     headers.append('baz', 'qaax')
-    requestHook.mockResolvedValue({
-      status: 200,
-      headers,
-      body: '<!doctype html><h1>test</h1>',
-    })
+
     const result = await execute(
       `
         GET https://example.com
@@ -308,7 +302,7 @@ describe('values', () => {
         }
       `,
       {},
-      { request: requestHook },
+      () => new Response('<!doctype html><h1>test</h1>', { headers }),
     )
     expect(result).toEqual({
       all: {
@@ -436,26 +430,18 @@ describe('values', () => {
     })
 
     test('optional headers and cookies selection', async () => {
-      const requestHook = mock<RequestHook>()
-      requestHook.mockResolvedValue({
-        status: 200,
-        headers: new Headers({
-          // 'set-cookie':
-          //   'session=jZDE5MDBhNzczNDMzMTk4; Domain=.example.com; Path=/; Expires=Tue, 16 Jun 2026 07:31:59 GMT; Secure',
-        }),
-        body: '<!doctype html><h1>test</h1>',
-      })
-      const result = await execute(
-        `
+      const src = `
         GET https://example.com
 
         extract {
           hdr?: @headers -> content-type
           cki?: @cookies -> gt
         }
-      `,
+      `
+      const result = await execute(
+        src,
         {},
-        { request: requestHook },
+        () => new Response('<!doctype html><h1>test</h1>'),
       )
       expect(result).toEqual({})
     })
