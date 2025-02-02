@@ -53,7 +53,7 @@ export function helper() {
       import(module) {
         const src = modules[module]
         invariant(src, `Failed to import module: ${module}`)
-        return dedent(src)
+        return src
       },
       async request(url, opts) {
         invariant(fetch, `Fetch required: ${url}`)

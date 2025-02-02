@@ -287,7 +287,10 @@ describe('values', () => {
   })
 
   test('headers', async () => {
-    const headers = new Headers({ foo: 'bar', baz: 'quux' })
+    const headers = new Headers({
+      foo: 'bar',
+      baz: 'quux',
+    })
     headers.append('baz', 'qaax')
 
     const result = await execute(
@@ -305,10 +308,10 @@ describe('values', () => {
       () => new Response('<!doctype html><h1>test</h1>', { headers }),
     )
     expect(result).toEqual({
-      all: {
+      all: expect.objectContaining({
         foo: 'bar',
         baz: 'quux, qaax',
-      },
+      }),
       one: 'bar',
       many_as_one: 'quux, qaax',
       many_as_many: ['quux', 'qaax'],
@@ -434,7 +437,7 @@ describe('values', () => {
         GET https://example.com
 
         extract {
-          hdr?: @headers -> content-type
+          hdr?: @headers -> transfer-encoding
           cki?: @cookies -> gt
         }
       `

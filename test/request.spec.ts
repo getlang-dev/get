@@ -218,7 +218,7 @@ describe('request', () => {
       await execute(`
         set foo? = \`undefined\`
 
-        GET https://example.com
+        POST https://example.com
         X-Foo: $foo
         X-Bar: bar
         [query]
@@ -234,7 +234,7 @@ describe('request', () => {
 
       expect(mockFetch).toHaveServed(
         new Request('https://example.com/?bar=bar', {
-          method: 'GET',
+          method: 'POST',
           headers: new Headers({
             'X-Bar': 'bar',
             Cookie: 'bar=bar',
