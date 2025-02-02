@@ -1,5 +1,15 @@
 # @getlang/get
 
+## 0.2.3
+
+### Patch Changes
+
+- [#31](https://github.com/getlang-dev/get/pull/31) [`1a395f9`](https://github.com/getlang-dev/get/commit/1a395f9df71d3507bc5b3841eddc9336db3a69ee) Thanks [@mattfysh](https://github.com/mattfysh)! - request parsers
+
+- Updated dependencies [[`1a395f9`](https://github.com/getlang-dev/get/commit/1a395f9df71d3507bc5b3841eddc9336db3a69ee)]:
+  - @getlang/parser@0.3.3
+  - @getlang/utils@0.1.6
+
 ## 0.2.2
 
 ### Patch Changes

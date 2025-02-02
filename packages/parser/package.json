@@ -1,6 +1,6 @@
 {
   "name": "@getlang/parser",
-  "version": "0.3.2",
+  "version": "0.3.3",
   "license": "Apache-2.0",
   "type": "module",
   "exports": {
@@ -39,7 +39,7 @@
     "railroad": "nearley-railroad src/grammar/getlang.ne -o grammar.html && open grammar.html"
   },
   "dependencies": {
-    "@getlang/utils": "workspace:^0.1.5",
+    "@getlang/utils": "workspace:^0.1.6",
     "@types/moo": "^0.5.10",
     "@types/nearley": "^2.11.5",
     "acorn": "^8.14.0",
