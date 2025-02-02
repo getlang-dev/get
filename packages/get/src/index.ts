@@ -1,13 +1,10 @@
 import { http, slice } from '@getlang/lib'
 import { desugar, parse } from '@getlang/parser'
 import type { Program } from '@getlang/parser/ast'
-import type { Hooks } from '@getlang/utils'
+import type { UserHooks } from '@getlang/utils'
 import { ImportError, invariant, wait } from '@getlang/utils'
 import { execute as exec } from './execute.js'
 import type { InternalHooks } from './execute.js'
-
-export const version = '0.0.21'
-export type UserHooks = Partial<Hooks>
 
 function buildHooks(hooks: UserHooks = {}): InternalHooks {
   return {

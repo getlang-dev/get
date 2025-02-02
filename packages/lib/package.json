@@ -28,7 +28,7 @@
     "dom-serializer": "^2.0.0",
     "domelementtype": "*",
     "domhandler": "^5.0.3",
-    "domutils": "^3.1.0",
+    "domutils": "^3.2.2",
     "esquery": "^1.6.0",
     "lodash-es": "^4.17.21",
     "parse5": "^7.2.1",
