@@ -31,7 +31,7 @@ describe('request', () => {
         extract -> h1
       `)
       expect(mockFetch).toHaveBeenCalledTimes(1)
-      expect(mockFetch).toHaveServed(
+      await expect(mockFetch).toHaveServed(
         new Request('http://get.com', { method: 'GET' }),
       )
       expect(result).toEqual('test')
@@ -39,28 +39,28 @@ describe('request', () => {
 
     test('post', async () => {
       await execute('POST http://post.com')
-      expect(mockFetch).toHaveServed(
+      await expect(mockFetch).toHaveServed(
         new Request('http://post.com', { method: 'POST' }),
       )
     })
 
     test('put', async () => {
       await execute('PUT http://put.com')
-      expect(mockFetch).toHaveServed(
+      await expect(mockFetch).toHaveServed(
         new Request('http://put.com', { method: 'PUT' }),
       )
     })
 
     test('patch', async () => {
       await execute('PATCH http://patch.com')
-      expect(mockFetch).toHaveServed(
+      await expect(mockFetch).toHaveServed(
         new Request('http://patch.com', { method: 'PATCH' }),
       )
     })
 
     test('delete', async () => {
       await execute('DELETE http://delete.com')
-      expect(mockFetch).toHaveServed(
+      await expect(mockFetch).toHaveServed(
         new Request('http://delete.com', { method: 'DELETE' }),
       )
     })
@@ -69,7 +69,7 @@ describe('request', () => {
   describe('urls', () => {
     test('literal', async () => {
       await execute('GET http://get.com')
-      expect(mockFetch).toHaveServed(
+      await expect(mockFetch).toHaveServed(
         new Request('http://get.com', {
           method: 'GET',
         }),
@@ -81,7 +81,7 @@ describe('request', () => {
         set ident = \`'http://ident.com'\`
         GET $ident
       `)
-      expect(mockFetch).toHaveServed(
+      await expect(mockFetch).toHaveServed(
         new Request('http://ident.com/', {
           method: 'GET',
         }),
@@ -93,7 +93,7 @@ describe('request', () => {
         set query = \`'monterey'\`
         GET https://boogle.com/search/$query
       `)
-      expect(mockFetch).toHaveServed(
+      await expect(mockFetch).toHaveServed(
         new Request('https://boogle.com/search/monterey', {
           method: 'GET',
         }),
@@ -105,7 +105,7 @@ describe('request', () => {
         set query = \`'big sur'\`
         GET https://ging.com/\${query}_results
       `)
-      expect(mockFetch).toHaveServed(
+      await expect(mockFetch).toHaveServed(
         new Request('https://ging.com/big%20sur_results', {
           method: 'GET',
         }),
@@ -122,7 +122,7 @@ describe('request', () => {
       Accept: application/json
     `)
 
-    expect(mockFetch).toHaveServed(
+    await expect(mockFetch).toHaveServed(
       new Request('http://api.unweb.com/', {
         method: 'GET',
         headers: new Headers({
@@ -147,7 +147,7 @@ describe('request', () => {
         c: interp$interp
       `)
 
-      expect(mockFetch).toHaveServed(
+      await expect(mockFetch).toHaveServed(
         new Request('https://example.com/?a=literal&b=b&c=interpolated', {
           method: 'GET',
           headers: new Headers({
@@ -166,7 +166,7 @@ describe('request', () => {
         c: /here&we!are?
       `)
 
-      expect(mockFetch).toHaveServed(
+      await expect(mockFetch).toHaveServed(
         new Request('https://example.com/', {
           method: 'GET',
           headers: new Headers({
@@ -184,7 +184,7 @@ describe('request', () => {
         password: test
       `)
 
-      expect(mockFetch).toHaveServed(
+      await expect(mockFetch).toHaveServed(
         new Request('https://example.com/login', {
           method: 'POST',
           body: '{"username":"admin","password":"test"}',
@@ -205,7 +205,7 @@ describe('request', () => {
         [/body]
       `)
 
-      expect(mockFetch).toHaveServed(
+      await expect(mockFetch).toHaveServed(
         new Request('https://example.com/', {
           method: 'POST',
           headers: new Headers(),
@@ -232,7 +232,7 @@ describe('request', () => {
         bar: bar
       `)
 
-      expect(mockFetch).toHaveServed(
+      await expect(mockFetch).toHaveServed(
         new Request('https://example.com/?bar=bar', {
           method: 'POST',
           headers: new Headers({
@@ -254,7 +254,7 @@ describe('request', () => {
         X-Baz: baz$[$foo]zza
       `)
 
-      expect(mockFetch).toHaveServed(
+      await expect(mockFetch).toHaveServed(
         new Request('https://example.com/pre/post', {
           method: 'GET',
           headers: new Headers({
@@ -278,28 +278,28 @@ describe('request', () => {
       await execute(src, { y: '0y0' })
       await execute(src, { x: '0x0', y: '0y0' })
 
-      expect(mockFetch).toHaveServed(
+      await expect(mockFetch).toHaveServed(
         new Request('https://getlang.dev/', {
           method: 'GET',
           headers: new Headers({ Header: 'aagg' }),
         }),
       )
 
-      expect(mockFetch).toHaveServed(
+      await expect(mockFetch).toHaveServed(
         new Request('https://getlang.dev/', {
           method: 'GET',
           headers: new Headers({ Header: 'aabb0x0ccffgg' }),
         }),
       )
 
-      expect(mockFetch).toHaveServed(
+      await expect(mockFetch).toHaveServed(
         new Request('https://getlang.dev/', {
           method: 'GET',
           headers: new Headers({ Header: 'aagg' }),
         }),
       )
 
-      expect(mockFetch).toHaveServed(
+      await expect(mockFetch).toHaveServed(
         new Request('https://getlang.dev/', {
           method: 'GET',
           headers: new Headers({ Header: 'aabb0x0ccdd0y0eeffgg' }),

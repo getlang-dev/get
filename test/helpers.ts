@@ -3,12 +3,11 @@ import { desugar, parse, print } from '@getlang/parser'
 import type { Program } from '@getlang/parser/ast'
 import type { UserHooks } from '@getlang/utils'
 import { invariant } from '@getlang/utils'
-import type { Server } from 'bun'
 import dedent from 'dedent'
 import { dump } from 'js-yaml'
 import './expect.js'
 
-export type Fetch = Server['fetch']
+export type Fetch = (req: Request) => Promise<Response> | Response
 
 const DEBUG = Boolean(process.env.AST)
 export const SELSYN = true
