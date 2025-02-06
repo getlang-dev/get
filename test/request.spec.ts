@@ -111,6 +111,16 @@ describe('request', () => {
         }),
       )
     })
+
+    test('interpolated value', async () => {
+      await execute(`
+        set loc = \`'<div>sea ranch</div>'\` -> @html
+        GET https://goto.ca/:loc
+      `)
+      await expect(mockFetch).toHaveServed(
+        new Request('https://goto.ca/sea%20ranch', { method: 'GET' }),
+      )
+    })
   })
 
   test('headers', async () => {

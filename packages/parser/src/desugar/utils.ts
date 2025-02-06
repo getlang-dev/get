@@ -1,6 +1,6 @@
 import { toPath } from 'lodash-es'
 import type { Expr, RequestExpr } from '../ast/ast.js'
-import { NodeKind, t } from '../ast/ast.js'
+import { NodeKind, isToken, t } from '../ast/ast.js'
 import type { Struct, TypeInfo } from '../ast/typeinfo.js'
 import { Type } from '../ast/typeinfo.js'
 
@@ -9,9 +9,7 @@ export const render = (template: Expr) => {
     return null
   }
   const els = template.elements
-  return els?.every(el => 'offset' in el)
-    ? els.map(el => el.value).join('')
-    : null
+  return els?.every(isToken) ? els.map(el => el.value).join('') : null
 }
 
 export function selectTypeInfo(

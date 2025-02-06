@@ -15,6 +15,8 @@ import { parse as parse5 } from 'parse5'
 import { adapter } from 'parse5-htmlparser2-tree-adapter'
 import './html/patch-dom.js'
 
+export { Element } from 'domhandler'
+
 export const parse = (html: string): AnyHtmlNode => {
   return parse5(html, { treeAdapter: adapter })
 }

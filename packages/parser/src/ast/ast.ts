@@ -3,6 +3,9 @@ import type { TypeInfo } from './typeinfo.js'
 import { Type } from './typeinfo.js'
 
 export type Token = Omit<MooToken, 'toString'>
+export function isToken(value: unknown): value is Token {
+  return !!value && typeof value === 'object' && 'offset' in value
+}
 
 export enum NodeKind {
   Program = 'Program',

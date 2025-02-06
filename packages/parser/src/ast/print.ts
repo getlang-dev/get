@@ -2,7 +2,7 @@ import { builders, printer } from 'prettier/doc'
 import type { InterpretVisitor } from '../visitor/visitor.js'
 import { visit } from '../visitor/visitor.js'
 import type { Node } from './ast.js'
-import { NodeKind } from './ast.js'
+import { NodeKind, isToken } from './ast.js'
 
 type Doc = builders.Doc
 
@@ -125,34 +125,28 @@ const printVisitor: InterpretVisitor<Doc> = {
 
   TemplateExpr(node, _path, orig) {
     return node.elements.map((el, i) => {
-      const origEl = orig.elements[i]
-      if (!origEl) {
-        throw new Error('Unmatched object literal entry')
-      } else if ('offset' in origEl) {
-        return origEl.value
+      const og = orig.elements[i]!
+      if (isToken(og)) {
+        return og.value
       }
 
       if (typeof el !== 'string' && !Array.isArray(el)) {
         throw new Error(`Unsupported template node: ${el.type} command`)
-      } else if (origEl.kind === NodeKind.TemplateExpr) {
+      } else if (og.kind === NodeKind.TemplateExpr) {
         return ['$[', el, ']']
-      } else if (origEl.kind !== NodeKind.IdentifierExpr) {
-        throw new Error(`Unexpected template node: ${origEl?.kind}`)
+      } else if (og.kind !== NodeKind.IdentifierExpr) {
+        throw new Error(`Unexpected template node: ${og?.kind}`)
       }
 
       // strip the leading `$` character
       let ret = el.slice(1)
 
       const nextEl = node.elements[i + 1]
-      if (
-        typeof nextEl === 'object' &&
-        'offset' in nextEl &&
-        /^\w/.test(nextEl.value)
-      ) {
+      if (isToken(nextEl) && /^\w/.test(nextEl.value)) {
         // use ${id} syntax to delineate against next element in template
         ret = ['{', ret, '}']
       }
-      return [origEl.isUrlComponent ? ':' : '$', ret]
+      return [og.isUrlComponent ? ':' : '$', ret]
     })
   },
 
