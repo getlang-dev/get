@@ -1,5 +1,11 @@
 # @getlang/lib
 
+## 0.1.5
+
+### Patch Changes
+
+- [#35](https://github.com/getlang-dev/get/pull/35) [`0c806e0`](https://github.com/getlang-dev/get/commit/0c806e092fc1d87696fb820ac7246b5d3afb63ca) Thanks [@mattfysh](https://github.com/mattfysh)! - bugbash
+
 ## 0.1.4
 
 ### Patch Changes
