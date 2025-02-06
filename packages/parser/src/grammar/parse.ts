@@ -1,5 +1,5 @@
 import { QuerySyntaxError, invariant } from '@getlang/utils'
-import { NodeKind, t } from '../ast/ast.js'
+import { NodeKind, isToken, t } from '../ast/ast.js'
 import { tx } from '../desugar/utils.js'
 
 type PP = nearley.Postprocessor
@@ -42,7 +42,7 @@ export const requestBlocks: PP = ([namedBlocks, maybeBody]) => {
   const body = maybeBody?.[1]
   if (body) {
     for (const el of body.elements) {
-      if ('offset' in el) {
+      if (isToken(el)) {
         // a token - restore original text
         el.value = el.text
       }
@@ -147,43 +147,43 @@ export const identifier: PP = ([id]) => {
 }
 
 export const template: PP = d => {
-  // filter out any empty tokens (that were used for peeking)
-  let elements = d[0].filter((dd: any) => dd[0].kind || dd[0].value)
-
-  // create the AST nodes for each element
-  elements = d[0].flatMap((dd: any, i: number) => {
-    const element = dd[0]
-
-    if (element.kind) {
-      if (element.kind !== 'TemplateExpr') {
-        throw new Error(`Unexpected template element: ${element.kind}`)
+  const elements = d[0].reduce((els: any, dd: any) => {
+    const el = dd[0]
+    if (el.kind) {
+      invariant(
+        el.kind === 'TemplateExpr',
+        `Unexpected template element: ${el.kind}`,
+      )
+      els.push(el)
+    } else if (el.type === 'interpvar' || el.type === 'identifier') {
+      els.push(t.identifierExpr(el))
+    } else if (el.type === 'literal') {
+      if (el.value) {
+        const prev = els.at(-1)
+        if (prev?.type === 'literal') {
+          els.pop()
+          els.push({ ...prev, value: prev.value + el.value })
+        } else {
+          els.push(el)
+        }
       }
-      return element
+    } else {
+      throw new QuerySyntaxError(`Unknown template element: ${el.type}`)
     }
 
-    switch (element.type) {
-      case 'interpvar':
-      case 'identifier':
-        return t.identifierExpr(element)
+    return els
+  }, [])
 
-      case 'literal': {
-        let { value } = element
-        if (i === 0) {
-          value = value.trimLeft()
-        }
-        if (i === elements.length - 1) {
-          value = value.trimRight()
-        }
-        if (!value) {
-          return []
-        }
-        return { ...element, value }
-      }
+  const first = elements.at(0)
+  if (first.type === 'literal') {
+    elements[0] = { ...first, value: first.value.trimLeft() }
+  }
 
-      default:
-        throw new QuerySyntaxError(`Unknown template element: ${element.type}`)
-    }
-  })
+  const lastIdx = elements.length - 1
+  const last = elements[lastIdx]
+  if (last.type === 'literal') {
+    elements[lastIdx] = { ...last, value: last.value.trimRight() }
+  }
 
   return t.templateExpr(elements)
 }

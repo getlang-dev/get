@@ -14,7 +14,6 @@ expect.extend({
   async toHaveServed(received: unknown, expected: Request) {
     const calls: [unknown][] = (received as any)?.mock?.calls
     const expObj = await toObject(expected)
-    expObj.headers = expect.objectContaining(expObj.headers)
 
     let receivedObj: any
 

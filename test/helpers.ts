@@ -1,6 +1,6 @@
 import { executeAST as exec } from '@getlang/get'
 import { desugar, parse, print } from '@getlang/parser'
-import type { Program } from '@getlang/parser/ast'
+import { type Program, isToken } from '@getlang/parser/ast'
 import type { UserHooks } from '@getlang/utils'
 import { invariant } from '@getlang/utils'
 import dedent from 'dedent'
@@ -18,12 +18,7 @@ function printYaml(ast: Program) {
     dump(ast, {
       indent: 4,
       replacer(_, value) {
-        if (typeof value === 'object' && value) {
-          if ('offset' in value && 'lineBreaks' in value && 'value' in value) {
-            return `TOKEN(${value.value})`
-          }
-        }
-        return value
+        return isToken(value) ? `TOKEN(${value.value})` : value
       },
     }),
   )

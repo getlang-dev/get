@@ -1,6 +1,6 @@
 import { http, cookies, headers, html, js, json } from '@getlang/lib'
 import type { CExpr, Expr, Program, Stmt } from '@getlang/parser/ast'
-import { NodeKind } from '@getlang/parser/ast'
+import { NodeKind, isToken } from '@getlang/parser/ast'
 import { RootScope } from '@getlang/parser/scope'
 import type { TypeInfo } from '@getlang/parser/typeinfo'
 import { Type } from '@getlang/parser/typeinfo'
@@ -12,6 +12,7 @@ import {
   NullSelection,
   NullSelectionError,
   QuerySyntaxError,
+  SliceError,
   ValueReferenceError,
   invariant,
 } from '@getlang/utils'
@@ -125,18 +126,18 @@ export async function execute(
     /**
      * Expression nodes
      */
-    TemplateExpr(node, path) {
+    TemplateExpr(node, path, origNode) {
       const firstNull = node.elements.find(el => el instanceof NullSelection)
       if (firstNull) {
         const parents = path.slice(0, -1)
         const isRoot = !parents.find(n => n.kind === NodeKind.TemplateExpr)
         return isRoot ? firstNull : ''
       }
-      return node.elements
-        .map(el =>
-          typeof el === 'object' && el && 'offset' in el ? el.value : el,
-        )
-        .join('')
+      const els = node.elements.map((el, i) => {
+        const og = origNode.elements[i]!
+        return isToken(og) ? og.value : toValue(el, og.typeInfo)
+      })
+      return els.join('')
     },
 
     IdentifierExpr(node) {
@@ -149,13 +150,19 @@ export async function execute(
       async enter(node, visit) {
         return ctx(node, visit, async context => {
           const { slice } = node
-          const value = await hooks.slice(
-            slice.value,
-            context ? toValue(context.value, context.typeInfo) : {},
-            context?.value ?? {},
-          )
-          const optional = node.typeInfo.type === Type.Maybe
-          return optional ? value : assert(value)
+          try {
+            const value = await hooks.slice(
+              slice.value,
+              context ? toValue(context.value, context.typeInfo) : {},
+              context?.value ?? {},
+            )
+            const ret =
+              value === undefined ? new NullSelection('<slice>') : value
+            const optional = node.typeInfo.type === Type.Maybe
+            return optional ? ret : assert(ret)
+          } catch (e) {
+            throw new SliceError({ cause: e })
+          }
         })
       },
     },
@@ -318,10 +325,7 @@ export async function execute(
 
     Program: {
       async enter(node, visit) {
-        const ex = await executeBody(visit, node.body)
-        if (ex) {
-          scope.extracted = ex
-        }
+        scope.extracted = await executeBody(visit, node.body)
       },
     },
   }
@@ -332,5 +336,5 @@ export async function execute(
   const retType: any = program.body.find(
     stmt => stmt.kind === NodeKind.ExtractStmt,
   )
-  return ex ? toValue(ex, retType.value.typeInfo) : null
+  return retType ? toValue(ex, retType.value.typeInfo) : ex
 }

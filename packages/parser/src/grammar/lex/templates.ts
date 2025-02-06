@@ -51,13 +51,13 @@ export const templateUntil = (
         }
       : {}),
     interpvar: {
-      match: new RegExp(`[${interpSymbols.join('')}]\\w+`),
+      match: new RegExp(
+        `[${interpSymbols.join('')}]${patterns.identifier.source}`,
+      ),
       value: (text: string) => text.slice(1),
     },
     literal: {
-      match: until(
-        new RegExp(`[${interpSymbols.join('')}]\\w|\\$|${term.source}`),
-      ),
+      match: until(new RegExp(`[${interpSymbols.join('')}]|${term.source}`)),
       value: (text: string) => text.replace(/\\(.)/g, '$1').replace(/\s/g, ' '),
       lineBreaks: true,
     },
