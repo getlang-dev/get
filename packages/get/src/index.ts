@@ -3,7 +3,7 @@ import { desugar, parse } from '@getlang/parser'
 import type { Program } from '@getlang/parser/ast'
 import type { UserHooks } from '@getlang/utils'
 import { ImportError, invariant, wait } from '@getlang/utils'
-import { execute as exec } from './execute.js'
+import { Modules, execute as exec } from './execute.js'
 import type { InternalHooks } from './execute.js'
 
 function buildHooks(hooks: UserHooks = {}): InternalHooks {
@@ -37,4 +37,15 @@ export function executeAST(
   hooks?: UserHooks,
 ) {
   return exec(ast, inputs, buildHooks(hooks))
+}
+
+export async function executeModule(
+  module: string,
+  inputs: Record<string, unknown> = {},
+  _hooks?: UserHooks,
+) {
+  const hooks = buildHooks(_hooks)
+  const modules = new Modules(hooks.import)
+  const source = await modules.import(module)
+  return exec(source, inputs, hooks)
 }

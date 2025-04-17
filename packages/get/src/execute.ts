@@ -52,7 +52,7 @@ function toValue(value: any, typeInfo: TypeInfo): any {
   }
 }
 
-class Modules {
+export class Modules {
   private cache: Record<string, MaybePromise<Program>> = {}
   constructor(private importHook: InternalHooks['import']) {}
 
