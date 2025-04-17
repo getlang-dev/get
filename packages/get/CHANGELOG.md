@@ -1,5 +1,11 @@
 # @getlang/get
 
+## 0.2.5
+
+### Patch Changes
+
+- [#38](https://github.com/getlang-dev/get/pull/38) [`f0f00d3`](https://github.com/getlang-dev/get/commit/f0f00d33a75c830105f093f07c9bdeeec333df25) Thanks [@mattfysh](https://github.com/mattfysh)! - add `executeModule` api
+
 ## 0.2.4
 
 ### Patch Changes
