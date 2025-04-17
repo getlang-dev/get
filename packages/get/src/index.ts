@@ -47,5 +47,5 @@ export async function executeModule(
   const hooks = buildHooks(_hooks)
   const modules = new Modules(hooks.import)
   const source = await modules.import(module)
-  return exec(source, inputs, hooks)
+  return exec(source, inputs, hooks, modules)
 }
