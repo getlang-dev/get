@@ -82,11 +82,17 @@ export const subquery: PP = ([, , stmts]) => t.subqueryExpr(stmts)
 export const call: PP = ([callee, maybeInputs]) =>
   t.callExpr(callee, maybeInputs?.[1])
 
-export const link: PP = ([callee, _, link]) =>
-  t.callExpr(
+export const link: PP = ([maybePrior, callee, _, link]) => {
+  const bit = t.callExpr(
     callee,
     t.objectLiteralExpr([t.objectEntry(tx.template('@link'), link, true)]),
   )
+  if (!maybePrior) {
+    return bit
+  }
+  const [context, , arrow] = maybePrior
+  return drill([context, null, arrow, null, bit])
+}
 
 export const object: PP = d => {
   const entries = d[2].map((dd: any) => dd[0])

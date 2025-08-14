@@ -73,12 +73,8 @@ export async function execute(
   validate(program, inputs)
   const scope = new RootScope<any>()
 
-  async function executeBody(
-    visit: (stmt: Stmt) => void,
-    body: Stmt[],
-    context?: any,
-  ) {
-    scope.push(context)
+  async function executeBody(visit: (stmt: Stmt) => void, body: Stmt[]) {
+    scope.push()
     for (const stmt of body) {
       await visit(stmt)
       if (stmt.kind === NodeKind.ExtractStmt) {
@@ -192,7 +188,8 @@ export async function execute(
                 modules,
               )
               if (typeof extracted === 'object') {
-                const raster = toValue(args, node.args.typeInfo)
+                const attrs = Object.fromEntries(attrArgs)
+                const raster = toValue(attrs, node.args.typeInfo)
                 return { ...raster, ...extracted }
               }
               if (attrArgs.length) {
@@ -252,7 +249,7 @@ export async function execute(
     SubqueryExpr: {
       async enter(node, visit) {
         return withContext(scope, node, visit, async () => {
-          const ex = await executeBody(visit, node.body, scope.context)
+          const ex = await executeBody(visit, node.body)
           invariant(
             ex,
             new QuerySyntaxError('Subquery missing extract statement'),

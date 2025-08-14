@@ -179,6 +179,42 @@ describe('modules', () => {
     })
   })
 
+  test('links pre/post-amble', async () => {
+    const modules = {
+      Home: `
+        GET http://stub/x/y/z
+
+        extract #a -> >#b -> @Link) >#c -> >#d
+      `,
+      Link: `
+        extract {
+          _module: \`'Link'\`
+        }
+      `,
+    }
+    const result = await execute(
+      modules,
+      {},
+      () =>
+        new Response(`
+      <!doctype html>
+      <body>
+        <div id="a">
+          <div id="b">
+            <div id="c">
+              <a id="d" href="/a/b/c/d">link</a>
+          </div>
+        </div>
+      </body>
+    `),
+    )
+
+    expect(result).toEqual({
+      '@link': 'http://stub/a/b/c/d',
+      _module: 'Link',
+    })
+  })
+
   test('variables', async () => {
     const result = await execute(`
       set x = \`{ test: true }\`
