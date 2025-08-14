@@ -1,6 +1,7 @@
 /// <reference types="./acorn-globals.d.ts" />
 
-import { invariant, SliceSyntaxError } from '@getlang/utils'
+import { invariant } from '@getlang/utils'
+import { SliceSyntaxError } from '@getlang/utils/errors'
 import type { Program } from 'acorn'
 import { parse } from 'acorn'
 import detect from 'acorn-globals'

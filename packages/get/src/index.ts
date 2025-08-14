@@ -2,7 +2,8 @@ import { http, slice } from '@getlang/lib'
 import { desugar, parse } from '@getlang/parser'
 import type { Program } from '@getlang/parser/ast'
 import type { UserHooks } from '@getlang/utils'
-import { ImportError, invariant, wait } from '@getlang/utils'
+import { invariant, wait } from '@getlang/utils'
+import { ImportError } from '@getlang/utils/errors'
 import type { InternalHooks } from './execute.js'
 import { execute as exec, Modules } from './execute.js'
 
@@ -15,6 +16,7 @@ function buildHooks(hooks: UserHooks = {}): InternalHooks {
       )
       return wait(hooks.import(module), src => desugar(parse(src)))
     },
+    call: hooks.call ?? ((_module, _inputs, execute) => execute()),
     request: hooks.request ?? http.requestHook,
     slice: hooks.slice ?? slice.runSlice,
   }

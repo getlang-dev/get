@@ -42,7 +42,10 @@ describe('hook', () => {
 
   test('on import (cached) and call', async () => {
     const modules: Record<string, string> = {
-      Top: `extract \`"top"\``,
+      Top: `
+        inputs { inputA }
+        extract \`"top::" + inputA\`
+      `,
       Mid: `
         set inputA = \`"bar"\`
         extract {
@@ -58,6 +61,8 @@ describe('hook', () => {
       return src
     })
 
+    const callHook = mock<Hooks['call']>((_m, _i, e) => e())
+
     const src = `
       set inputA = \`"foo"\`
 
@@ -68,13 +73,13 @@ describe('hook', () => {
       }
     `
 
-    const hooks = { import: importHook }
+    const hooks = { import: importHook, call: callHook }
     const result = await execute(src, {}, hooks)
 
     expect(result).toEqual({
-      topValue: 'top',
+      topValue: 'top::foo',
       midValue: {
-        topValue: 'top',
+        topValue: 'top::bar',
         midValue: 'mid',
       },
       botValue: 'bot',
@@ -83,6 +88,21 @@ describe('hook', () => {
     expect(importHook).toHaveBeenCalledTimes(2)
     expect(importHook).toHaveBeenNthCalledWith(1, 'Top')
     expect(importHook).toHaveBeenNthCalledWith(2, 'Mid')
+
+    expect(callHook).toHaveBeenCalledTimes(3)
+    expect(callHook).toHaveBeenNthCalledWith(
+      1,
+      'Top',
+      { inputA: 'foo' },
+      expect.any(Function),
+    )
+    expect(callHook).toHaveBeenNthCalledWith(2, 'Mid', {}, expect.any(Function))
+    expect(callHook).toHaveBeenNthCalledWith(
+      3,
+      'Top',
+      { inputA: 'bar' },
+      expect.any(Function),
+    )
   })
 })
 

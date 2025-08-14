@@ -92,12 +92,3 @@ export class RequestError extends RuntimeError {
 export class ImportError extends RuntimeError {
   public override name = 'ImportError'
 }
-
-export function invariant(
-  condition: unknown,
-  err: string | RuntimeError,
-): asserts condition {
-  if (!condition) {
-    throw typeof err === 'string' ? new FatalError({ cause: err }) : err
-  }
-}

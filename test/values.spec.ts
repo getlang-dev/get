@@ -3,7 +3,7 @@ import {
   ConversionError,
   NullSelectionError,
   SelectorSyntaxError,
-} from '@getlang/utils'
+} from '@getlang/utils/errors'
 import { helper, SELSYN } from './helpers.js'
 
 const { execute, testIdempotency } = helper()

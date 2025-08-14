@@ -7,15 +7,14 @@ import { Type } from '@getlang/parser/typeinfo'
 import type { AsyncInterpretVisitor } from '@getlang/parser/visitor'
 import { visit } from '@getlang/parser/visitor'
 import type { Hooks, MaybePromise } from '@getlang/utils'
+import { invariant, NullSelection } from '@getlang/utils'
 import {
   ImportError,
-  invariant,
   NullInputError,
-  NullSelection,
   QuerySyntaxError,
   SliceError,
   ValueReferenceError,
-} from '@getlang/utils'
+} from '@getlang/utils/errors'
 import { mapValues, partition } from 'lodash-es'
 import { withContext } from './context.js'
 import { assert, collectInputs, validate } from './validation.js'
@@ -181,29 +180,32 @@ export async function execute(
               const err = `Failed to import module: ${callee}`
               throw new ImportError(err, { cause: e })
             }
-            const [inputs, view] = partition(Object.entries(args), e =>
+            const [inputArgs, attrArgs] = partition(Object.entries(args), e =>
               entry.inputs.has(e[0]),
             )
-            const extracted = await execute(
-              entry.program,
-              Object.fromEntries(inputs),
-              hooks,
-              modules,
-            )
-            if (typeof extracted !== 'object') {
-              if (view.length) {
-                const attrs = view.map(e => e[0]).join(', ')
+            const inputs = Object.fromEntries(inputArgs)
+            return hooks.call(callee, inputs, async () => {
+              const extracted = await execute(
+                entry.program,
+                inputs,
+                hooks,
+                modules,
+              )
+              if (typeof extracted === 'object') {
+                const raster = toValue(args, node.args.typeInfo)
+                return { ...raster, ...extracted }
+              }
+              if (attrArgs.length) {
+                const dropped = attrArgs.map(e => e[0]).join(', ')
                 console.warn(
                   [
                     `Module '${callee}' returned a primitive`,
-                    `dropping view attributes: ${attrs}`,
+                    `dropping view attributes: ${dropped}`,
                   ].join(', '),
                 )
               }
               return extracted
-            }
-            const raster = toValue(args, node.args.typeInfo)
-            return { ...raster, ...extracted }
+            })
           }
 
           if (callee === 'link') {

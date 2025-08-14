@@ -1,4 +1,4 @@
-import { QuerySyntaxError } from '@getlang/utils'
+import { QuerySyntaxError } from '@getlang/utils/errors'
 import nearley from 'nearley'
 import type { Program } from './ast/ast.js'
 import lexer from './grammar/lexer.js'

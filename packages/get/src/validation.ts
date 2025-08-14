@@ -1,12 +1,8 @@
 import type { Program } from '@getlang/parser/ast'
 import type { TransformVisitor } from '@getlang/parser/visitor'
 import { visit } from '@getlang/parser/visitor'
-import {
-  invariant,
-  NullSelection,
-  NullSelectionError,
-  UnknownInputsError,
-} from '@getlang/utils'
+import { invariant, NullSelection } from '@getlang/utils'
+import { NullSelectionError, UnknownInputsError } from '@getlang/utils/errors'
 
 export function collectInputs(program: Program): Set<string> {
   const declared = new Set<string>()

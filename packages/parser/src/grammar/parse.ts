@@ -1,4 +1,5 @@
-import { invariant, QuerySyntaxError } from '@getlang/utils'
+import { invariant } from '@getlang/utils'
+import { QuerySyntaxError } from '@getlang/utils/errors'
 import { isToken, NodeKind, t } from '../ast/ast.js'
 import { tx } from '../desugar/utils.js'
 

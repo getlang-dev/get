@@ -1,4 +1,5 @@
-import { invariant, QuerySyntaxError } from '@getlang/utils'
+import { invariant } from '@getlang/utils'
+import { QuerySyntaxError } from '@getlang/utils/errors'
 import type { Program } from '../ast/ast.js'
 import { NodeKind } from '../ast/ast.js'
 import { visit } from '../visitor/visitor.js'

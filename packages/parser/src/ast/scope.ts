@@ -1,4 +1,5 @@
-import { invariant, ValueReferenceError } from '@getlang/utils'
+import { invariant } from '@getlang/utils'
+import { ValueReferenceError } from '@getlang/utils/errors'
 
 export class Scope<T> {
   vars: Record<string, T>

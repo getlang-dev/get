@@ -1,8 +1,5 @@
-import {
-  invariant,
-  QuerySyntaxError,
-  ValueReferenceError,
-} from '@getlang/utils'
+import { invariant } from '@getlang/utils'
+import { QuerySyntaxError, ValueReferenceError } from '@getlang/utils/errors'
 import type { Expr, RequestExpr } from '../../ast/ast.js'
 import { NodeKind, t } from '../../ast/ast.js'
 import { RootScope } from '../../ast/scope.js'

@@ -1,4 +1,4 @@
-import { RequestError } from '@getlang/utils'
+import { RequestError } from '@getlang/utils/errors'
 import type { Element } from 'domhandler'
 
 type StringMap = Record<string, string>
