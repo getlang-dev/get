@@ -52,7 +52,7 @@ export type DeclInputsStmt = {
   inputs: InputDeclStmt[]
 }
 
-type InputDeclStmt = {
+export type InputDeclStmt = {
   kind: NodeKind.InputDeclStmt
   id: Token
   optional: boolean
@@ -106,7 +106,7 @@ type CallExpr = {
   kind: NodeKind.CallExpr
   callee: Token
   calltype: 'module' | 'modifier'
-  inputs: ObjectLiteralExpr
+  args: ObjectLiteralExpr
   context?: Expr
   typeInfo: TypeInfo
 }
@@ -245,7 +245,7 @@ const callExpr = (
   kind: NodeKind.CallExpr,
   callee,
   calltype: /[A-Z]/.test(callee.value) ? 'module' : 'modifier',
-  inputs,
+  args: inputs,
   typeInfo: { type: Type.Value },
   context,
 })

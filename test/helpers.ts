@@ -1,6 +1,7 @@
 import { executeAST as exec } from '@getlang/get'
 import { desugar, parse, print } from '@getlang/parser'
-import { isToken, type Program } from '@getlang/parser/ast'
+import type { Program } from '@getlang/parser/ast'
+import { isToken } from '@getlang/parser/ast'
 import type { UserHooks } from '@getlang/utils'
 import { invariant } from '@getlang/utils'
 import dedent from 'dedent'
@@ -40,10 +41,6 @@ export function helper() {
     }
 
     const hooks: UserHooks = {
-      call: async (_m, _i, raster, execute) => {
-        const value = await execute()
-        return { ...raster, ...value }
-      },
       import(module) {
         const src = modules[module]
         invariant(src, `Failed to import module: ${module}`)

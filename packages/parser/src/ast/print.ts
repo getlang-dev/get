@@ -164,7 +164,7 @@ const printVisitor: InterpretVisitor<Doc> = {
   },
 
   CallExpr(node) {
-    const call: Doc[] = ['@', node.callee.value, '(', node.inputs, ')']
+    const call: Doc[] = ['@', node.callee.value, '(', node.args, ')']
     return node.context ? [node.context, indent([line, '-> ', call])] : call
   },
 

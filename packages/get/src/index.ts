@@ -15,7 +15,6 @@ function buildHooks(hooks: UserHooks = {}): InternalHooks {
       )
       return wait(hooks.import(module), src => desugar(parse(src)))
     },
-    call: hooks.call ?? ((_module, _inputs, _raster, execute) => execute()),
     request: hooks.request ?? http.requestHook,
     slice: hooks.slice ?? slice.runSlice,
   }
@@ -47,5 +46,5 @@ export async function executeModule(
   const hooks = buildHooks(_hooks)
   const modules = new Modules(hooks.import)
   const source = await modules.import(module)
-  return exec(source, inputs, hooks, modules)
+  return exec(source.program, inputs, hooks, modules)
 }

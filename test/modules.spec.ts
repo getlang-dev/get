@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test'
-import { NullInputError } from '@getlang/utils'
+import { NullInputError, UnknownInputsError } from '@getlang/utils'
 import { helper } from './helpers.js'
 
 const { execute, testIdempotency } = helper()
@@ -47,6 +47,16 @@ describe('modules', () => {
         extract $value
       `)
       return expect(result).rejects.toThrow(new NullInputError('value'))
+    })
+
+    test('unknown input provided', () => {
+      const result = execute('extract `123`', { x: 1 })
+      return expect(result).rejects.toThrow(new UnknownInputsError(['x']))
+    })
+
+    test('unknown inputs provided', () => {
+      const result = execute('extract `123`', { x: 1, y: 2 })
+      return expect(result).rejects.toThrow(new UnknownInputsError(['x', 'y']))
     })
 
     test('optional input', async () => {

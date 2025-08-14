@@ -72,6 +72,15 @@ export class NullInputError extends RuntimeError {
   }
 }
 
+export class UnknownInputsError extends RuntimeError {
+  public override name = 'UnknownInputError'
+
+  constructor(inputNames: string[], options?: ErrorOptions) {
+    const noun = inputNames.length > 1 ? 'inputs' : 'input'
+    super(`Unknown ${noun} provided: ${inputNames.join(', ')}`, options)
+  }
+}
+
 export class RequestError extends RuntimeError {
   public override name = 'RequestError'
 

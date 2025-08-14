@@ -72,7 +72,7 @@ export function traceVisitor(scope: RootScope<Expr>) {
     CallExpr: {
       enter(node, visit) {
         return ctx(node, visit, node => {
-          return { ...node, inputs: visit(node.inputs) }
+          return { ...node, args: visit(node.args) }
         })
       },
     },

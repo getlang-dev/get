@@ -1,34 +1,27 @@
 import { cookies, headers, html, http, js, json } from '@getlang/lib'
-import type { CExpr, Expr, Program, Stmt } from '@getlang/parser/ast'
+import type { Program, Stmt } from '@getlang/parser/ast'
 import { isToken, NodeKind } from '@getlang/parser/ast'
 import { RootScope } from '@getlang/parser/scope'
 import type { TypeInfo } from '@getlang/parser/typeinfo'
 import { Type } from '@getlang/parser/typeinfo'
-import { type AsyncInterpretVisitor, visit } from '@getlang/parser/visitor'
+import type { AsyncInterpretVisitor } from '@getlang/parser/visitor'
+import { visit } from '@getlang/parser/visitor'
 import type { Hooks, MaybePromise } from '@getlang/utils'
 import {
   ImportError,
   invariant,
   NullInputError,
   NullSelection,
-  NullSelectionError,
   QuerySyntaxError,
   SliceError,
   ValueReferenceError,
 } from '@getlang/utils'
-import { mapValues } from 'lodash-es'
+import { mapValues, partition } from 'lodash-es'
+import { withContext } from './context.js'
+import { assert, collectInputs, validate } from './validation.js'
 
 export type InternalHooks = Omit<Hooks, 'import'> & {
   import: (module: string) => MaybePromise<Program>
-}
-
-type Contextual = { value: any; typeInfo: TypeInfo }
-
-function assert(value: any) {
-  if (value instanceof NullSelection) {
-    throw new NullSelectionError(value.selector)
-  }
-  return value
 }
 
 function toValue(value: any, typeInfo: TypeInfo): any {
@@ -52,12 +45,22 @@ function toValue(value: any, typeInfo: TypeInfo): any {
   }
 }
 
+type ModulesEntry = { program: Program; inputs: Set<string> }
+
 export class Modules {
-  private cache: Record<string, MaybePromise<Program>> = {}
+  private cache: Record<string, MaybePromise<ModulesEntry>> = {}
   constructor(private importHook: InternalHooks['import']) {}
 
   import(module: string) {
-    this.cache[module] ??= this.importHook(module)
+    if (!this.cache[module]) {
+      this.cache[module] = Promise.resolve(this.importHook(module)).then(
+        program => {
+          const inputs = collectInputs(program)
+          return { program, inputs }
+        },
+      )
+    }
+
     return this.cache[module]
   }
 }
@@ -68,6 +71,7 @@ export async function execute(
   hooks: InternalHooks,
   modules: Modules = new Modules(hooks.import),
 ) {
+  validate(program, inputs)
   const scope = new RootScope<any>()
 
   async function executeBody(
@@ -83,43 +87,6 @@ export async function execute(
       }
     }
     return scope.pop()
-  }
-
-  async function ctx(
-    node: CExpr,
-    visit: (node: Expr) => MaybePromise<any>,
-    cb: (ctx?: Contextual) => MaybePromise<any>,
-  ): Promise<any> {
-    async function unwrap(
-      context: Contextual | undefined,
-      cb: (ctx?: Contextual) => MaybePromise<any>,
-    ): Promise<any> {
-      if (context?.typeInfo.type === Type.List) {
-        const list = []
-        for (const item of context.value) {
-          const itemCtx = { value: item, typeInfo: context.typeInfo.of }
-          list.push(await unwrap(itemCtx, cb))
-        }
-        return list
-      }
-
-      context && scope.pushContext(context.value)
-      const value = await cb(context)
-      context && scope.popContext()
-      return value
-    }
-
-    let context: Contextual | undefined
-    if (node.context) {
-      let value = await visit(node.context)
-      const optional = node.typeInfo.type === Type.Maybe
-      value = optional ? value : assert(value)
-      if (value instanceof NullSelection) {
-        return value
-      }
-      context = { value, typeInfo: node.context.typeInfo }
-    }
-    return unwrap(context, cb)
   }
 
   const visitor: AsyncInterpretVisitor<void, any> = {
@@ -148,7 +115,7 @@ export async function execute(
 
     SliceExpr: {
       async enter(node, visit) {
-        return ctx(node, visit, async context => {
+        return withContext(scope, node, visit, async context => {
           const { slice } = node
           try {
             const value = await hooks.slice(
@@ -169,7 +136,7 @@ export async function execute(
 
     SelectorExpr: {
       async enter(node, visit) {
-        return ctx(node, visit, async context => {
+        return withContext(scope, node, visit, async context => {
           const selector = await visit(node.selector)
           if (typeof selector !== 'string') {
             return selector
@@ -202,29 +169,47 @@ export async function execute(
 
     CallExpr: {
       async enter(node, visit) {
-        return ctx(node, visit, async context => {
+        return withContext(scope, node, visit, async context => {
           const callee = node.callee.value
-          const inputs = await visit(node.inputs)
+          const args = await visit(node.args)
 
           if (node.calltype === 'module') {
-            let external: Program
+            let entry: ModulesEntry
             try {
-              external = await modules.import(callee)
+              entry = await modules.import(callee)
             } catch (e) {
-              throw new ImportError(`Failed to import module: ${callee}`, {
-                cause: e,
-              })
+              const err = `Failed to import module: ${callee}`
+              throw new ImportError(err, { cause: e })
             }
-            const raster = toValue(inputs, node.inputs.typeInfo)
-            return hooks.call(callee, inputs, raster, () =>
-              execute(external, inputs, hooks, modules),
+            const [inputs, view] = partition(Object.entries(args), e =>
+              entry.inputs.has(e[0]),
             )
+            const extracted = await execute(
+              entry.program,
+              Object.fromEntries(inputs),
+              hooks,
+              modules,
+            )
+            if (typeof extracted !== 'object') {
+              if (view.length) {
+                const attrs = view.map(e => e[0]).join(', ')
+                console.warn(
+                  [
+                    `Module '${callee}' returned a primitive`,
+                    `dropping view attributes: ${attrs}`,
+                  ].join(', '),
+                )
+              }
+              return extracted
+            }
+            const raster = toValue(args, node.args.typeInfo)
+            return { ...raster, ...extracted }
           }
 
           if (callee === 'link') {
             const resolved = http.constructUrl(
               scope.context,
-              inputs.base ?? undefined,
+              args.base ?? undefined,
             )
             return resolved ?? new NullSelection('@link')
           }
@@ -248,7 +233,7 @@ export async function execute(
 
     ObjectLiteralExpr: {
       async enter(node, visit) {
-        return ctx(node, visit, async () => {
+        return withContext(scope, node, visit, async () => {
           const obj: Record<string, any> = {}
           for (const entry of node.entries) {
             const value = await visit(entry.value)
@@ -264,7 +249,7 @@ export async function execute(
 
     SubqueryExpr: {
       async enter(node, visit) {
-        return ctx(node, visit, async () => {
+        return withContext(scope, node, visit, async () => {
           const ex = await executeBody(visit, node.body, scope.context)
           invariant(
             ex,

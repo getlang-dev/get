@@ -3,9 +3,11 @@ import {
   QuerySyntaxError,
   ValueReferenceError,
 } from '@getlang/utils'
-import { type CExpr, type Expr, NodeKind, t } from '../../ast/ast.js'
+import type { CExpr, Expr } from '../../ast/ast.js'
+import { NodeKind, t } from '../../ast/ast.js'
 import { RootScope } from '../../ast/scope.js'
-import { Type, type TypeInfo } from '../../ast/typeinfo.js'
+import type { TypeInfo } from '../../ast/typeinfo.js'
+import { Type } from '../../ast/typeinfo.js'
 import type { TransformVisitor, Visit } from '../../visitor/transform.js'
 import { traceVisitor } from '../trace.js'
 import { render, selectTypeInfo } from '../utils.js'

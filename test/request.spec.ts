@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, mock, test } from 'bun:test'
-import { type Fetch, helper } from './helpers.js'
+import type { Fetch } from './helpers.js'
+import { helper } from './helpers.js'
 
 const { execute: _exec, testIdempotency } = helper()
 

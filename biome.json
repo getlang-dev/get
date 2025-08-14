@@ -33,7 +33,13 @@
       "style": {
         "noUselessElse": "off",
         "noNonNullAssertion": "off",
-        "useBlockStatements": "error"
+        "useBlockStatements": "error",
+        "useImportType": {
+          "level": "error",
+          "options": {
+            "style": "separatedType"
+          }
+        }
       }
     }
   },

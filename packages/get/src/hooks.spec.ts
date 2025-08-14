@@ -1,5 +1,6 @@
 import { describe, expect, mock, test } from 'bun:test'
-import { type Hooks, invariant } from '@getlang/utils'
+import type { Hooks } from '@getlang/utils'
+import { invariant } from '@getlang/utils'
 import { execute } from './index.js'
 
 describe('hook', () => {
@@ -57,8 +58,6 @@ describe('hook', () => {
       return src
     })
 
-    const callHook = mock<Hooks['call']>((_m, _i, _r, e) => e())
-
     const src = `
       set inputA = \`"foo"\`
 
@@ -69,7 +68,7 @@ describe('hook', () => {
       }
     `
 
-    const hooks = { import: importHook, call: callHook }
+    const hooks = { import: importHook }
     const result = await execute(src, {}, hooks)
 
     expect(result).toEqual({
@@ -84,29 +83,6 @@ describe('hook', () => {
     expect(importHook).toHaveBeenCalledTimes(2)
     expect(importHook).toHaveBeenNthCalledWith(1, 'Top')
     expect(importHook).toHaveBeenNthCalledWith(2, 'Mid')
-
-    expect(callHook).toHaveBeenCalledTimes(3)
-    expect(callHook).toHaveBeenNthCalledWith(
-      1,
-      'Top',
-      { inputA: 'foo' },
-      { inputA: 'foo' },
-      expect.any(Function),
-    )
-    expect(callHook).toHaveBeenNthCalledWith(
-      2,
-      'Mid',
-      {},
-      {},
-      expect.any(Function),
-    )
-    expect(callHook).toHaveBeenNthCalledWith(
-      3,
-      'Top',
-      { inputA: 'bar' },
-      { inputA: 'bar' },
-      expect.any(Function),
-    )
   })
 })
 

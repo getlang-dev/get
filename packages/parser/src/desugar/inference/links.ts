@@ -48,9 +48,9 @@ export function inferLinks(parsers: RequestParsers): TransformVisitor {
         if (tnode.calltype === 'module') {
           tnode = {
             ...tnode,
-            inputs: {
-              ...tnode.inputs,
-              entries: tnode.inputs.entries.map(e => {
+            args: {
+              ...tnode.args,
+              entries: tnode.args.entries.map(e => {
                 if (
                   render(e.key) !== '@link' ||
                   (e.value.kind === NodeKind.CallExpr &&
@@ -73,17 +73,15 @@ export function inferLinks(parsers: RequestParsers): TransformVisitor {
 
         invariant(
           xnode.kind === NodeKind.CallExpr &&
-            xnode.inputs.kind === NodeKind.ObjectLiteralExpr,
+            xnode.args.kind === NodeKind.ObjectLiteralExpr,
           new QuerySyntaxError('Modifier options must be an object'),
         )
 
         if (xnode.callee.value === 'link' && xnode.context) {
           const contextBase = bases.get(xnode.context)
-          const hasBase = xnode.inputs.entries.some(
-            e => render(e.key) === 'base',
-          )
+          const hasBase = xnode.args.entries.some(e => render(e.key) === 'base')
           if (contextBase && !hasBase) {
-            xnode.inputs.entries.push(
+            xnode.args.entries.push(
               t.objectEntry(
                 tx.template('base'),
                 parsers.lookup(contextBase, 'url'),
