@@ -1,7 +1,7 @@
 import {
+  invariant,
   QuerySyntaxError,
   ValueReferenceError,
-  invariant,
 } from '@getlang/utils'
 import { type CExpr, type Expr, NodeKind, t } from '../../ast/ast.js'
 import { RootScope } from '../../ast/scope.js'

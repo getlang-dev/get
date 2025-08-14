@@ -1,4 +1,4 @@
-import { NullSelection, QuerySyntaxError, invariant } from '@getlang/utils'
+import { invariant, NullSelection, QuerySyntaxError } from '@getlang/utils'
 import { mapValues } from 'lodash-es'
 import * as scp from 'set-cookie-parser'
 

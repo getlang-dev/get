@@ -1,7 +1,7 @@
 import {
+  invariant,
   QuerySyntaxError,
   ValueReferenceError,
-  invariant,
 } from '@getlang/utils'
 import type { Expr, RequestExpr } from '../../ast/ast.js'
 import { NodeKind, t } from '../../ast/ast.js'

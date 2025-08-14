@@ -42,13 +42,13 @@
     "@getlang/utils": "workspace:^0.1.6",
     "@types/moo": "^0.5.10",
     "@types/nearley": "^2.11.5",
-    "acorn": "^8.14.0",
+    "acorn": "^8.15.0",
     "acorn-globals": "^7.0.1",
-    "globals": "^15.14.0",
+    "globals": "^16.3.0",
     "lodash-es": "^4.17.21",
     "moo": "^0.5.2",
     "nearley": "^2.20.1",
-    "prettier": "^3.4.2"
+    "prettier": "^3.6.2"
   },
   "devDependencies": {
     "@types/lodash-es": "^4.17.12"

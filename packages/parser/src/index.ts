@@ -1,8 +1,8 @@
 import { QuerySyntaxError } from '@getlang/utils'
 import nearley from 'nearley'
 import type { Program } from './ast/ast.js'
-import grammar from './grammar.js'
 import lexer from './grammar/lexer.js'
+import grammar from './grammar.js'
 
 export { print } from './ast/print.js'
 export { desugar } from './desugar/simplified.js'

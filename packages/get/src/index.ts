@@ -3,8 +3,8 @@ import { desugar, parse } from '@getlang/parser'
 import type { Program } from '@getlang/parser/ast'
 import type { UserHooks } from '@getlang/utils'
 import { ImportError, invariant, wait } from '@getlang/utils'
-import { Modules, execute as exec } from './execute.js'
 import type { InternalHooks } from './execute.js'
+import { execute as exec, Modules } from './execute.js'
 
 function buildHooks(hooks: UserHooks = {}): InternalHooks {
   return {
