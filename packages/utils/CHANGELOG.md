@@ -1,5 +1,11 @@
 # @getlang/utils
 
+## 0.1.7
+
+### Patch Changes
+
+- [#40](https://github.com/getlang-dev/get/pull/40) [`70cb95b`](https://github.com/getlang-dev/get/commit/70cb95be361513925eb9881ee2988787a98dcf1b) Thanks [@mattfysh](https://github.com/mattfysh)! - upgrade deps
+
 ## 0.1.6
 
 ### Patch Changes

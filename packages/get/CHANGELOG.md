@@ -1,5 +1,16 @@
 # @getlang/get
 
+## 0.2.6
+
+### Patch Changes
+
+- [#40](https://github.com/getlang-dev/get/pull/40) [`70cb95b`](https://github.com/getlang-dev/get/commit/70cb95be361513925eb9881ee2988787a98dcf1b) Thanks [@mattfysh](https://github.com/mattfysh)! - upgrade deps
+
+- Updated dependencies [[`70cb95b`](https://github.com/getlang-dev/get/commit/70cb95be361513925eb9881ee2988787a98dcf1b)]:
+  - @getlang/parser@0.3.5
+  - @getlang/utils@0.1.7
+  - @getlang/lib@0.1.6
+
 ## 0.2.5
 
 ### Patch Changes
