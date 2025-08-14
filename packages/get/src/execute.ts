@@ -205,16 +205,24 @@ export async function execute(
             })
           }
 
+          let from = context!
           if (callee === 'link') {
-            const resolved = http.constructUrl(
-              scope.context,
-              args.base ?? undefined,
-            )
-            return resolved ?? new NullSelection('@link')
+            const el = scope.context
+            const tag = el.type === 'tag' ? el.name : undefined
+            if (tag === 'a') {
+              from = { ...from, value: html.select(el, 'xpath:@href', false) }
+            } else if (tag === 'img') {
+              from = { ...from, value: html.select(el, 'xpath:@src', false) }
+            }
           }
 
-          const doc = toValue(context!.value, context!.typeInfo)
+          const doc = toValue(from.value, from.typeInfo)
+
           switch (callee) {
+            case 'link':
+              return doc
+                ? new URL(doc, args.base).toString()
+                : new NullSelection('@link')
             case 'html':
               return html.parse(doc)
             case 'js':

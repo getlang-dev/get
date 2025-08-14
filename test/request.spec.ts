@@ -398,7 +398,9 @@ describe('request', () => {
 
         extract {
           link1: link -> @link
-          link2: html -> @html -> a -> @link
+          link2: anchor -> @html -> a -> @link
+          link3: attr -> @html -> i -> xpath:@data-url -> @link
+          link4: img -> @html -> img -> @link
         }
       `,
         {},
@@ -406,14 +408,18 @@ describe('request', () => {
           new Response(
             JSON.stringify({
               link: '../xyz.html',
-              html: "<div><a class='link' href='/from/root'>click here</a></div>",
+              anchor: "<div><a href='/from/anchor'>click here</a></div>",
+              attr: "<div><i data-url='/from/attr'>click here</i></div>",
+              img: "<div><img src='/from/img' /></div>",
             }),
           ),
       )
 
       expect(result).toEqual({
         link1: 'https://base.com/a/xyz.html',
-        link2: 'https://base.com/from/root',
+        link2: 'https://base.com/from/anchor',
+        link3: 'https://base.com/from/attr',
+        link4: 'https://base.com/from/img',
       })
     })
 

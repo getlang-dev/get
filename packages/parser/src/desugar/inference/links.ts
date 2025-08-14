@@ -104,8 +104,13 @@ export function inferLinks(parsers: RequestParsers): TransformVisitor {
 
     SubqueryExpr: {
       enter(node, visit) {
-        const xnode = trace.SubqueryExpr.enter(node, visit)
-        return { ...xnode, body: parsers.insert(xnode.body) }
+        let xnode = trace.SubqueryExpr.enter(node, visit)
+        const extracted = xnode.body.find(
+          stmt => stmt.kind === NodeKind.ExtractStmt,
+        )
+        xnode = { ...xnode, body: parsers.insert(xnode.body) }
+        extracted && inherit(extracted.value, xnode)
+        return xnode
       },
     },
   }
