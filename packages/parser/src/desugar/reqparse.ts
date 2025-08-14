@@ -1,4 +1,4 @@
-import { QuerySyntaxError, invariant } from '@getlang/utils'
+import { invariant, QuerySyntaxError } from '@getlang/utils'
 import type { Expr, RequestExpr, Stmt } from '../ast/ast.js'
 import { NodeKind, t } from '../ast/ast.js'
 import { getContentField, tx } from './utils.js'

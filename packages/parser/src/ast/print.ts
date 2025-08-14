@@ -2,7 +2,7 @@ import { builders, printer } from 'prettier/doc'
 import type { InterpretVisitor } from '../visitor/visitor.js'
 import { visit } from '../visitor/visitor.js'
 import type { Node } from './ast.js'
-import { NodeKind, isToken } from './ast.js'
+import { isToken, NodeKind } from './ast.js'
 
 type Doc = builders.Doc
 

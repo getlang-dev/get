@@ -1,4 +1,4 @@
-import { ValueReferenceError, invariant } from '@getlang/utils'
+import { invariant, ValueReferenceError } from '@getlang/utils'
 
 export class Scope<T> {
   vars: Record<string, T>
@@ -45,7 +45,6 @@ export class RootScope<T> {
     if (this.context) {
       this.vars[''] = this.context
     } else {
-      // biome-ignore lint/performance/noDelete: remove shadow value
       delete this.vars['']
     }
   }

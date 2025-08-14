@@ -1,5 +1,5 @@
-import { QuerySyntaxError, invariant } from '@getlang/utils'
-import { NodeKind, isToken, t } from '../ast/ast.js'
+import { invariant, QuerySyntaxError } from '@getlang/utils'
+import { isToken, NodeKind, t } from '../ast/ast.js'
 import { tx } from '../desugar/utils.js'
 
 type PP = nearley.Postprocessor

@@ -1,6 +1,6 @@
 import { executeAST as exec } from '@getlang/get'
 import { desugar, parse, print } from '@getlang/parser'
-import { type Program, isToken } from '@getlang/parser/ast'
+import { isToken, type Program } from '@getlang/parser/ast'
 import type { UserHooks } from '@getlang/utils'
 import { invariant } from '@getlang/utils'
 import dedent from 'dedent'

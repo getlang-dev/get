@@ -4,7 +4,7 @@ import {
   NullSelectionError,
   SelectorSyntaxError,
 } from '@getlang/utils'
-import { SELSYN, helper } from './helpers.js'
+import { helper, SELSYN } from './helpers.js'
 
 const { execute, testIdempotency } = helper()
 

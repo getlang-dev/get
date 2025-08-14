@@ -1,12 +1,12 @@
 import {
   ConversionError,
+  invariant,
   NullSelection,
   SelectorSyntaxError,
   SliceSyntaxError,
-  invariant,
 } from '@getlang/utils'
-import { parse as acorn } from 'acorn'
 import type { AnyNode } from 'acorn'
+import { parse as acorn } from 'acorn'
 import esquery from 'esquery'
 
 export const parse = (js: string): AnyNode => {

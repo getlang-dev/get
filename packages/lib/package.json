@@ -22,17 +22,17 @@
     "@types/esquery": "^1.5.4",
     "@types/lodash-es": "^4.17.12",
     "@types/set-cookie-parser": "^2.4.10",
-    "acorn": "^8.14.0",
-    "css-select": "^5.1.0",
-    "css-what": "^6.1.0",
+    "acorn": "^8.15.0",
+    "css-select": "^6.0.0",
+    "css-what": "^7.0.0",
     "dom-serializer": "^2.0.0",
     "domelementtype": "*",
     "domhandler": "^5.0.3",
     "domutils": "^3.2.2",
     "esquery": "^1.6.0",
     "lodash-es": "^4.17.21",
-    "parse5": "^7.2.1",
-    "parse5-htmlparser2-tree-adapter": "^7.1.0",
+    "parse5": "^8.0.0",
+    "parse5-htmlparser2-tree-adapter": "^8.0.0",
     "set-cookie-parser": "^2.7.1"
   }
 }
