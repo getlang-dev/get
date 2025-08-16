@@ -1,10 +1,13 @@
 /// <reference types="./acorn-globals.d.ts" />
 
-import { invariant, SliceSyntaxError } from '@getlang/utils'
-import { type Program, parse } from 'acorn'
+import { invariant } from '@getlang/utils'
+import { SliceSyntaxError } from '@getlang/utils/errors'
+import type { Program } from 'acorn'
+import { parse } from 'acorn'
 import detect from 'acorn-globals'
 import globals from 'globals'
-import { type Expr, t } from '../../ast/ast.js'
+import type { Expr } from '../../ast/ast.js'
+import { t } from '../../ast/ast.js'
 import type { TransformVisitor } from '../../visitor/transform.js'
 import { tx } from '../utils.js'
 

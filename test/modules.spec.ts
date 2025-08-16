@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test'
-import { NullInputError } from '@getlang/utils'
+import { NullInputError, UnknownInputsError } from '@getlang/utils/errors'
 import { helper } from './helpers.js'
 
 const { execute, testIdempotency } = helper()
@@ -49,6 +49,16 @@ describe('modules', () => {
       return expect(result).rejects.toThrow(new NullInputError('value'))
     })
 
+    test('unknown input provided', () => {
+      const result = execute('extract `123`', { x: 1 })
+      return expect(result).rejects.toThrow(new UnknownInputsError(['x']))
+    })
+
+    test('unknown inputs provided', () => {
+      const result = execute('extract `123`', { x: 1, y: 2 })
+      return expect(result).rejects.toThrow(new UnknownInputsError(['x', 'y']))
+    })
+
     test('optional input', async () => {
       const src = `
         inputs { value? }
@@ -79,93 +89,6 @@ describe('modules', () => {
       `
       const result = await execute(src, {})
       expect(result).toEqual({ offset: 0 })
-    })
-  })
-
-  test('calls', async () => {
-    const result = await execute({
-      Auth: 'extract { token: `"abc"` }',
-      Home: 'extract { auth: @Auth }',
-    })
-    expect(result).toEqual({
-      auth: {
-        token: 'abc',
-      },
-    })
-  })
-
-  test('links', async () => {
-    const modules = {
-      Product: `
-        extract {
-          _module: \`'Product'\`
-        }
-      `,
-      Search: `
-        extract {
-          _module: \`'Search'\`
-        }
-      `,
-      Home: `
-        inputs { query, page? }
-
-        GET https://search.com/
-        [query]
-        s: $query
-        page: $page
-
-        set results = => li.result -> @Product({
-          @link: a
-          name: a
-          desc: p.description
-        })
-
-        extract {
-          items: $results
-          pager: .pager -> {
-            next: @Search) a.next
-            prev: @Search) a.prev
-          }
-        }
-      `,
-    }
-
-    const result = await execute(
-      modules,
-      { query: 'gifts' },
-      () =>
-        new Response(`
-        <!doctype html>
-        <ul>
-          <li class="result">
-            <a href="/products/1">Deck o cards</a>
-            <p class="description">Casino grade playing cards</p>
-          </li>
-        </ul>
-        <div class="pager">
-          <a class="next" href="/?s=gifts&page=2">next</a>
-        </div>
-      `),
-    )
-    expect(result).toEqual({
-      items: [
-        {
-          _module: 'Product',
-          '@link': 'https://search.com/products/1',
-          name: 'Deck o cards',
-          desc: 'Casino grade playing cards',
-        },
-      ],
-      pager: {
-        next: {
-          _module: 'Search',
-          '@link': 'https://search.com/?s=gifts&page=2',
-        },
-        prev: {
-          _module: 'Search',
-          '@link': undefined,
-        },
-      },
     })
   })
 

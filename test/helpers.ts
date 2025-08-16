@@ -1,7 +1,8 @@
-import { executeAST as exec } from '@getlang/get'
+import { execute as exec } from '@getlang/get'
 import { desugar, parse, print } from '@getlang/parser'
-import { isToken, type Program } from '@getlang/parser/ast'
-import type { UserHooks } from '@getlang/utils'
+import type { Program } from '@getlang/parser/ast'
+import { isToken } from '@getlang/parser/ast'
+import type { Inputs, UserHooks } from '@getlang/utils'
 import { invariant } from '@getlang/utils'
 import dedent from 'dedent'
 import { dump } from 'js-yaml'
@@ -29,7 +30,7 @@ export function helper() {
 
   async function execute(
     program: string | Record<string, string>,
-    inputs?: Record<string, unknown>,
+    inputs?: Inputs,
     fetch?: Fetch,
   ): Promise<any> {
     const normalized = typeof program === 'string' ? { Home: program } : program
@@ -40,10 +41,6 @@ export function helper() {
     }
 
     const hooks: UserHooks = {
-      call: async (_m, _i, raster, execute) => {
-        const value = await execute()
-        return { ...raster, ...value }
-      },
       import(module) {
         const src = modules[module]
         invariant(src, `Failed to import module: ${module}`)
@@ -61,10 +58,8 @@ export function helper() {
     }
 
     invariant(modules.Home, 'Expected module entry source')
-    const ast = desugar(parse(modules.Home))
-    DEBUG && printYaml(ast)
-
-    return exec(ast, inputs, hooks)
+    DEBUG && printYaml(desugar(parse(modules.Home)))
+    return exec(modules.Home, inputs, hooks)
   }
 
   function testIdempotency() {

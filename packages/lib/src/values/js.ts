@@ -1,10 +1,9 @@
+import { invariant, NullSelection } from '@getlang/utils'
 import {
   ConversionError,
-  invariant,
-  NullSelection,
   SelectorSyntaxError,
   SliceSyntaxError,
-} from '@getlang/utils'
+} from '@getlang/utils/errors'
 import type { AnyNode } from 'acorn'
 import { parse as acorn } from 'acorn'
 import esquery from 'esquery'

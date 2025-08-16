@@ -1,20 +1,7 @@
-import { RequestError } from '@getlang/utils'
-import type { Element } from 'domhandler'
+import type { RequestHook } from '@getlang/utils'
+import { RequestError } from '@getlang/utils/errors'
 
 type StringMap = Record<string, string>
-export type RequestHook = (url: string, opts: RequestOpts) => Promise<Response>
-
-type RequestOpts = {
-  method?: string
-  headers?: Headers
-  body?: string
-}
-
-type Response = {
-  status: number
-  headers: Headers
-  body?: string
-}
 
 type Blocks = {
   query?: StringMap
@@ -30,29 +17,6 @@ const fixedEncodeURIComponent = (str: string) => {
     /[!'()*]/g,
     c => `%${c.charCodeAt(0).toString(16).toUpperCase()}`,
   )
-}
-
-export const constructUrl = (
-  elementOrString: string | Element,
-  base: string | undefined,
-) => {
-  let href: string | undefined
-  if (typeof elementOrString === 'string') {
-    href = elementOrString
-  } else {
-    const el = elementOrString
-    if (el.type === 'tag') {
-      if (el.name === 'a') {
-        href = el.attribs.href
-      } else if (el.name === 'img') {
-        href = el.attribs.src
-      }
-    }
-  }
-  if (!href) {
-    return null
-  }
-  return new URL(href, base).toString()
 }
 
 export const requestHook: RequestHook = async (url, opts) => {

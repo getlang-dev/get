@@ -1,11 +1,9 @@
-import {
-  invariant,
-  QuerySyntaxError,
-  ValueReferenceError,
-} from '@getlang/utils'
-import { type CExpr, type Expr, NodeKind, t } from '../../ast/ast.js'
-import { RootScope } from '../../ast/scope.js'
-import { Type, type TypeInfo } from '../../ast/typeinfo.js'
+import { invariant } from '@getlang/utils'
+import { QuerySyntaxError, ValueReferenceError } from '@getlang/utils/errors'
+import type { CExpr } from '../../ast/ast.js'
+import { NodeKind, t } from '../../ast/ast.js'
+import type { TypeInfo } from '../../ast/typeinfo.js'
+import { Type } from '../../ast/typeinfo.js'
 import type { TransformVisitor, Visit } from '../../visitor/transform.js'
 import { traceVisitor } from '../trace.js'
 import { render, selectTypeInfo } from '../utils.js'
@@ -49,7 +47,7 @@ function rewrap(
 }
 
 export function inferTypeInfo(): TransformVisitor {
-  const scope = new RootScope<Expr>()
+  const { scope, trace } = traceVisitor()
 
   let optional = false
   function setOptional<T>(opt: boolean, cb: () => T): T {
@@ -60,7 +58,7 @@ export function inferTypeInfo(): TransformVisitor {
     return ret
   }
 
-  function ctx<C extends CExpr>(cb: (tnode: C, ivisit: Visit) => C) {
+  function withContext<C extends CExpr>(cb: (tnode: C, ivisit: Visit) => C) {
     return function enter(node: C, visit: Visit): C {
       if (!node.context) {
         return cb(node, visit)
@@ -80,8 +78,6 @@ export function inferTypeInfo(): TransformVisitor {
       return { ...xnode, context, typeInfo }
     }
   }
-
-  const trace = traceVisitor(scope)
 
   return {
     ...trace,
@@ -130,7 +126,7 @@ export function inferTypeInfo(): TransformVisitor {
     },
 
     SliceExpr: {
-      enter: ctx((node, visit) => {
+      enter: withContext((node, visit) => {
         const xnode = trace.SliceExpr.enter(node, visit)
         let typeInfo: TypeInfo = { type: Type.Value }
         if (optional) {
@@ -141,7 +137,7 @@ export function inferTypeInfo(): TransformVisitor {
     },
 
     SelectorExpr: {
-      enter: ctx((node, visit) => {
+      enter: withContext((node, visit) => {
         const xnode = trace.SelectorExpr.enter(node, visit)
         let typeInfo: TypeInfo = unwrap(
           xnode.context?.typeInfo ?? { type: Type.Value },
@@ -169,7 +165,7 @@ export function inferTypeInfo(): TransformVisitor {
     },
 
     CallExpr: {
-      enter: ctx((node, visit) => {
+      enter: withContext((node, visit) => {
         const xnode = trace.CallExpr.enter(node, visit)
         const callee = xnode.callee.value
         const typeInfo = modTypeMap[callee] ?? { type: Type.Value }
@@ -178,7 +174,7 @@ export function inferTypeInfo(): TransformVisitor {
     },
 
     SubqueryExpr: {
-      enter: ctx((node, visit) => {
+      enter: withContext((node, visit) => {
         const xnode = trace.SubqueryExpr.enter(node, visit)
         const typeInfo = xnode.body.find(
           stmt => stmt.kind === NodeKind.ExtractStmt,
@@ -188,7 +184,7 @@ export function inferTypeInfo(): TransformVisitor {
     },
 
     ObjectLiteralExpr: {
-      enter: ctx((node, visit) => {
+      enter: withContext((node, visit) => {
         const xnode = trace.ObjectLiteralExpr.enter(node, child => {
           if (child === node.context) {
             return visit(child)

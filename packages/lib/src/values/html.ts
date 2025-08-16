@@ -1,11 +1,7 @@
 /// <reference types="./html/types.d.ts" />
 
-import {
-  invariant,
-  NullSelection,
-  NullSelectionError,
-  SelectorSyntaxError,
-} from '@getlang/utils'
+import { invariant, NullSelection } from '@getlang/utils'
+import { NullSelectionError, SelectorSyntaxError } from '@getlang/utils/errors'
 import xpath from '@getlang/xpath'
 import { selectAll, selectOne } from 'css-select'
 import { parse as parseCss } from 'css-what'

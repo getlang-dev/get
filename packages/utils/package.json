@@ -4,8 +4,14 @@
   "license": "Apache-2.0",
   "type": "module",
   "exports": {
-    "bun": "./src/index.ts",
-    "default": "./dist/index.js"
+    ".": {
+      "bun": "./src/index.ts",
+      "default": "./dist/index.js"
+    },
+    "./errors": {
+      "bun": "./src/errors.ts",
+      "default": "./dist/errors.js"
+    }
   },
   "bugs": {
     "url": "https://github.com/getlang-dev/get/issues"

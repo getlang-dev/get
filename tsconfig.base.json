@@ -16,6 +16,6 @@
     "outDir": "${configDir}/dist",
     "sourceMap": true,
     "declaration": true,
-    "lib": ["es2022", "dom", "dom.iterable"]
+    "lib": ["esnext", "dom", "dom.iterable"]
   }
 }
