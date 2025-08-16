@@ -1,10 +1,16 @@
 import type { CExpr, Expr } from '../ast/ast.js'
 import { t } from '../ast/ast.js'
-import type { RootScope } from '../ast/scope.js'
+import { RootScope } from '../ast/scope.js'
 import type { TransformVisitor, Visit } from '../visitor/transform.js'
 
-export function traceVisitor(scope: RootScope<Expr>) {
-  function ctx<C extends CExpr>(node: C, visit: Visit, cb: (tnode: C) => C) {
+export function traceVisitor() {
+  const scope = new RootScope<Expr>()
+
+  function withContext<C extends CExpr>(
+    node: C,
+    visit: Visit,
+    cb: (tnode: C) => C,
+  ) {
     if (!node.context) {
       return cb(node)
     }
@@ -15,7 +21,7 @@ export function traceVisitor(scope: RootScope<Expr>) {
     return xnode
   }
 
-  return {
+  const trace = {
     // statements with scope affect
     InputDeclStmt(node) {
       scope.vars[node.id.value] = t.identifierExpr(node.id)
@@ -37,10 +43,19 @@ export function traceVisitor(scope: RootScope<Expr>) {
       return node
     },
 
+    Program: {
+      enter(node, visit) {
+        scope.push()
+        const body = node.body.map(visit)
+        scope.pop()
+        return { ...node, body }
+      },
+    },
+
     // contextual expressions
     SubqueryExpr: {
       enter(node, visit) {
-        return ctx(node, visit, node => {
+        return withContext(node, visit, node => {
           scope.push()
           const body = node.body.map(visit)
           scope.pop()
@@ -51,7 +66,7 @@ export function traceVisitor(scope: RootScope<Expr>) {
 
     ObjectLiteralExpr: {
       enter(node, visit) {
-        return ctx(node, visit, node => {
+        return withContext(node, visit, node => {
           const entries = node.entries.map(e => {
             const value = visit(e.value)
             return { ...e, value }
@@ -63,7 +78,7 @@ export function traceVisitor(scope: RootScope<Expr>) {
 
     SelectorExpr: {
       enter(node, visit) {
-        return ctx(node, visit, node => {
+        return withContext(node, visit, node => {
           return { ...node, selector: visit(node.selector) }
         })
       },
@@ -71,7 +86,7 @@ export function traceVisitor(scope: RootScope<Expr>) {
 
     CallExpr: {
       enter(node, visit) {
-        return ctx(node, visit, node => {
+        return withContext(node, visit, node => {
           return { ...node, args: visit(node.args) }
         })
       },
@@ -80,8 +95,10 @@ export function traceVisitor(scope: RootScope<Expr>) {
     SliceExpr: {
       enter(node, visit) {
         // contains no additional expressions (only .context)
-        return ctx(node, visit, node => node)
+        return withContext(node, visit, node => node)
       },
     },
   } satisfies TransformVisitor
+
+  return { scope, trace }
 }

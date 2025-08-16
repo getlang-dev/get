@@ -1,19 +1,7 @@
+import type { RequestHook } from '@getlang/utils'
 import { RequestError } from '@getlang/utils/errors'
 
 type StringMap = Record<string, string>
-export type RequestHook = (url: string, opts: RequestOpts) => Promise<Response>
-
-type RequestOpts = {
-  method?: string
-  headers?: Headers
-  body?: string
-}
-
-type Response = {
-  status: number
-  headers: Headers
-  body?: string
-}
 
 type Blocks = {
   query?: StringMap

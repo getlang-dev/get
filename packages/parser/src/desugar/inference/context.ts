@@ -2,14 +2,13 @@ import { invariant } from '@getlang/utils'
 import { QuerySyntaxError } from '@getlang/utils/errors'
 import type { CExpr, Expr } from '../../ast/ast.js'
 import { NodeKind } from '../../ast/ast.js'
-import { RootScope } from '../../ast/scope.js'
 import type { TransformVisitor } from '../../visitor/transform.js'
 import type { RequestParsers } from '../reqparse.js'
 import { traceVisitor } from '../trace.js'
 import { tx } from '../utils.js'
 
 export function inferContext(parsers: RequestParsers): TransformVisitor {
-  const scope = new RootScope<Expr>()
+  const { scope, trace } = traceVisitor()
 
   function infer(node: CExpr, mod?: string) {
     let resolved: Expr
@@ -29,8 +28,6 @@ export function inferContext(parsers: RequestParsers): TransformVisitor {
     return { resolved, from }
   }
 
-  const trace = traceVisitor(scope)
-
   return {
     ...trace,
 
@@ -39,8 +36,11 @@ export function inferContext(parsers: RequestParsers): TransformVisitor {
       return node
     },
 
-    Program(node) {
-      return { ...node, body: parsers.insert(node.body) }
+    Program: {
+      enter(node, visit) {
+        const xnode = trace.Program.enter(node, visit)
+        return { ...xnode, body: parsers.insert(xnode.body) }
+      },
     },
 
     SubqueryExpr: {
@@ -60,7 +60,7 @@ export function inferContext(parsers: RequestParsers): TransformVisitor {
     CallExpr: {
       enter(node, visit) {
         const callee = node.callee.value
-        if (node.calltype === 'module') {
+        if (node.calltype !== 'modifier') {
           return trace.CallExpr.enter(node, visit)
         }
 

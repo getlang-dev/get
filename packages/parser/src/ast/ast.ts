@@ -102,10 +102,10 @@ type SelectorExpr = {
   typeInfo: TypeInfo
 }
 
-type CallExpr = {
+export type CallExpr = {
   kind: NodeKind.CallExpr
   callee: Token
-  calltype: 'module' | 'modifier'
+  calltype: 'link' | 'module' | 'modifier'
   args: ObjectLiteralExpr
   context?: Expr
   typeInfo: TypeInfo
@@ -244,7 +244,7 @@ const callExpr = (
 ): CallExpr => ({
   kind: NodeKind.CallExpr,
   callee,
-  calltype: /[A-Z]/.test(callee.value) ? 'module' : 'modifier',
+  calltype: /[A-Z]/.test(callee.value) ? 'link' : 'modifier',
   args: inputs,
   typeInfo: { type: Type.Value },
   context,

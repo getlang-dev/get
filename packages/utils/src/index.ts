@@ -4,6 +4,8 @@ import { FatalError } from './errors.js'
 export * from './hooks.js'
 export * from './wait.js'
 
+export type Inputs = Record<string, unknown>
+
 export class NullSelection {
   constructor(public selector: string) {}
 }

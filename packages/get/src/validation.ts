@@ -1,6 +1,7 @@
 import type { Program } from '@getlang/parser/ast'
 import type { TransformVisitor } from '@getlang/parser/visitor'
 import { visit } from '@getlang/parser/visitor'
+import type { Inputs } from '@getlang/utils'
 import { invariant, NullSelection } from '@getlang/utils'
 import { NullSelectionError, UnknownInputsError } from '@getlang/utils/errors'
 
@@ -15,7 +16,7 @@ export function collectInputs(program: Program): Set<string> {
   return declared
 }
 
-export function validate(program: Program, inputs: Record<string, unknown>) {
+export function validate(program: Program, inputs: Inputs) {
   const declared = collectInputs(program)
   const provided = new Set(Object.keys(inputs))
   const unknown = provided.difference(declared)

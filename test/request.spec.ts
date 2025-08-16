@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, mock, test } from 'bun:test'
+import type { Inputs } from '@getlang/utils'
 import type { Fetch } from './helpers.js'
 import { helper } from './helpers.js'
 
@@ -13,11 +14,8 @@ const mockFetch = mock<Fetch>(
     }),
 )
 
-const execute = (
-  src: string,
-  inputs: Record<string, unknown> = {},
-  fetch: Fetch = mockFetch,
-) => _exec(src, inputs, fetch)
+const execute = (src: string, inputs: Inputs = {}, fetch: Fetch = mockFetch) =>
+  _exec(src, inputs, fetch)
 
 beforeEach(() => {
   mockFetch.mockClear()

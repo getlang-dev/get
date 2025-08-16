@@ -1,52 +1,48 @@
 import { http, slice } from '@getlang/lib'
-import { desugar, parse } from '@getlang/parser'
-import type { Program } from '@getlang/parser/ast'
-import type { UserHooks } from '@getlang/utils'
-import { invariant, wait } from '@getlang/utils'
+import type { Hooks, Inputs, UserHooks } from '@getlang/utils'
+import { invariant } from '@getlang/utils'
 import { ImportError } from '@getlang/utils/errors'
-import type { InternalHooks } from './execute.js'
-import { execute as exec, Modules } from './execute.js'
+import { execute as exec } from './execute.js'
 
-function buildHooks(hooks: UserHooks = {}): InternalHooks {
+function buildHooks(hooks: UserHooks = {}): Hooks {
   return {
     import: (module: string) => {
       invariant(
         hooks.import,
         new ImportError('Imports are not supported by the current runtime'),
       )
-      return wait(hooks.import(module), src => desugar(parse(src)))
+      return hooks.import(module)
     },
-    call: hooks.call ?? ((_module, _inputs, execute) => execute()),
+    call: hooks.call ?? (() => {}),
     request: hooks.request ?? http.requestHook,
     slice: hooks.slice ?? slice.runSlice,
+    extract: hooks.extract ?? (() => {}),
   }
 }
 
 export function execute(
   source: string,
-  inputs: Record<string, unknown> = {},
+  inputs: Inputs = {},
   hooks?: UserHooks,
 ) {
-  const ast = parse(source)
-  const simplified = desugar(ast)
-  return exec(simplified, inputs, buildHooks(hooks))
-}
-
-export function executeAST(
-  ast: Program,
-  inputs: Record<string, unknown> = {},
-  hooks?: UserHooks,
-) {
-  return exec(ast, inputs, buildHooks(hooks))
+  const system = buildHooks(hooks)
+  let rootImported = false
+  return exec('Default', inputs, {
+    ...system,
+    import(module) {
+      if (rootImported) {
+        return system.import(module)
+      }
+      rootImported = true
+      return source
+    },
+  })
 }
 
 export async function executeModule(
   module: string,
-  inputs: Record<string, unknown> = {},
-  _hooks?: UserHooks,
+  inputs: Inputs = {},
+  hooks?: UserHooks,
 ) {
-  const hooks = buildHooks(_hooks)
-  const modules = new Modules(hooks.import)
-  const source = await modules.import(module)
-  return exec(source.program, inputs, hooks, modules)
+  return exec(module, inputs, buildHooks(hooks))
 }

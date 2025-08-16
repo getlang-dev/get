@@ -1,22 +1,19 @@
 import { invariant } from '@getlang/utils'
 import { ValueReferenceError } from '@getlang/utils/errors'
 
-export class Scope<T> {
+class Scope<T> {
   vars: Record<string, T>
   extracted: T | undefined
   contextStack: T[]
 
-  constructor(
-    parentVars: Record<string, T> = Object.create(null),
-    context?: T,
-  ) {
+  constructor(parentVars: Record<string, T>, context?: T) {
     this.vars = Object.create(parentVars)
     this.contextStack = context ? [context] : []
   }
 }
 
 export class RootScope<T> {
-  scopeStack: Scope<T>[] = [new Scope()]
+  scopeStack: Scope<T>[] = []
 
   private get scope() {
     const scope = this.scopeStack.at(-1)
@@ -39,14 +36,14 @@ export class RootScope<T> {
   }
 
   get context() {
-    return this.scope.contextStack.at(-1)
+    return this.scopeStack.at(-1)?.contextStack.at(-1)
   }
 
   updateContext() {
     if (this.context) {
       this.vars[''] = this.context
     } else {
-      delete this.vars['']
+      delete this.scopeStack.at(-1)?.vars['']
     }
   }
 
@@ -59,7 +56,9 @@ export class RootScope<T> {
   }
 
   push(context: T | undefined = this.context) {
-    this.scopeStack.push(new Scope(this.vars, context))
+    const current = this.scopeStack.at(-1)
+    const vars = Object.create(current ? this.vars : null)
+    this.scopeStack.push(new Scope(vars, context))
     this.updateContext()
   }
 

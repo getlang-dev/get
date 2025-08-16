@@ -1,15 +1,14 @@
 import { invariant } from '@getlang/utils'
 import { QuerySyntaxError, ValueReferenceError } from '@getlang/utils/errors'
-import type { Expr, RequestExpr } from '../../ast/ast.js'
-import { NodeKind, t } from '../../ast/ast.js'
-import { RootScope } from '../../ast/scope.js'
+import type { CallExpr, Expr, RequestExpr } from '../../ast/ast.js'
+import { isToken, NodeKind, t } from '../../ast/ast.js'
 import type { TransformVisitor } from '../../visitor/transform.js'
 import type { RequestParsers } from '../reqparse.js'
 import { traceVisitor } from '../trace.js'
 import { render, tx } from '../utils.js'
 
 export function inferLinks(parsers: RequestParsers): TransformVisitor {
-  const scope = new RootScope<Expr>()
+  const { scope, trace } = traceVisitor()
 
   const bases = new Map<Expr, RequestExpr>()
   function inherit(c: Expr, n: Expr) {
@@ -17,7 +16,12 @@ export function inferLinks(parsers: RequestParsers): TransformVisitor {
     base && bases.set(n, base)
   }
 
-  const trace = traceVisitor(scope)
+  const links = new Set<CallExpr>()
+  function registerModule(e: Expr) {
+    if (e.kind === NodeKind.CallExpr && e.calltype === 'link') {
+      e.calltype = 'module'
+    }
+  }
 
   return {
     ...trace,
@@ -35,14 +39,24 @@ export function inferLinks(parsers: RequestParsers): TransformVisitor {
         const xnode = trace.SelectorExpr.enter(node, visit)
         invariant(xnode.context, new QuerySyntaxError('Unresolved context'))
         inherit(xnode.context, xnode)
+        registerModule(xnode.context)
         return xnode
       },
+    },
+
+    TemplateExpr(node) {
+      for (const el of node.elements) {
+        if (!isToken(el)) {
+          registerModule(el)
+        }
+      }
+      return node
     },
 
     CallExpr: {
       enter(node, visit) {
         let tnode = node
-        if (tnode.calltype === 'module') {
+        if (tnode.calltype === 'link') {
           tnode = {
             ...tnode,
             args: {
@@ -64,7 +78,8 @@ export function inferLinks(parsers: RequestParsers): TransformVisitor {
 
         const xnode = trace.CallExpr.enter(tnode, visit)
 
-        if (xnode.calltype === 'module') {
+        if (xnode.calltype === 'link') {
+          links.add(xnode)
           return xnode
         }
 
@@ -98,8 +113,11 @@ export function inferLinks(parsers: RequestParsers): TransformVisitor {
       return node
     },
 
-    Program(node) {
-      return { ...node, body: parsers.insert(node.body) }
+    Program: {
+      enter(node, visit) {
+        const xnode = trace.Program.enter(node, visit)
+        return { ...xnode, body: parsers.insert(xnode.body) }
+      },
     },
 
     SubqueryExpr: {
