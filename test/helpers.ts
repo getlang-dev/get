@@ -1,4 +1,4 @@
-import { execute as exec } from '@getlang/get'
+import { executeModule } from '@getlang/get'
 import { desugar, parse, print } from '@getlang/parser'
 import type { Hooks, Inputs, MaybePromise } from '@getlang/utils'
 import { invariant } from '@getlang/utils'
@@ -48,6 +48,5 @@ export async function execute(
     },
   }
 
-  invariant(modules.Home, 'Expected module entry source')
-  return exec(modules.Home, inputs, hooks)
+  return executeModule('Home', inputs, hooks)
 }

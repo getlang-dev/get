@@ -27,7 +27,7 @@ export function traceVisitor(contextType: TypeInfo = { type: Type.Context }) {
   const trace = {
     // statements with scope affect
     InputDeclStmt(node) {
-      scope.vars[node.id.value] = t.identifierExpr(node.id)
+      scope.vars[node.id.value] = tx.select('')
       return node
     },
 
@@ -48,7 +48,7 @@ export function traceVisitor(contextType: TypeInfo = { type: Type.Context }) {
 
     Program: {
       enter(node, visit) {
-        const programContext = t.identifierExpr(tx.token(''))
+        const programContext = tx.select('')
         programContext.typeInfo = contextType
         scope.push(programContext)
         const body = node.body.map(visit)

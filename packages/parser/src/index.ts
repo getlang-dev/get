@@ -4,13 +4,12 @@ import nearley from 'nearley'
 import type { Program } from './ast/ast.js'
 import lexer from './grammar/lexer.js'
 import grammar from './grammar.js'
-import { desugar } from './passes/desugar.js'
-import { inference } from './passes/inference.js'
 
 export { lexer }
 export { print } from './ast/print.js'
 export { analyze } from './passes/analyze.js'
 export { desugar } from './passes/desugar.js'
+export { buildCallTable } from './passes/inference/calltable.js'
 export { inference } from './passes/inference.js'
 
 export function parse(source: string): Program {
@@ -30,10 +29,4 @@ export function parse(source: string): Program {
   invariant(ast, new QuerySyntaxError('Unexpected end of input'))
   invariant(!rest.length, new QuerySyntaxError('Unexpected parsing error'))
   return ast
-}
-
-export function onepass(source: string) {
-  const ast = parse(source)
-  const simplified = desugar(ast)
-  return inference(simplified)
 }

@@ -1,11 +1,16 @@
-import { analyze, desugar, inference, parse } from '@getlang/parser'
+import {
+  analyze,
+  buildCallTable,
+  desugar,
+  inference,
+  parse,
+} from '@getlang/parser'
 import type { CallExpr, Program } from '@getlang/parser/ast'
 import type { TypeInfo } from '@getlang/parser/typeinfo'
 import { Type } from '@getlang/parser/typeinfo'
 import type { Hooks, Inputs } from '@getlang/utils'
 import { ImportError, ValueTypeError } from '@getlang/utils/errors'
 import { partition } from 'lodash-es'
-import { buildCallTable } from '../../parser/src/passes/inference/calltable.js'
 import { toValue } from './value.js'
 
 type Info = {
@@ -31,8 +36,12 @@ function buildImportKey(module: string, typeInfo?: TypeInfo) {
         return `maybe<${repr(ti.option)}>`
       case Type.List:
         return `${repr(ti.of)}[]`
-      case Type.Struct:
-        return 'TODO'
+      case Type.Struct: {
+        const fields = Object.entries(ti.schema)
+          .map(e => `${e[0]}: ${repr(e[1])};`)
+          .join(' ')
+        return `{ ${fields} }`
+      }
       case Type.Context:
       case Type.Never:
         throw new ValueTypeError('Unsupported key type')
@@ -80,9 +89,8 @@ export class Modules {
     }
     const simplified = desugar(ast, macros)
 
-    const TMP = buildCallTable(simplified, macros)
     const returnTypes: Record<string, TypeInfo> = {}
-    for (const call of TMP) {
+    for (const call of buildCallTable(simplified, macros)) {
       const callee = call.callee.value
       const { returnType } = await this.import(callee)
       returnTypes[callee] = returnType

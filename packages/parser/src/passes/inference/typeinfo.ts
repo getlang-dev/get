@@ -1,6 +1,6 @@
 import { invariant } from '@getlang/utils'
 import { QuerySyntaxError, ValueReferenceError } from '@getlang/utils/errors'
-import type { CExpr, Program } from '../../ast/ast.js'
+import type { CallExpr, CExpr, Program } from '../../ast/ast.js'
 import { NodeKind, t } from '../../ast/ast.js'
 import type { TypeInfo } from '../../ast/typeinfo.js'
 import { Type } from '../../ast/typeinfo.js'
@@ -12,6 +12,8 @@ import { traceVisitor } from '../trace.js'
 const modTypeMap: Record<string, TypeInfo> = {
   html: { type: Type.Html },
   js: { type: Type.Js },
+  json: { type: Type.Value },
+  link: { type: Type.Value },
   headers: { type: Type.Headers },
   cookies: { type: Type.Cookies },
 }
@@ -47,9 +49,15 @@ function rewrap(
   }
 }
 
-export function resolveTypes(ast: Program, contextType?: TypeInfo) {
-  const { scope, trace } = traceVisitor(contextType)
+type ResolveTypeOptions = {
+  callTable: Set<CallExpr>
+  returnTypes: { [module: string]: TypeInfo }
+  contextType?: TypeInfo
+}
 
+export function resolveTypes(ast: Program, options: ResolveTypeOptions) {
+  const { callTable, returnTypes, contextType } = options
+  const { scope, trace } = traceVisitor(contextType)
   let optional = false
   function setOptional<T>(opt: boolean, cb: () => T): T {
     const last = optional
@@ -138,7 +146,6 @@ export function resolveTypes(ast: Program, contextType?: TypeInfo) {
     },
 
     SelectorExpr: {
-      ...trace.SelectorExpr,
       enter: withContext((node, visit) => {
         const xnode = trace.SelectorExpr.enter(node, visit)
         let typeInfo: TypeInfo = unwrap(
@@ -167,12 +174,23 @@ export function resolveTypes(ast: Program, contextType?: TypeInfo) {
     },
 
     CallExpr: {
-      ...trace.CallExpr,
-      enter: withContext((node, visit) => {
-        const xnode = trace.CallExpr.enter(node, visit)
-        const typeInfo = modTypeMap[xnode.callee.value] ?? { type: Type.Value }
-        return { ...xnode, typeInfo }
-      }),
+      enter(node, visit) {
+        const called = callTable.has(node)
+        return withContext<CallExpr>((node, visit) => {
+          const callee = node.callee.value
+          const xnode = trace.CallExpr.enter(node, visit)
+          let typeInfo: TypeInfo | undefined
+          if (node.calltype === 'modifier') {
+            typeInfo = modTypeMap[callee]
+          } else if (called) {
+            typeInfo = returnTypes[callee]
+          } else {
+            typeInfo = node.args.typeInfo
+          }
+          invariant(typeInfo, 'Type inference failure on call expression')
+          return { ...xnode, typeInfo }
+        })(node, visit)
+      },
     },
 
     SubqueryExpr: {

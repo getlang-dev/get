@@ -14,6 +14,27 @@ describe('call', () => {
     })
   })
 
+  test('drill return value', async () => {
+    const modules = {
+      Req: `
+        GET http://stub
+
+        extract @html
+      `,
+      Home: `
+        set req = @Req
+        extract $req -> { div, span }
+      `,
+    }
+
+    const result = await execute(
+      modules,
+      {},
+      () => new Response(`<!doctype html><div>x</div><span>y</span>`),
+    )
+    expect(result).toEqual({ div: 'x', span: 'y' })
+  })
+
   test('links', async () => {
     const modules = {
       Search: 'extract `1`',
@@ -146,4 +167,6 @@ describe('call', () => {
       b: { y: 2 },
     })
   })
+
+  // test('macro return types')
 })
