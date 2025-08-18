@@ -1,11 +1,5 @@
-import {
-  analyze,
-  buildCallTable,
-  desugar,
-  inference,
-  parse,
-} from '@getlang/parser'
-import type { CallExpr, Program } from '@getlang/parser/ast'
+import { analyze, desugar, inference, parse } from '@getlang/parser'
+import type { ModuleExpr, Program } from '@getlang/parser/ast'
 import type { TypeInfo } from '@getlang/parser/typeinfo'
 import { Type } from '@getlang/parser/typeinfo'
 import type { Hooks, Inputs } from '@getlang/utils'
@@ -23,7 +17,6 @@ type Info = {
 type Entry = {
   program: Program
   inputs: Set<string>
-  callTable: Set<CallExpr>
   returnType: TypeInfo
 }
 
@@ -87,22 +80,20 @@ export class Modules {
         macros.push(i)
       }
     }
-    const simplified = desugar(ast, macros)
+    const { program: simplified, calls } = desugar(ast, macros)
 
     const returnTypes: Record<string, TypeInfo> = {}
-    for (const call of buildCallTable(simplified, macros)) {
-      const callee = call.callee.value
-      const { returnType } = await this.import(callee)
-      returnTypes[callee] = returnType
+    for (const call of calls) {
+      const { returnType } = await this.import(call)
+      returnTypes[call] = returnType
     }
 
-    const { program, returnType, callTable } = inference(simplified, {
-      macros,
+    const { program, returnType } = inference(simplified, {
       returnTypes,
       contextType,
     })
 
-    return { program, inputs, returnType, callTable }
+    return { program, inputs, returnType }
   }
 
   import(module: string, contextType?: TypeInfo) {
@@ -111,30 +102,30 @@ export class Modules {
     return this.entries[key]
   }
 
-  async call(node: CallExpr, args: any, contextType?: TypeInfo) {
-    const callee = node.callee.value
+  async call(node: ModuleExpr, args: any, contextType?: TypeInfo) {
+    const module = node.module.value
     let entry: Entry
     try {
-      entry = await this.import(callee, contextType)
+      entry = await this.import(module, contextType)
     } catch (e) {
-      const err = `Failed to import module: ${callee}`
+      const err = `Failed to import module: ${module}`
       throw new ImportError(err, { cause: e })
     }
     const [inputArgs, attrArgs] = partition(Object.entries(args), e =>
       entry.inputs.has(e[0]),
     )
     const inputs = Object.fromEntries(inputArgs)
-    let extracted = await this.hooks.call(callee, inputs)
+    let extracted = await this.hooks.call(module, inputs)
     if (typeof extracted === 'undefined') {
       extracted = await this.execute(entry, inputs)
     }
-    await this.hooks.extract(callee, inputs, extracted)
+    await this.hooks.extract(module, inputs, extracted)
 
     if (typeof extracted !== 'object') {
       if (attrArgs.length) {
         const dropped = attrArgs.map(e => e[0]).join(', ')
         const err = [
-          `Module '${callee}' returned a primitive`,
+          `Module '${module}' returned a primitive`,
           `dropping view attributes: ${dropped}`,
         ].join(', ')
         console.warn(err)

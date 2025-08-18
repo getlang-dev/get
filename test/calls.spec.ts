@@ -1,7 +1,7 @@
 import { describe, expect, test } from 'bun:test'
 import { execute } from './helpers.js'
 
-describe('call', () => {
+describe('calls', () => {
   test('modules', async () => {
     const result = await execute({
       Auth: 'extract { token: `"abc"` }',

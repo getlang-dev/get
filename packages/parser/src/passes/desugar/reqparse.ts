@@ -53,7 +53,7 @@ export class RequestParsers {
           context = tx.select('body', reqId)
         }
       }
-      return t.callExpr(tx.token(field), undefined, context)
+      return t.modifierExpr(tx.token(field), undefined, context)
     }
 
     const id = this.id(idx, field)

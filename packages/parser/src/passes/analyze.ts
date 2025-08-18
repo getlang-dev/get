@@ -23,14 +23,16 @@ export function analyze(ast: Program) {
       inputs.add(node.id.value)
       return trace.InputDeclStmt(node)
     },
-    CallExpr: {
+    ModifierExpr: {
       enter(node, visit) {
-        if (node.calltype === 'module') {
-          imports.add(node.callee.value)
-        } else {
-          checkMacro(node)
-        }
-        return trace.CallExpr.enter(node, visit)
+        checkMacro(node)
+        return trace.ModifierExpr.enter(node, visit)
+      },
+    },
+    ModuleExpr: {
+      enter(node, visit) {
+        imports.add(node.module.value)
+        return trace.ModuleExpr.enter(node, visit)
       },
     },
     SelectorExpr: {

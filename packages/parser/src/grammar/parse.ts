@@ -79,11 +79,15 @@ export const extract: PP = ([, , exports]) => t.extractStmt(exports)
 
 export const subquery: PP = ([, , stmts]) => t.subqueryExpr(stmts)
 
-export const call: PP = ([callee, maybeInputs]) =>
-  t.callExpr(callee, maybeInputs?.[1])
+export const call: PP = ([callee, maybeInputs]) => {
+  const inputs = maybeInputs?.[1]
+  return /^[a-z]/.test(callee.value)
+    ? t.modifierExpr(callee, inputs)
+    : t.moduleExpr(callee, inputs)
+}
 
 export const link: PP = ([maybePrior, callee, _, link]) => {
-  const bit = t.callExpr(
+  const bit = t.moduleExpr(
     callee,
     t.objectLiteralExpr([t.objectEntry(tx.template('@link'), link, true)]),
   )

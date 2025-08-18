@@ -9,7 +9,6 @@ export { lexer }
 export { print } from './ast/print.js'
 export { analyze } from './passes/analyze.js'
 export { desugar } from './passes/desugar.js'
-export { buildCallTable } from './passes/inference/calltable.js'
 export { inference } from './passes/inference.js'
 
 export function parse(source: string): Program {

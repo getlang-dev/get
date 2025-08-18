@@ -127,20 +127,23 @@ export async function execute(
         },
       },
 
-      CallExpr: {
+      ModifierExpr: {
         enter(node, visit) {
           return withContext(scope, node, visit, async context => {
             const args = await visit(node.args)
-            if (node.calltype === 'modifier') {
-              const { value, typeInfo } = context!
-              return callModifier(node, args, value, typeInfo)
-            }
+            const { value, typeInfo } = context!
+            return callModifier(node, args, value, typeInfo)
+          })
+        },
+      },
 
-            if (entry.callTable.has(node)) {
-              return modules.call(node, args, context?.typeInfo)
-            }
-
-            return toValue(args, node.args.typeInfo)
+      ModuleExpr: {
+        enter(node, visit) {
+          return withContext(scope, node, visit, async context => {
+            const args = await visit(node.args)
+            return node.call
+              ? modules.call(node, args, context?.typeInfo)
+              : toValue(args, node.args.typeInfo)
           })
         },
       },

@@ -1,6 +1,6 @@
 import { invariant } from '@getlang/utils'
 import { QuerySyntaxError, ValueReferenceError } from '@getlang/utils/errors'
-import type { CallExpr, CExpr, Program } from '../../ast/ast.js'
+import type { CExpr, Program } from '../../ast/ast.js'
 import { NodeKind, t } from '../../ast/ast.js'
 import type { TypeInfo } from '../../ast/typeinfo.js'
 import { Type } from '../../ast/typeinfo.js'
@@ -50,13 +50,12 @@ function rewrap(
 }
 
 type ResolveTypeOptions = {
-  callTable: Set<CallExpr>
   returnTypes: { [module: string]: TypeInfo }
   contextType?: TypeInfo
 }
 
 export function resolveTypes(ast: Program, options: ResolveTypeOptions) {
-  const { callTable, returnTypes, contextType } = options
+  const { returnTypes, contextType } = options
   const { scope, trace } = traceVisitor(contextType)
   let optional = false
   function setOptional<T>(opt: boolean, cb: () => T): T {
@@ -173,24 +172,23 @@ export function resolveTypes(ast: Program, options: ResolveTypeOptions) {
       }),
     },
 
-    CallExpr: {
-      enter(node, visit) {
-        const called = callTable.has(node)
-        return withContext<CallExpr>((node, visit) => {
-          const callee = node.callee.value
-          const xnode = trace.CallExpr.enter(node, visit)
-          let typeInfo: TypeInfo | undefined
-          if (node.calltype === 'modifier') {
-            typeInfo = modTypeMap[callee]
-          } else if (called) {
-            typeInfo = returnTypes[callee]
-          } else {
-            typeInfo = node.args.typeInfo
-          }
-          invariant(typeInfo, 'Type inference failure on call expression')
-          return { ...xnode, typeInfo }
-        })(node, visit)
-      },
+    ModifierExpr: {
+      enter: withContext((node, visit) => {
+        const xnode = trace.ModifierExpr.enter(node, visit)
+        const typeInfo = modTypeMap[node.modifier.value]
+        invariant(typeInfo, 'Modifier type info lookup failed')
+        return { ...xnode, typeInfo }
+      }),
+    },
+
+    ModuleExpr: {
+      enter: withContext((node, visit) => {
+        const module = node.module.value
+        const xnode = trace.ModuleExpr.enter(node, visit)
+        const typeInfo = node.call ? returnTypes[module] : node.args.typeInfo
+        invariant(typeInfo, 'Module type info lookup failed')
+        return { ...xnode, typeInfo }
+      }),
     },
 
     SubqueryExpr: {

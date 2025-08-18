@@ -1,5 +1,4 @@
 import type { CExpr, Expr } from '../ast/ast.js'
-import { t } from '../ast/ast.js'
 import { RootScope } from '../ast/scope.js'
 import type { TypeInfo } from '../ast/typeinfo.js'
 import { Type } from '../ast/typeinfo.js'
@@ -89,7 +88,15 @@ export function traceVisitor(contextType: TypeInfo = { type: Type.Context }) {
       },
     },
 
-    CallExpr: {
+    ModifierExpr: {
+      enter(node, visit) {
+        return withContext(node, visit, node => {
+          return { ...node, args: visit(node.args) }
+        })
+      },
+    },
+
+    ModuleExpr: {
       enter(node, visit) {
         return withContext(node, visit, node => {
           return { ...node, args: visit(node.args) }

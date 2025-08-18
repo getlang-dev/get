@@ -11,8 +11,8 @@ export type Fetch = (req: Request) => MaybePromise<Response>
 export const SELSYN = true
 
 function testIdempotency(source: string) {
-  const print1 = print(desugar(parse(source)))
-  const print2 = print(desugar(parse(print1)))
+  const print1 = print(desugar(parse(source)).program)
+  const print2 = print(desugar(parse(print1)).program)
   expect(print1).toEqual(print2)
 }
 

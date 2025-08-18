@@ -56,20 +56,11 @@ export const resolveContext: DesugarPass = ({ parsers, macros }) => {
       },
     },
 
-    CallExpr: {
+    ModifierExpr: {
       enter(node, visit) {
-        const callee = node.callee.value
-
-        if (node.calltype === 'module') {
-          const context = macros.includes(callee)
-            ? infer(node).resolved
-            : node.context
-          return trace.CallExpr.enter({ ...node, context }, visit)
-        }
-
-        const { resolved: context, from } = infer(node, callee)
-        const xnode = trace.CallExpr.enter({ ...node, context }, visit)
-
+        const modifier = node.modifier.value
+        const { resolved: context, from } = infer(node, modifier)
+        const xnode = trace.ModifierExpr.enter({ ...node, context }, visit)
         const onRequest = from?.kind === NodeKind.RequestExpr
         // when inferred to request parser, replace modifier
         if (onRequest) {
@@ -77,6 +68,16 @@ export const resolveContext: DesugarPass = ({ parsers, macros }) => {
           return xnode.context
         }
         return xnode
+      },
+    },
+
+    ModuleExpr: {
+      enter(node, visit) {
+        const module = node.module.value
+        const context = macros.includes(module)
+          ? infer(node).resolved
+          : node.context
+        return trace.ModuleExpr.enter({ ...node, context }, visit)
       },
     },
   }

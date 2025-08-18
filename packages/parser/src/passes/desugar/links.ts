@@ -35,37 +35,15 @@ export const settleLinks: DesugarPass = ({ parsers }) => {
       },
     },
 
-    CallExpr: {
+    ModifierExpr: {
       enter(node, visit) {
-        if (node.calltype === 'module') {
-          const tnode = {
-            ...node,
-            args: {
-              ...node.args,
-              entries: node.args.entries.map(e => {
-                if (
-                  render(e.key) !== '@link' ||
-                  (e.value.kind === NodeKind.CallExpr &&
-                    e.value.callee.value === 'link')
-                ) {
-                  return e
-                }
-                const value = t.callExpr(tx.token('link'), undefined, e.value)
-                return { ...e, value }
-              }),
-            },
-          }
-          return trace.CallExpr.enter(tnode, visit)
-        }
-
-        const xnode = trace.CallExpr.enter(node, visit)
+        const xnode = trace.ModifierExpr.enter(node, visit)
         invariant(
-          xnode.kind === NodeKind.CallExpr &&
-            xnode.args.kind === NodeKind.ObjectLiteralExpr,
+          xnode.args.kind === NodeKind.ObjectLiteralExpr,
           new QuerySyntaxError('Modifier options must be an object'),
         )
 
-        if (xnode.callee.value === 'link' && xnode.context) {
+        if (xnode.modifier.value === 'link' && xnode.context) {
           const contextBase = bases.get(xnode.context)
           const hasBase = xnode.args.entries.some(e => render(e.key) === 'base')
           if (contextBase && !hasBase) {
@@ -77,9 +55,33 @@ export const settleLinks: DesugarPass = ({ parsers }) => {
             )
           }
         }
+
         invariant(xnode.context, new QuerySyntaxError('Unresolved context'))
         inherit(xnode.context, xnode)
         return xnode
+      },
+    },
+
+    ModuleExpr: {
+      enter(node, visit) {
+        const tnode = {
+          ...node,
+          args: {
+            ...node.args,
+            entries: node.args.entries.map(e => {
+              if (
+                render(e.key) !== '@link' ||
+                (e.value.kind === NodeKind.ModifierExpr &&
+                  e.value.modifier.value === 'link')
+              ) {
+                return e
+              }
+              const value = t.modifierExpr(tx.token('link'), undefined, e.value)
+              return { ...e, value }
+            }),
+          },
+        }
+        return trace.ModuleExpr.enter(tnode, visit)
       },
     },
 

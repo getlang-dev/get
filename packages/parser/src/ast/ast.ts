@@ -18,7 +18,8 @@ export enum NodeKind {
   TemplateExpr = 'TemplateExpr',
   IdentifierExpr = 'IdentifierExpr',
   SelectorExpr = 'SelectorExpr',
-  CallExpr = 'CallExpr',
+  ModifierExpr = 'ModifierExpr',
+  ModuleExpr = 'ModuleExpr',
   SubqueryExpr = 'SubqueryExpr',
   ObjectLiteralExpr = 'ObjectLiteralExpr',
   SliceExpr = 'SliceExpr',
@@ -102,10 +103,18 @@ type SelectorExpr = {
   typeInfo: TypeInfo
 }
 
-export type CallExpr = {
-  kind: NodeKind.CallExpr
-  callee: Token
-  calltype: 'modifier' | 'module'
+export type ModifierExpr = {
+  kind: NodeKind.ModifierExpr
+  modifier: Token
+  args: ObjectLiteralExpr
+  context?: Expr
+  typeInfo: TypeInfo
+}
+
+export type ModuleExpr = {
+  kind: NodeKind.ModuleExpr
+  module: Token
+  call: boolean
   args: ObjectLiteralExpr
   context?: Expr
   typeInfo: TypeInfo
@@ -145,7 +154,8 @@ export type Expr =
   | TemplateExpr
   | IdentifierExpr
   | SelectorExpr
-  | CallExpr
+  | ModifierExpr
+  | ModuleExpr
   | SubqueryExpr
   | ObjectLiteralExpr
   | SliceExpr
@@ -237,18 +247,29 @@ const selectorExpr = (
   context,
 })
 
-const callExpr = (
-  callee: Token,
+const modifierExpr = (
+  modifier: Token,
   inputs: ObjectLiteralExpr = objectLiteralExpr([]),
   context?: Expr,
-): CallExpr => ({
-  kind: NodeKind.CallExpr,
-  callee,
+): ModifierExpr => ({
+  kind: NodeKind.ModifierExpr,
+  modifier,
   args: inputs,
   typeInfo: { type: Type.Value },
   context,
-  // helper only, does not affect syntax
-  calltype: /^[A-Z]/.test(callee.value) ? 'module' : 'modifier',
+})
+
+const moduleExpr = (
+  module: Token,
+  inputs: ObjectLiteralExpr = objectLiteralExpr([]),
+  context?: Expr,
+): ModuleExpr => ({
+  kind: NodeKind.ModuleExpr,
+  module,
+  call: false,
+  args: inputs,
+  typeInfo: { type: Type.Value },
+  context,
 })
 
 const objectLiteralExpr = (
@@ -297,7 +318,8 @@ export const t = {
 
   // CONTEXTUAL EXPRESSIONS
   selectorExpr,
-  callExpr,
+  modifierExpr,
+  moduleExpr,
   sliceExpr,
   objectLiteralExpr,
   objectEntry,

@@ -1,19 +1,19 @@
 import { cookies, html, js, json } from '@getlang/lib'
-import type { CallExpr } from '@getlang/parser/ast'
+import type { ModifierExpr } from '@getlang/parser/ast'
 import type { TypeInfo } from '@getlang/parser/typeinfo'
 import { NullSelection } from '@getlang/utils'
 import { ValueReferenceError } from '@getlang/utils/errors'
 import { toValue } from './value.js'
 
 export function callModifier(
-  node: CallExpr,
+  node: ModifierExpr,
   args: any,
   value: any,
   typeInfo: TypeInfo,
 ) {
-  const callee = node.callee.value
+  const mod = node.modifier.value
 
-  if (callee === 'link') {
+  if (mod === 'link') {
     const tag = value.type === 'tag' ? value.name : undefined
     if (tag === 'a') {
       value = html.select(value, 'xpath:@href', false)
@@ -24,7 +24,7 @@ export function callModifier(
 
   const doc = toValue(value, typeInfo)
 
-  switch (callee) {
+  switch (mod) {
     case 'link':
       return doc
         ? new URL(doc, args.base).toString()
@@ -38,6 +38,6 @@ export function callModifier(
     case 'cookies':
       return cookies.parse(doc)
     default:
-      throw new ValueReferenceError(`Unsupported modifier: ${callee}`)
+      throw new ValueReferenceError(`Unsupported modifier: ${mod}`)
   }
 }

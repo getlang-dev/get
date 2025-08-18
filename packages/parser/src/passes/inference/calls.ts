@@ -1,34 +1,24 @@
-import type { CallExpr, Expr, Program } from '../../ast/ast.js'
+import type { Expr, Program } from '../../ast/ast.js'
 import { isToken, NodeKind } from '../../ast/ast.js'
 import type { TransformVisitor } from '../../visitor/visitor.js'
 import { visit } from '../../visitor/visitor.js'
 import { traceVisitor } from '../trace.js'
 
-export function buildCallTable(ast: Program, macros: string[] = []) {
+export function registerCalls(ast: Program, macros: string[] = []) {
   const { scope, trace } = traceVisitor()
+  const mutable = visit(ast, {} as TransformVisitor)
 
-  const callTable = new Set<CallExpr>()
   function registerCall(node?: Expr) {
     while (node?.kind === NodeKind.IdentifierExpr) {
       node = scope.vars[node.value.value]
     }
-    if (node?.kind === NodeKind.CallExpr && node.calltype === 'module') {
-      callTable.add(node)
+    if (node?.kind === NodeKind.ModuleExpr) {
+      node.call = true
     }
   }
 
-  // note: `visit` is mutative on exit, so entry visitors must be used
-  // to ensure node references collected point to provided AST
   const visitor: TransformVisitor = {
     ...trace,
-
-    AssignmentStmt: {
-      // overwrites trace visitor to use pre-mutation node
-      enter(node) {
-        scope.vars[node.name.value] = node.value
-        return node
-      },
-    },
 
     TemplateExpr: {
       enter(node) {
@@ -48,16 +38,23 @@ export function buildCallTable(ast: Program, macros: string[] = []) {
       },
     },
 
-    CallExpr: {
+    ModifierExpr: {
       enter(node, visit) {
-        if (macros.includes(node.callee.value)) {
+        registerCall(node.context)
+        return trace.ModifierExpr.enter(node, visit)
+      },
+    },
+
+    ModuleExpr: {
+      enter(node, visit) {
+        const module = node.module.value
+        if (macros.includes(module)) {
           registerCall(node)
         }
-        return trace.CallExpr.enter(node, visit)
+        return trace.ModuleExpr.enter(node, visit)
       },
     },
   }
 
-  visit(ast, visitor)
-  return callTable
+  return visit(mutable, visitor)
 }
