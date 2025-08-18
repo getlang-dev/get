@@ -1,8 +1,8 @@
 import { invariant } from '@getlang/utils'
 import { QuerySyntaxError } from '@getlang/utils/errors'
-import type { Expr, RequestExpr, Stmt } from '../ast/ast.js'
-import { NodeKind, t } from '../ast/ast.js'
-import { getContentField, tx } from './utils.js'
+import type { Expr, RequestExpr, Stmt } from '../../ast/ast.js'
+import { NodeKind, t } from '../../ast/ast.js'
+import { getContentField, tx } from '../../utils.js'
 
 type Parsers = Record<string, { written: boolean }>
 

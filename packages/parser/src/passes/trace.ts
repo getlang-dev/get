@@ -1,9 +1,12 @@
 import type { CExpr, Expr } from '../ast/ast.js'
 import { t } from '../ast/ast.js'
 import { RootScope } from '../ast/scope.js'
+import type { TypeInfo } from '../ast/typeinfo.js'
+import { Type } from '../ast/typeinfo.js'
+import { tx } from '../utils.js'
 import type { TransformVisitor, Visit } from '../visitor/transform.js'
 
-export function traceVisitor() {
+export function traceVisitor(contextType: TypeInfo = { type: Type.Context }) {
   const scope = new RootScope<Expr>()
 
   function withContext<C extends CExpr>(
@@ -45,7 +48,9 @@ export function traceVisitor() {
 
     Program: {
       enter(node, visit) {
-        scope.push()
+        const programContext = t.identifierExpr(tx.token(''))
+        programContext.typeInfo = contextType
+        scope.push(programContext)
         const body = node.body.map(visit)
         scope.pop()
         return { ...node, body }

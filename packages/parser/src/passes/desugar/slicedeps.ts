@@ -8,8 +8,8 @@ import detect from 'acorn-globals'
 import globals from 'globals'
 import type { Expr } from '../../ast/ast.js'
 import { t } from '../../ast/ast.js'
-import type { TransformVisitor } from '../../visitor/transform.js'
-import { tx } from '../utils.js'
+import { tx } from '../../utils.js'
+import type { DesugarPass } from '../desugar.js'
 
 const browserGlobals = [
   ...Object.keys(globals.browser),
@@ -60,7 +60,7 @@ const analyzeSlice = (_source: string, analyzeDeps: boolean) => {
   return { source, deps, usesContext }
 }
 
-export function inferSliceDeps(): TransformVisitor {
+export const insertSliceDeps: DesugarPass = () => {
   return {
     SliceExpr(node) {
       const stat = analyzeSlice(node.slice.value, !node.context)

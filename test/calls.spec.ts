@@ -1,7 +1,5 @@
 import { describe, expect, test } from 'bun:test'
-import { helper } from './helpers.js'
-
-const { execute, testIdempotency } = helper()
+import { execute } from './helpers.js'
 
 describe('call', () => {
   test('modules', async () => {
@@ -18,6 +16,8 @@ describe('call', () => {
 
   test('links', async () => {
     const modules = {
+      Search: 'extract `1`',
+      Product: 'extract `2`',
       Home: `
         inputs { query, page? }
 
@@ -111,9 +111,39 @@ describe('call', () => {
     })
   })
 
-  test('idempotency', () => {
-    for (const { a, b } of testIdempotency()) {
-      expect(a).toEqual(b)
+  test('context propagation', async () => {
+    const modules = {
+      Home: `
+        GET http://stub
+
+        extract {
+          a: @Data({text: \`'first'\`})
+          b: @Data({text: \`'second'\`})
+        }
+      `,
+      Data: `
+        inputs { text }
+
+        extract xpath://div[p[contains(text(), '$text')]]
+          -> xpath:@data-json
+          -> @json
+      `,
     }
+
+    const result = await execute(
+      modules,
+      {},
+      () =>
+        new Response(`
+          <!doctype html>
+          <div data-json='{"x": 1}'><p>first</p></li>
+          <div data-json='{"y": 2}'><p>second</p></li>
+        `),
+    )
+
+    expect(result).toEqual({
+      a: { x: 1 },
+      b: { y: 2 },
+    })
   })
 })

@@ -22,15 +22,13 @@ export type ExtractHook = (
   value: any,
 ) => MaybePromise<any>
 
-export type Hooks = {
+export type Hooks = Partial<{
   import: ImportHook
   request: RequestHook
   slice: SliceHook
   call: CallHook
   extract: ExtractHook
-}
-
-export type UserHooks = Partial<Hooks>
+}>
 
 type RequestInit = {
   method?: string

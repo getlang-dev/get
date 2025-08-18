@@ -1,6 +1,8 @@
 import { cookies, headers, html, js } from '@getlang/lib'
 import type { TypeInfo } from '@getlang/parser/typeinfo'
 import { Type } from '@getlang/parser/typeinfo'
+import { NullSelection } from '@getlang/utils'
+import { NullSelectionError, ValueTypeError } from '@getlang/utils/errors'
 import { mapValues } from 'lodash-es'
 
 export function toValue(value: any, typeInfo: TypeInfo): any {
@@ -21,5 +23,14 @@ export function toValue(value: any, typeInfo: TypeInfo): any {
       return toValue(value, typeInfo.option)
     case Type.Value:
       return value
+    default:
+      throw new ValueTypeError('Unsupported conversion type')
   }
+}
+
+export function assert(value: any) {
+  if (value instanceof NullSelection) {
+    throw new NullSelectionError(value.selector)
+  }
+  return value
 }

@@ -4,7 +4,7 @@ import type { TypeInfo } from '@getlang/parser/typeinfo'
 import { Type } from '@getlang/parser/typeinfo'
 import type { MaybePromise } from '@getlang/utils'
 import { NullSelection } from '@getlang/utils'
-import { assert } from './validation.js'
+import { assert } from './value.js'
 
 type Contextual = { value: any; typeInfo: TypeInfo }
 

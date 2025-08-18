@@ -1,5 +1,12 @@
 import { describe, expect, mock, test } from 'bun:test'
-import type { Hooks, UserHooks } from '@getlang/utils'
+import type {
+  CallHook,
+  ExtractHook,
+  Hooks,
+  ImportHook,
+  RequestHook,
+  SliceHook,
+} from '@getlang/utils'
 import { invariant } from '@getlang/utils'
 import { execute } from './index.js'
 
@@ -12,7 +19,7 @@ describe('hook', () => {
       extract -> h1
     `
 
-    const requestHook = mock<Hooks['request']>(async () => ({
+    const requestHook = mock<RequestHook>(async () => ({
       status: 200,
       headers: new Headers({ 'content-type': 'text/html' }),
       body: '<!doctype html><h1>test</h1>',
@@ -32,7 +39,7 @@ describe('hook', () => {
   })
 
   test('on slice', async () => {
-    const sliceHook = mock<Hooks['slice']>(() => 3)
+    const sliceHook = mock<SliceHook>(() => 3)
 
     const result = await execute('extract `1 + 2`', {}, { slice: sliceHook })
 
@@ -67,14 +74,14 @@ describe('hook', () => {
       }
     `
 
-    const hooks: UserHooks = {
-      import: mock<Hooks['import']>(async (module: string) => {
+    const hooks: Hooks = {
+      import: mock<ImportHook>(async (module: string) => {
         const src = modules[module]
         invariant(src, `Unexpected import: ${module}`)
         return src
       }),
-      call: mock<Hooks['call']>(() => {}),
-      extract: mock<Hooks['extract']>(() => {}),
+      call: mock<CallHook>(() => {}),
+      extract: mock<ExtractHook>(() => {}),
     }
     const result = await execute(src, {}, hooks)
 

@@ -1,5 +1,5 @@
 import { cookies, headers, html, http, js, json } from '@getlang/lib'
-import type { Node, Program, Stmt } from '@getlang/parser/ast'
+import type { Node, Stmt } from '@getlang/parser/ast'
 import { isToken, NodeKind } from '@getlang/parser/ast'
 import { RootScope } from '@getlang/parser/scope'
 import type { TypeInfo } from '@getlang/parser/typeinfo'
@@ -8,37 +8,26 @@ import type { AsyncInterpretVisitor } from '@getlang/parser/visitor'
 import { visit } from '@getlang/parser/visitor'
 import type { Hooks, Inputs } from '@getlang/utils'
 import { invariant, NullSelection } from '@getlang/utils'
-import {
+import * as errors from '@getlang/utils/errors'
+import { withContext } from './context.js'
+import { callModifier } from './modifiers.js'
+import type { Execute } from './modules.js'
+import { Modules } from './modules.js'
+import { assert, toValue } from './value.js'
+
+const {
   NullInputError,
   QuerySyntaxError,
   SliceError,
+  UnknownInputsError,
   ValueReferenceError,
-} from '@getlang/utils/errors'
-import { withContext } from './context.js'
-import { callModifier } from './modifiers.js'
-import { Modules } from './modules.js'
-import { assert, validate } from './validation.js'
-import { toValue } from './value.js'
+} = errors
 
 export async function execute(
   rootModule: string,
   rootInputs: Inputs,
-  hooks: Hooks,
+  hooks: Required<Hooks>,
 ) {
-  const scope = new RootScope<any>()
-  const modules = new Modules({
-    ...hooks,
-    async call(module, inputs) {
-      let value = await hooks.call(module, inputs)
-      if (typeof value === 'undefined') {
-        const { program } = await modules.import(module)
-        value = await executeModule(program, inputs)
-      }
-      await hooks.extract(module, inputs, value)
-      return value
-    },
-  })
-
   async function executeBody(visit: (stmt: Stmt) => void, body: Stmt[]) {
     scope.push()
     for (const stmt of body) {
@@ -50,12 +39,14 @@ export async function execute(
     return scope.pop()
   }
 
-  async function executeModule(program: Program, inputs: Inputs) {
-    validate(program, inputs)
+  const executeModule: Execute = async (entry, inputs) => {
+    const provided = new Set(Object.keys(inputs))
+    const unknown = provided.difference(entry.inputs)
+    invariant(unknown.size === 0, new UnknownInputsError([...unknown]))
     scope.push()
     let ex: any
 
-    await visit<Node, AsyncInterpretVisitor<void, any>>(program, {
+    await visit<Node, AsyncInterpretVisitor<void, any>>(entry.program, {
       /**
        * Expression nodes
        */
@@ -140,18 +131,16 @@ export async function execute(
         enter(node, visit) {
           return withContext(scope, node, visit, async context => {
             const args = await visit(node.args)
-            switch (node.calltype) {
-              case 'link':
-                return toValue(args, node.args.typeInfo)
-              case 'module':
-                return modules.call(node, args)
-              case 'modifier': {
-                const { value, typeInfo } = context!
-                return callModifier(node, args, value, typeInfo)
-              }
-              default:
-                throw new Error(`Unknown calltype: ${node.calltype}`)
+            if (node.calltype === 'modifier') {
+              const { value, typeInfo } = context!
+              return callModifier(node, args, value, typeInfo)
             }
+
+            if (entry.callTable.has(node)) {
+              return modules.call(node, args, context?.typeInfo)
+            }
+
+            return toValue(args, node.args.typeInfo)
           })
         },
       },
@@ -241,9 +230,11 @@ export async function execute(
     return ex
   }
 
-  const { program } = await modules.import(rootModule)
-  const ex = await executeModule(program, rootInputs)
-  const retType: any = program.body.find(
+  const scope = new RootScope<any>()
+  const modules = new Modules(hooks, executeModule)
+  const rootEntry = await modules.import(rootModule)
+  const ex = await executeModule(rootEntry, rootInputs)
+  const retType: any = rootEntry.program.body.find(
     stmt => stmt.kind === NodeKind.ExtractStmt,
   )
   return retType ? toValue(ex, retType.value.typeInfo) : ex

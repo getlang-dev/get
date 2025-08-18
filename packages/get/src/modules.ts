@@ -1,36 +1,113 @@
-import { desugar, parse } from '@getlang/parser'
+import { analyze, desugar, inference, parse } from '@getlang/parser'
 import type { CallExpr, Program } from '@getlang/parser/ast'
-import type { Hooks, MaybePromise } from '@getlang/utils'
-import { ImportError } from '@getlang/utils/errors'
+import type { TypeInfo } from '@getlang/parser/typeinfo'
+import { Type } from '@getlang/parser/typeinfo'
+import type { Hooks, Inputs } from '@getlang/utils'
+import { ImportError, ValueTypeError } from '@getlang/utils/errors'
 import { partition } from 'lodash-es'
-import { collectInputs } from './validation.js'
+import { buildCallTable } from '../../parser/src/passes/inference/calltable.js'
 import { toValue } from './value.js'
 
-type Entry = { source: string; program: Program; inputs: Set<string> }
-type Cache = Record<string, MaybePromise<Entry>>
+type Info = {
+  ast: Program
+  inputs: Set<string>
+  imports: Set<string>
+  isMacro: boolean
+}
+
+type Entry = {
+  program: Program
+  inputs: Set<string>
+  callTable: Set<CallExpr>
+  returnType: TypeInfo
+}
+
+export type Execute = (entry: Entry, inputs: Inputs) => Promise<any>
+
+function buildImportKey(module: string, typeInfo?: TypeInfo) {
+  function repr(ti: TypeInfo): string {
+    switch (ti.type) {
+      case Type.Maybe:
+        return `maybe<${repr(ti.option)}>`
+      case Type.List:
+        return `${repr(ti.of)}[]`
+      case Type.Struct:
+        return 'TODO'
+      case Type.Context:
+      case Type.Never:
+        throw new ValueTypeError('Unsupported key type')
+      default:
+        return ti.type
+    }
+  }
+
+  let key = module
+  if (typeInfo) {
+    key += `<${repr(typeInfo)}>`
+  }
+  return key
+}
 
 export class Modules {
-  private cache: Cache = {}
-  constructor(private hooks: Hooks) {}
+  private info: Record<string, Promise<Info>> = {}
+  private entries: Record<string, Promise<Entry>> = {}
 
-  async load(module: string) {
+  constructor(
+    private hooks: Required<Hooks>,
+    private execute: Execute,
+  ) {}
+
+  async load(module: string): Promise<Info> {
     const source = await this.hooks.import(module)
     const ast = parse(source)
-    const program = desugar(ast)
-    const inputs = collectInputs(program)
-    return { source, program, inputs }
+    const info = analyze(ast)
+    return { ast, ...info }
   }
 
-  import(module: string) {
-    this.cache[module] ??= this.load(module)
-    return this.cache[module]
+  async getInfo(module: string) {
+    this.info[module] ??= this.load(module)
+    return this.info[module]
   }
 
-  async call(node: CallExpr, args: any) {
+  async compile(module: string, contextType?: TypeInfo): Promise<Entry> {
+    const { ast, inputs, imports } = await this.getInfo(module)
+    const macros: string[] = []
+    for (const i of imports) {
+      const depInfo = await this.getInfo(i)
+      if (depInfo.isMacro) {
+        macros.push(i)
+      }
+    }
+    const simplified = desugar(ast, macros)
+
+    const TMP = buildCallTable(simplified, macros)
+    const returnTypes: Record<string, TypeInfo> = {}
+    for (const call of TMP) {
+      const callee = call.callee.value
+      const { returnType } = await this.import(callee)
+      returnTypes[callee] = returnType
+    }
+
+    const { program, returnType, callTable } = inference(simplified, {
+      macros,
+      returnTypes,
+      contextType,
+    })
+
+    return { program, inputs, returnType, callTable }
+  }
+
+  import(module: string, contextType?: TypeInfo) {
+    const key = buildImportKey(module, contextType)
+    this.entries[key] ??= this.compile(module, contextType)
+    return this.entries[key]
+  }
+
+  async call(node: CallExpr, args: any, contextType?: TypeInfo) {
     const callee = node.callee.value
     let entry: Entry
     try {
-      entry = await this.import(callee)
+      entry = await this.import(callee, contextType)
     } catch (e) {
       const err = `Failed to import module: ${callee}`
       throw new ImportError(err, { cause: e })
@@ -39,7 +116,11 @@ export class Modules {
       entry.inputs.has(e[0]),
     )
     const inputs = Object.fromEntries(inputArgs)
-    const extracted = await this.hooks.call(callee, inputs)
+    let extracted = await this.hooks.call(callee, inputs)
+    if (typeof extracted === 'undefined') {
+      extracted = await this.execute(entry, inputs)
+    }
+    await this.hooks.extract(callee, inputs, extracted)
 
     if (typeof extracted !== 'object') {
       if (attrArgs.length) {

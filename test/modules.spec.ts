@@ -1,8 +1,6 @@
 import { describe, expect, test } from 'bun:test'
 import { NullInputError, UnknownInputsError } from '@getlang/utils/errors'
-import { helper } from './helpers.js'
-
-const { execute, testIdempotency } = helper()
+import { execute } from './helpers.js'
 
 describe('modules', () => {
   test('extract', async () => {
@@ -12,11 +10,16 @@ describe('modules', () => {
   })
 
   test('syntax error', () => {
-    const result = execute(`
+    const result = execute(
+      `
       GET https://test.com
 
       extrct { title }
-    `)
+    `,
+      {},
+      undefined,
+      true,
+    )
     return expect(result).rejects.toThrow(
       'SyntaxError: Invalid token at line 3 col 1:\n\n1  GET https://test.com\n2  \n3  extrct { title }\n   ^',
     )
@@ -116,11 +119,5 @@ describe('modules', () => {
       )
     `)
     expect(result).toEqual({ test: true })
-  })
-
-  test('idempotency', () => {
-    for (const { a, b } of testIdempotency()) {
-      expect(a).toEqual(b)
-    }
   })
 })

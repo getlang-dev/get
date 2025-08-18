@@ -1,12 +1,13 @@
 import { invariant } from '@getlang/utils'
 import { QuerySyntaxError, ValueReferenceError } from '@getlang/utils/errors'
-import type { CExpr } from '../../ast/ast.js'
+import type { CExpr, Program } from '../../ast/ast.js'
 import { NodeKind, t } from '../../ast/ast.js'
 import type { TypeInfo } from '../../ast/typeinfo.js'
 import { Type } from '../../ast/typeinfo.js'
+import { render, selectTypeInfo } from '../../utils.js'
 import type { TransformVisitor, Visit } from '../../visitor/transform.js'
+import { visit } from '../../visitor/visitor.js'
 import { traceVisitor } from '../trace.js'
-import { render, selectTypeInfo } from '../utils.js'
 
 const modTypeMap: Record<string, TypeInfo> = {
   html: { type: Type.Html },
@@ -46,8 +47,8 @@ function rewrap(
   }
 }
 
-export function inferTypeInfo(): TransformVisitor {
-  const { scope, trace } = traceVisitor()
+export function resolveTypes(ast: Program, contextType?: TypeInfo) {
+  const { scope, trace } = traceVisitor(contextType)
 
   let optional = false
   function setOptional<T>(opt: boolean, cb: () => T): T {
@@ -79,7 +80,7 @@ export function inferTypeInfo(): TransformVisitor {
     }
   }
 
-  return {
+  const visitor: TransformVisitor = {
     ...trace,
 
     InputDeclStmt: {
@@ -137,6 +138,7 @@ export function inferTypeInfo(): TransformVisitor {
     },
 
     SelectorExpr: {
+      ...trace.SelectorExpr,
       enter: withContext((node, visit) => {
         const xnode = trace.SelectorExpr.enter(node, visit)
         let typeInfo: TypeInfo = unwrap(
@@ -165,10 +167,10 @@ export function inferTypeInfo(): TransformVisitor {
     },
 
     CallExpr: {
+      ...trace.CallExpr,
       enter: withContext((node, visit) => {
         const xnode = trace.CallExpr.enter(node, visit)
-        const callee = xnode.callee.value
-        const typeInfo = modTypeMap[callee] ?? { type: Type.Value }
+        const typeInfo = modTypeMap[xnode.callee.value] ?? { type: Type.Value }
         return { ...xnode, typeInfo }
       }),
     },
@@ -216,4 +218,10 @@ export function inferTypeInfo(): TransformVisitor {
       }),
     },
   }
+
+  const program: Program = visit(ast, visitor)
+  const ex = program.body.find(s => s.kind === NodeKind.ExtractStmt)
+  const returnType = ex?.value.typeInfo ?? { type: Type.Never }
+
+  return { program, returnType }
 }

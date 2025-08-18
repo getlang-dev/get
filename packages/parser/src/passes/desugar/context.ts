@@ -2,12 +2,11 @@ import { invariant } from '@getlang/utils'
 import { QuerySyntaxError } from '@getlang/utils/errors'
 import type { CExpr, Expr } from '../../ast/ast.js'
 import { NodeKind } from '../../ast/ast.js'
-import type { TransformVisitor } from '../../visitor/transform.js'
-import type { RequestParsers } from '../reqparse.js'
+import { tx } from '../../utils.js'
+import type { DesugarPass } from '../desugar.js'
 import { traceVisitor } from '../trace.js'
-import { tx } from '../utils.js'
 
-export function inferContext(parsers: RequestParsers): TransformVisitor {
+export const resolveContext: DesugarPass = ({ parsers, macros }) => {
   const { scope, trace } = traceVisitor()
 
   function infer(node: CExpr, mod?: string) {
@@ -60,8 +59,12 @@ export function inferContext(parsers: RequestParsers): TransformVisitor {
     CallExpr: {
       enter(node, visit) {
         const callee = node.callee.value
-        if (node.calltype !== 'modifier') {
-          return trace.CallExpr.enter(node, visit)
+
+        if (node.calltype === 'module') {
+          const context = macros.includes(callee)
+            ? infer(node).resolved
+            : node.context
+          return trace.CallExpr.enter({ ...node, context }, visit)
         }
 
         const { resolved: context, from } = infer(node, callee)

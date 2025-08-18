@@ -4,9 +4,7 @@ import {
   NullSelectionError,
   SelectorSyntaxError,
 } from '@getlang/utils/errors'
-import { helper, SELSYN } from './helpers.js'
-
-const { execute, testIdempotency } = helper()
+import { execute, SELSYN } from './helpers.js'
 
 describe('values', () => {
   test('into JS object', async () => {
@@ -459,11 +457,5 @@ describe('values', () => {
       // i.e. does not equal { test: { a: ... } }
       expect(result).toEqual({})
     })
-  })
-
-  test('idempotency', () => {
-    for (const { a, b } of testIdempotency()) {
-      expect(a).toEqual(b)
-    }
   })
 })

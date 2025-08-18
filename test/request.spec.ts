@@ -1,9 +1,7 @@
 import { beforeEach, describe, expect, mock, test } from 'bun:test'
 import type { Inputs } from '@getlang/utils'
 import type { Fetch } from './helpers.js'
-import { helper } from './helpers.js'
-
-const { execute: _exec, testIdempotency } = helper()
+import { execute as _exec } from './helpers.js'
 
 const mockFetch = mock<Fetch>(
   () =>
@@ -514,11 +512,5 @@ describe('request', () => {
 
       expect(result).toEqual('jZDE5MDBhNzczNDMzMTk4')
     })
-  })
-
-  test('idempotency', () => {
-    for (const { a, b } of testIdempotency()) {
-      expect(a).toEqual(b)
-    }
   })
 })

@@ -1,7 +1,7 @@
 import { invariant } from '@getlang/utils'
 import { QuerySyntaxError } from '@getlang/utils/errors'
 import { isToken, NodeKind, t } from '../ast/ast.js'
-import { tx } from '../desugar/utils.js'
+import { tx } from '../utils.js'
 
 type PP = nearley.Postprocessor
 

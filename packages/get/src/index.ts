@@ -1,10 +1,10 @@
 import { http, slice } from '@getlang/lib'
-import type { Hooks, Inputs, UserHooks } from '@getlang/utils'
+import type { Hooks, Inputs } from '@getlang/utils'
 import { invariant } from '@getlang/utils'
 import { ImportError } from '@getlang/utils/errors'
 import { execute as exec } from './execute.js'
 
-function buildHooks(hooks: UserHooks = {}): Hooks {
+function buildHooks(hooks: Hooks): Required<Hooks> {
   return {
     import: (module: string) => {
       invariant(
@@ -23,17 +23,13 @@ function buildHooks(hooks: UserHooks = {}): Hooks {
 export function execute(
   source: string,
   inputs: Inputs = {},
-  hooks?: UserHooks,
+  hooks: Hooks = {},
 ) {
   const system = buildHooks(hooks)
-  let rootImported = false
   return exec('Default', inputs, {
     ...system,
-    import(module) {
-      if (rootImported) {
-        return system.import(module)
-      }
-      rootImported = true
+    import() {
+      this.import = system.import
       return source
     },
   })
@@ -42,7 +38,7 @@ export function execute(
 export async function executeModule(
   module: string,
   inputs: Inputs = {},
-  hooks?: UserHooks,
+  hooks: Hooks = {},
 ) {
   return exec(module, inputs, buildHooks(hooks))
 }
