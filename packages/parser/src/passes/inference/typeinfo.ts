@@ -61,7 +61,7 @@ function specialize(macroType: TypeInfo, contextType?: TypeInfo) {
         return { ...ti, of: walk(ti.of) }
       case Type.Struct: {
         const schema = Object.fromEntries(
-          Object.entries(ti.schema).map(e => [e[0], walk(e[1])])
+          Object.entries(ti.schema).map(e => [e[0], walk(e[1])]),
         )
         return { ...ti, schema }
       }

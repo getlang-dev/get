@@ -9,11 +9,18 @@ export function registerCalls(ast: Program, macros: string[] = []) {
   const mutable = visit(ast, {} as TransformVisitor)
 
   function registerCall(node?: Expr) {
-    while (node?.kind === NodeKind.IdentifierExpr) {
-      node = scope.vars[node.value.value]
-    }
-    if (node?.kind === NodeKind.ModuleExpr) {
-      node.call = true
+    switch (node?.kind) {
+      case NodeKind.IdentifierExpr: {
+        const value = scope.vars[node.value.value]
+        return registerCall(value)
+      }
+      case NodeKind.SubqueryExpr: {
+        const ex = node.body.find(s => s.kind === NodeKind.ExtractStmt)
+        return registerCall(ex?.value)
+      }
+      case NodeKind.ModuleExpr: {
+        node.call = true
+      }
     }
   }
 

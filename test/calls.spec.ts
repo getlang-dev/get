@@ -1,4 +1,5 @@
 import { describe, expect, test } from 'bun:test'
+import { RecursiveCallError } from '@getlang/utils/errors'
 import { execute } from './helpers.js'
 
 describe('calls', () => {
@@ -14,19 +15,49 @@ describe('calls', () => {
     })
   })
 
-  test.only('semantics', async () => {
+  test('semantics', async () => {
     const modules = {
-      Call: 'return { called: `true` }',
+      Call: `
+        inputs { called }
+        extract { called: \`true\` }
+      `,
       Home: `
         set called = \`false\`
-        set select = @Call({ $called })
-        extract { $select }
-      `
+        set as_var = @Call({ $called })
+        set as_subquery = ( extract @Call({ $called }) )
+
+        extract {
+          select: @Call({ $called }) -> called
+          from_var: $as_var -> called
+          subquery: ( extract @Call({ $called }) ) -> called
+          from_subquery: $as_subquery -> called
+        }
+      `,
     }
     const result = await execute(modules)
     expect(result).toEqual({
-      select: { called: true }
+      select: true,
+      from_var: true,
+      subquery: true,
+      from_subquery: true,
     })
+  })
+
+  test.skip('semantics - object key', async () => {
+    const modules = {
+      Call: `
+        inputs { called }
+        extract { called: \`true\` }
+      `,
+      Home: `
+        set called = \`false\`
+        extract {
+          object: as_entry = { key: @Call({ $called }) } -> key -> called
+        }
+      `,
+    }
+    const result = await execute(modules)
+    expect(result).toEqual({ object: true })
   })
 
   test('drill return value', async () => {
@@ -35,6 +66,27 @@ describe('calls', () => {
         GET http://stub
 
         extract @html
+      `,
+      Home: `
+        set req = @Req
+        extract $req -> { div, span }
+      `,
+    }
+
+    const result = await execute(
+      modules,
+      {},
+      () => new Response(`<!doctype html><div>x</div><span>y</span>`),
+    )
+    expect(result).toEqual({ div: 'x', span: 'y' })
+  })
+
+  test.skip('drill returned request', async () => {
+    const modules = {
+      Req: `
+        GET http://stub
+
+        extract $
       `,
       Home: `
         set req = @Req
@@ -206,5 +258,47 @@ describe('calls', () => {
     )
 
     expect(result).toEqual({ x: 1 })
+  })
+
+  test('recursive', async () => {
+    const modules = {
+      Home: `
+        extract {
+          value: @Page -> value
+        }
+      `,
+      Page: `
+        extract {
+          value: @Home -> value
+        }
+      `,
+    }
+
+    const result = execute(modules)
+    return expect(result).rejects.toThrow(
+      new RecursiveCallError(['Home', 'Page', 'Home']),
+    )
+  })
+
+  test('recursive link not called', async () => {
+    const modules = {
+      Home: `
+        extract {
+          page: @Page -> value
+        }
+      `,
+      Page: `
+        extract {
+          value: @Home({
+            called: \`false\`
+          })
+        }
+      `,
+    }
+
+    const result = await execute(modules)
+    expect(result).toEqual({
+      page: { called: false },
+    })
   })
 })

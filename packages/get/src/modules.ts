@@ -3,7 +3,11 @@ import type { ModuleExpr, Program } from '@getlang/parser/ast'
 import type { TypeInfo } from '@getlang/parser/typeinfo'
 import { Type } from '@getlang/parser/typeinfo'
 import type { Hooks, Inputs } from '@getlang/utils'
-import { ImportError, ValueTypeError } from '@getlang/utils/errors'
+import {
+  ImportError,
+  RecursiveCallError,
+  ValueTypeError,
+} from '@getlang/utils/errors'
 import { partition } from 'lodash-es'
 import { toValue } from './value.js'
 
@@ -71,7 +75,11 @@ export class Modules {
     return this.info[module]
   }
 
-  async compile(module: string, contextType?: TypeInfo): Promise<Entry> {
+  async compile(
+    module: string,
+    stack: string[],
+    contextType?: TypeInfo,
+  ): Promise<Entry> {
     const { ast, inputs, imports } = await this.getInfo(module)
     const macros: string[] = []
     for (const i of imports) {
@@ -84,7 +92,7 @@ export class Modules {
 
     const returnTypes: Record<string, TypeInfo> = {}
     for (const call of calls) {
-      const { returnType } = await this.import(call)
+      const { returnType } = await this.import(call, stack)
       returnTypes[call] = returnType
     }
 
@@ -96,9 +104,13 @@ export class Modules {
     return { program, inputs, returnType }
   }
 
-  import(module: string, contextType?: TypeInfo) {
+  import(module: string, prev: string[] = [], contextType?: TypeInfo) {
+    const stack = [...prev, module]
+    if (prev.includes(module)) {
+      throw new RecursiveCallError(stack)
+    }
     const key = buildImportKey(module, contextType)
-    this.entries[key] ??= this.compile(module, contextType)
+    this.entries[key] ??= this.compile(module, stack, contextType)
     return this.entries[key]
   }
 
@@ -106,7 +118,7 @@ export class Modules {
     const module = node.module.value
     let entry: Entry
     try {
-      entry = await this.import(module, contextType)
+      entry = await this.import(module, [], contextType)
     } catch (e) {
       const err = `Failed to import module: ${module}`
       throw new ImportError(err, { cause: e })

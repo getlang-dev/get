@@ -92,3 +92,10 @@ export class RequestError extends RuntimeError {
 export class ImportError extends RuntimeError {
   public override name = 'ImportError'
 }
+
+export class RecursiveCallError extends RuntimeError {
+  public override name = 'RecursiveCallError'
+  constructor(chain: string[], options?: ErrorOptions) {
+    super(`Recursive call error: ${chain.join(' -> ')}`, options)
+  }
+}

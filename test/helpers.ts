@@ -1,10 +1,11 @@
+import { expect } from 'bun:test'
 import { executeModule } from '@getlang/get'
 import { desugar, parse, print } from '@getlang/parser'
 import type { Hooks, Inputs, MaybePromise } from '@getlang/utils'
 import { invariant } from '@getlang/utils'
+import { ImportError } from '@getlang/utils/errors'
 import dedent from 'dedent'
 import './expect.js'
-import { expect } from 'bun:test'
 
 export type Fetch = (req: Request) => MaybePromise<Response>
 
@@ -34,7 +35,7 @@ export async function execute(
   const hooks: Hooks = {
     import(module) {
       const src = modules[module]
-      invariant(src, `Failed to import module: ${module}`)
+      invariant(src, new ImportError(`Failed to import module: ${module}`))
       return src
     },
     async request(url, opts) {
