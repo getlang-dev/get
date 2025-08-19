@@ -1,8 +1,6 @@
 import { describe, expect, it, test } from 'bun:test'
-import { SliceError } from '@getlang/utils'
-import { helper } from './helpers.js'
-
-const { execute, testIdempotency } = helper()
+import { SliceError } from '@getlang/utils/errors'
+import { execute } from './helpers.js'
 
 describe('slice', () => {
   it('evaluates javascript with implicit return', async () => {
@@ -132,11 +130,5 @@ describe('slice', () => {
         /^An exception was thrown by the client-side slice/,
       )
     })
-  })
-
-  test('idempotency', () => {
-    for (const { a, b } of testIdempotency()) {
-      expect(a).toEqual(b)
-    }
   })
 })

@@ -1,5 +1,13 @@
 import { describe, expect, mock, test } from 'bun:test'
-import { type Hooks, invariant } from '@getlang/utils'
+import type {
+  CallHook,
+  ExtractHook,
+  Hooks,
+  ImportHook,
+  RequestHook,
+  SliceHook,
+} from '@getlang/utils'
+import { invariant } from '@getlang/utils'
 import { execute } from './index.js'
 
 describe('hook', () => {
@@ -11,7 +19,7 @@ describe('hook', () => {
       extract -> h1
     `
 
-    const requestHook = mock<Hooks['request']>(async () => ({
+    const requestHook = mock<RequestHook>(async () => ({
       status: 200,
       headers: new Headers({ 'content-type': 'text/html' }),
       body: '<!doctype html><h1>test</h1>',
@@ -31,7 +39,7 @@ describe('hook', () => {
   })
 
   test('on slice', async () => {
-    const sliceHook = mock<Hooks['slice']>(() => 3)
+    const sliceHook = mock<SliceHook>(() => 3)
 
     const result = await execute('extract `1 + 2`', {}, { slice: sliceHook })
 
@@ -39,73 +47,85 @@ describe('hook', () => {
     expect(result).toEqual(3)
   })
 
-  test('on import (cached) and call', async () => {
+  test('module lifecycle', async () => {
     const modules: Record<string, string> = {
-      Top: `extract \`"top"\``,
+      Top: `
+        inputs { inputA }
+        extract { value: \`"top::" + inputA\` }
+      `,
       Mid: `
         set inputA = \`"bar"\`
         extract {
-          topValue: @Top({ $inputA })
-          midValue: \`"mid"\`
+          value: {
+            topValue: @Top({ $inputA }) -> value
+            midValue: \`"mid"\`
+          }
         }
       `,
     }
-
-    const importHook = mock<Hooks['import']>(async (module: string) => {
-      const src = modules[module]
-      invariant(src, `Unexpected import: ${module}`)
-      return src
-    })
-
-    const callHook = mock<Hooks['call']>((_m, _i, _r, e) => e())
 
     const src = `
       set inputA = \`"foo"\`
 
       extract {
-        topValue: @Top({ $inputA })
-        midValue: @Mid
+        topValue: @Top({ $inputA }) -> value
+        midValue: @Mid -> value
         botValue: \`"bot"\`
       }
     `
 
-    const hooks = { import: importHook, call: callHook }
+    const hooks: Hooks = {
+      import: mock<ImportHook>(async (module: string) => {
+        const src = modules[module]
+        invariant(src, `Unexpected import: ${module}`)
+        return src
+      }),
+      call: mock<CallHook>(() => {}),
+      extract: mock<ExtractHook>(() => {}),
+    }
     const result = await execute(src, {}, hooks)
 
     expect(result).toEqual({
-      topValue: 'top',
+      topValue: 'top::foo',
       midValue: {
-        topValue: 'top',
+        topValue: 'top::bar',
         midValue: 'mid',
       },
       botValue: 'bot',
     })
 
-    expect(importHook).toHaveBeenCalledTimes(2)
-    expect(importHook).toHaveBeenNthCalledWith(1, 'Top')
-    expect(importHook).toHaveBeenNthCalledWith(2, 'Mid')
+    expect(hooks.import).toHaveBeenCalledTimes(2)
+    expect(hooks.import).toHaveBeenNthCalledWith(1, 'Top')
+    expect(hooks.import).toHaveBeenNthCalledWith(2, 'Mid')
 
-    expect(callHook).toHaveBeenCalledTimes(3)
-    expect(callHook).toHaveBeenNthCalledWith(
+    expect(hooks.call).toHaveBeenCalledTimes(3)
+    expect(hooks.call).toHaveBeenNthCalledWith(1, 'Top', { inputA: 'foo' })
+    expect(hooks.call).toHaveBeenNthCalledWith(2, 'Mid', {})
+    expect(hooks.call).toHaveBeenNthCalledWith(3, 'Top', { inputA: 'bar' })
+
+    expect(hooks.extract).toHaveBeenCalledTimes(3)
+    expect(hooks.extract).toHaveBeenNthCalledWith(
       1,
       'Top',
       { inputA: 'foo' },
-      { inputA: 'foo' },
-      expect.any(Function),
+      { value: 'top::foo' },
     )
-    expect(callHook).toHaveBeenNthCalledWith(
+    expect(hooks.extract).toHaveBeenNthCalledWith(
       2,
-      'Mid',
-      {},
-      {},
-      expect.any(Function),
-    )
-    expect(callHook).toHaveBeenNthCalledWith(
-      3,
       'Top',
       { inputA: 'bar' },
-      { inputA: 'bar' },
-      expect.any(Function),
+      { value: 'top::bar' },
+    )
+    expect(hooks.extract).toHaveBeenNthCalledWith(
+      3,
+      'Mid',
+      {},
+      {
+        value: {
+          topValue: 'top::bar',
+          midValue: 'mid',
+        },
+      },
     )
   })
 })

@@ -4,6 +4,7 @@ export enum Type {
   Js = 'js',
   Headers = 'headers',
   Cookies = 'cookies',
+  Context = 'context',
   List = 'list',
   Struct = 'struct',
   Never = 'never',
@@ -15,14 +16,14 @@ export type List = {
   of: TypeInfo
 }
 
-export type Maybe = {
-  type: Type.Maybe
-  option: TypeInfo
-}
-
 export type Struct = {
   type: Type.Struct
   schema: Record<string, TypeInfo>
+}
+
+export type Maybe = {
+  type: Type.Maybe
+  option: TypeInfo
 }
 
 type ScalarType = {

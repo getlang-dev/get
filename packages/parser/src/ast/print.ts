@@ -163,8 +163,19 @@ const printVisitor: InterpretVisitor<Doc> = {
     return [node.context, indent([line, arrow, node.selector])]
   },
 
-  CallExpr(node) {
-    const call: Doc[] = ['@', node.callee.value, '(', node.inputs, ')']
+  ModifierExpr(node, _path, orig) {
+    const call: Doc[] = ['@', node.modifier.value]
+    if (orig.args.entries.length) {
+      call.push('(', node.args, ')')
+    }
+    return node.context ? [node.context, indent([line, '-> ', call])] : call
+  },
+
+  ModuleExpr(node, _path, orig) {
+    const call: Doc[] = ['@', node.module.value]
+    if (orig.args.entries.length) {
+      call.push('(', node.args, ')')
+    }
     return node.context ? [node.context, indent([line, '-> ', call])] : call
   },
 

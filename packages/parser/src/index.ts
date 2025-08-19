@@ -1,13 +1,15 @@
-import { QuerySyntaxError } from '@getlang/utils'
+import { invariant } from '@getlang/utils'
+import { QuerySyntaxError } from '@getlang/utils/errors'
 import nearley from 'nearley'
 import type { Program } from './ast/ast.js'
 import lexer from './grammar/lexer.js'
 import grammar from './grammar.js'
 
-export { print } from './ast/print.js'
-export { desugar } from './desugar/simplified.js'
-
 export { lexer }
+export { print } from './ast/print.js'
+export { analyze } from './passes/analyze.js'
+export { desugar } from './passes/desugar.js'
+export { inference } from './passes/inference.js'
 
 export function parse(source: string): Program {
   const parser = new nearley.Parser(nearley.Grammar.fromCompiled(grammar))
@@ -22,13 +24,8 @@ export function parse(source: string): Program {
     throw e
   }
 
-  const { results } = parser
-  switch (results.length) {
-    case 1:
-      return results[0]
-    case 0:
-      throw new QuerySyntaxError('Unexpected end of input')
-    default:
-      throw new QuerySyntaxError('Unexpected parsing error')
-  }
+  const [ast, ...rest] = parser.results
+  invariant(ast, new QuerySyntaxError('Unexpected end of input'))
+  invariant(!rest.length, new QuerySyntaxError('Unexpected parsing error'))
+  return ast
 }

@@ -1,7 +1,5 @@
 import { describe, expect, test } from 'bun:test'
-import { helper } from './helpers.js'
-
-const { execute, testIdempotency } = helper()
+import { execute } from './helpers.js'
 
 describe('objects', () => {
   test('inline', async () => {
@@ -84,11 +82,5 @@ describe('objects', () => {
         pos: 'inner',
       },
     })
-  })
-
-  test('idempotency', () => {
-    for (const { a, b } of testIdempotency()) {
-      expect(a).toEqual(b)
-    }
   })
 })

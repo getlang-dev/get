@@ -1,47 +1,22 @@
-import { invariant, ValueReferenceError } from '@getlang/utils'
+import { invariant } from '@getlang/utils'
+import { ValueReferenceError } from '@getlang/utils/errors'
 
-export class Scope<T> {
-  vars: Record<string, T>
+class Scope<T> {
   extracted: T | undefined
-  contextStack: T[]
+  private contextStack: T[] = []
 
   constructor(
-    parentVars: Record<string, T> = Object.create(null),
+    public vars: Record<string, T>,
     context?: T,
   ) {
-    this.vars = Object.create(parentVars)
-    this.contextStack = context ? [context] : []
-  }
-}
-
-export class RootScope<T> {
-  scopeStack: Scope<T>[] = [new Scope()]
-
-  private get scope() {
-    const scope = this.scopeStack.at(-1)
-    invariant(scope, new ValueReferenceError('Corrupted scope stack'))
-    return scope
-  }
-
-  get vars() {
-    return this.scope.vars
-  }
-
-  pushContext(context: T) {
-    this.scope.contextStack.push(context)
-    this.updateContext()
-  }
-
-  popContext() {
-    this.scope.contextStack.pop()
-    this.updateContext()
+    context && this.push(context)
   }
 
   get context() {
-    return this.scope.contextStack.at(-1)
+    return this.contextStack.at(-1)
   }
 
-  updateContext() {
+  private update() {
     if (this.context) {
       this.vars[''] = this.context
     } else {
@@ -49,21 +24,57 @@ export class RootScope<T> {
     }
   }
 
-  set extracted(data: T) {
-    if (this.scope.extracted !== undefined) {
-      console.warn('Subqueries must contain a single extract statement')
-    } else {
-      this.scope.extracted = data
-    }
-  }
-
-  push(context: T | undefined = this.context) {
-    this.scopeStack.push(new Scope(this.vars, context))
-    this.updateContext()
+  push(context: T) {
+    this.contextStack.push(context)
+    this.update()
   }
 
   pop() {
-    const data = this.scope.extracted
+    this.contextStack.pop()
+    this.update()
+  }
+}
+
+export class RootScope<T> {
+  private scopeStack: Scope<T>[] = []
+
+  private get head() {
+    return this.scopeStack.at(-1)
+  }
+
+  private get ensure() {
+    const scope = this.head
+    invariant(scope, new ValueReferenceError('Invalid scope stack'))
+    return scope
+  }
+
+  get vars() {
+    return this.ensure.vars
+  }
+
+  get context() {
+    return this.head?.context
+  }
+
+  pushContext(context: T) {
+    this.ensure.push(context)
+  }
+
+  popContext() {
+    this.ensure.pop()
+  }
+
+  set extracted(data: T) {
+    this.ensure.extracted = data
+  }
+
+  push(context: T | undefined = this.head?.context) {
+    const vars = Object.create(this.head?.vars ?? null)
+    this.scopeStack.push(new Scope(vars, context))
+  }
+
+  pop() {
+    const data = this.ensure.extracted
     this.scopeStack.pop()
     return data
   }

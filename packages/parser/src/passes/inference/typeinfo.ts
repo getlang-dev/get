@@ -1,18 +1,19 @@
-import {
-  invariant,
-  QuerySyntaxError,
-  ValueReferenceError,
-} from '@getlang/utils'
-import { type CExpr, type Expr, NodeKind, t } from '../../ast/ast.js'
-import { RootScope } from '../../ast/scope.js'
-import { Type, type TypeInfo } from '../../ast/typeinfo.js'
+import { invariant } from '@getlang/utils'
+import { QuerySyntaxError, ValueReferenceError } from '@getlang/utils/errors'
+import type { CExpr, Program } from '../../ast/ast.js'
+import { NodeKind, t } from '../../ast/ast.js'
+import type { TypeInfo } from '../../ast/typeinfo.js'
+import { Type } from '../../ast/typeinfo.js'
+import { render, selectTypeInfo } from '../../utils.js'
 import type { TransformVisitor, Visit } from '../../visitor/transform.js'
+import { visit } from '../../visitor/visitor.js'
 import { traceVisitor } from '../trace.js'
-import { render, selectTypeInfo } from '../utils.js'
 
 const modTypeMap: Record<string, TypeInfo> = {
   html: { type: Type.Html },
   js: { type: Type.Js },
+  json: { type: Type.Value },
+  link: { type: Type.Value },
   headers: { type: Type.Headers },
   cookies: { type: Type.Cookies },
 }
@@ -48,9 +49,37 @@ function rewrap(
   }
 }
 
-export function inferTypeInfo(): TransformVisitor {
-  const scope = new RootScope<Expr>()
+function specialize(macroType: TypeInfo, contextType?: TypeInfo) {
+  function walk(ti: TypeInfo): TypeInfo {
+    switch (ti.type) {
+      case Type.Context:
+        invariant(contextType, 'Specialize requires context type')
+        return contextType
+      case Type.Maybe:
+        return { ...ti, option: walk(ti.option) }
+      case Type.List:
+        return { ...ti, of: walk(ti.of) }
+      case Type.Struct: {
+        const schema = Object.fromEntries(
+          Object.entries(ti.schema).map(e => [e[0], walk(e[1])]),
+        )
+        return { ...ti, schema }
+      }
+      default:
+        return ti
+    }
+  }
+  return walk(macroType)
+}
 
+type ResolveTypeOptions = {
+  returnTypes: { [module: string]: TypeInfo }
+  contextType?: TypeInfo
+}
+
+export function resolveTypes(ast: Program, options: ResolveTypeOptions) {
+  const { returnTypes, contextType } = options
+  const { scope, trace } = traceVisitor(contextType)
   let optional = false
   function setOptional<T>(opt: boolean, cb: () => T): T {
     const last = optional
@@ -60,7 +89,7 @@ export function inferTypeInfo(): TransformVisitor {
     return ret
   }
 
-  function ctx<C extends CExpr>(cb: (tnode: C, ivisit: Visit) => C) {
+  function withContext<C extends CExpr>(cb: (tnode: C, ivisit: Visit) => C) {
     return function enter(node: C, visit: Visit): C {
       if (!node.context) {
         return cb(node, visit)
@@ -81,9 +110,7 @@ export function inferTypeInfo(): TransformVisitor {
     }
   }
 
-  const trace = traceVisitor(scope)
-
-  return {
+  const visitor: TransformVisitor = {
     ...trace,
 
     InputDeclStmt: {
@@ -130,7 +157,7 @@ export function inferTypeInfo(): TransformVisitor {
     },
 
     SliceExpr: {
-      enter: ctx((node, visit) => {
+      enter: withContext((node, visit) => {
         const xnode = trace.SliceExpr.enter(node, visit)
         let typeInfo: TypeInfo = { type: Type.Value }
         if (optional) {
@@ -141,7 +168,7 @@ export function inferTypeInfo(): TransformVisitor {
     },
 
     SelectorExpr: {
-      enter: ctx((node, visit) => {
+      enter: withContext((node, visit) => {
         const xnode = trace.SelectorExpr.enter(node, visit)
         let typeInfo: TypeInfo = unwrap(
           xnode.context?.typeInfo ?? { type: Type.Value },
@@ -168,17 +195,30 @@ export function inferTypeInfo(): TransformVisitor {
       }),
     },
 
-    CallExpr: {
-      enter: ctx((node, visit) => {
-        const xnode = trace.CallExpr.enter(node, visit)
-        const callee = xnode.callee.value
-        const typeInfo = modTypeMap[callee] ?? { type: Type.Value }
+    ModifierExpr: {
+      enter: withContext((node, visit) => {
+        const xnode = trace.ModifierExpr.enter(node, visit)
+        const typeInfo = modTypeMap[node.modifier.value]
+        invariant(typeInfo, 'Modifier type lookup failed')
+        return { ...xnode, typeInfo }
+      }),
+    },
+
+    ModuleExpr: {
+      enter: withContext((node, visit) => {
+        const xnode = trace.ModuleExpr.enter(node, visit)
+        if (!node.call) {
+          return { ...xnode, typeInfo: { type: Type.Value } }
+        }
+        const returnType = returnTypes[node.module.value]
+        invariant(returnType, 'Module return type lookup failed')
+        const typeInfo = specialize(returnType, xnode.context?.typeInfo)
         return { ...xnode, typeInfo }
       }),
     },
 
     SubqueryExpr: {
-      enter: ctx((node, visit) => {
+      enter: withContext((node, visit) => {
         const xnode = trace.SubqueryExpr.enter(node, visit)
         const typeInfo = xnode.body.find(
           stmt => stmt.kind === NodeKind.ExtractStmt,
@@ -188,7 +228,7 @@ export function inferTypeInfo(): TransformVisitor {
     },
 
     ObjectLiteralExpr: {
-      enter: ctx((node, visit) => {
+      enter: withContext((node, visit) => {
         const xnode = trace.ObjectLiteralExpr.enter(node, child => {
           if (child === node.context) {
             return visit(child)
@@ -220,4 +260,10 @@ export function inferTypeInfo(): TransformVisitor {
       }),
     },
   }
+
+  const program: Program = visit(ast, visitor)
+  const ex = program.body.find(s => s.kind === NodeKind.ExtractStmt)
+  const returnType = ex?.value.typeInfo ?? { type: Type.Never }
+
+  return { program, returnType }
 }

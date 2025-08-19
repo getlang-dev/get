@@ -1,6 +1,7 @@
-import { invariant, QuerySyntaxError } from '@getlang/utils'
+import { invariant } from '@getlang/utils'
+import { QuerySyntaxError } from '@getlang/utils/errors'
 import { isToken, NodeKind, t } from '../ast/ast.js'
-import { tx } from '../desugar/utils.js'
+import { tx } from '../utils.js'
 
 type PP = nearley.Postprocessor
 
@@ -78,14 +79,24 @@ export const extract: PP = ([, , exports]) => t.extractStmt(exports)
 
 export const subquery: PP = ([, , stmts]) => t.subqueryExpr(stmts)
 
-export const call: PP = ([callee, maybeInputs]) =>
-  t.callExpr(callee, maybeInputs?.[1])
+export const call: PP = ([callee, maybeInputs]) => {
+  const inputs = maybeInputs?.[1]
+  return /^[a-z]/.test(callee.value)
+    ? t.modifierExpr(callee, inputs)
+    : t.moduleExpr(callee, inputs)
+}
 
-export const link: PP = ([callee, _, link]) =>
-  t.callExpr(
+export const link: PP = ([maybePrior, callee, _, link]) => {
+  const bit = t.moduleExpr(
     callee,
     t.objectLiteralExpr([t.objectEntry(tx.template('@link'), link, true)]),
   )
+  if (!maybePrior) {
+    return bit
+  }
+  const [context, , arrow] = maybePrior
+  return drill([context, null, arrow, null, bit])
+}
 
 export const object: PP = d => {
   const entries = d[2].map((dd: any) => dd[0])

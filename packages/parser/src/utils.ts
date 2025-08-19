@@ -1,8 +1,8 @@
 import { toPath } from 'lodash-es'
-import type { Expr, RequestExpr } from '../ast/ast.js'
-import { isToken, NodeKind, t } from '../ast/ast.js'
-import type { Struct, TypeInfo } from '../ast/typeinfo.js'
-import { Type } from '../ast/typeinfo.js'
+import type { Expr, RequestExpr } from './ast/ast.js'
+import { isToken, NodeKind, t } from './ast/ast.js'
+import type { Struct, TypeInfo } from './ast/typeinfo.js'
+import { Type } from './ast/typeinfo.js'
 
 export const render = (template: Expr) => {
   if (template.kind !== NodeKind.TemplateExpr) {
@@ -60,7 +60,7 @@ function template(contents: string) {
   return t.templateExpr([token(contents)])
 }
 
-function select(selector: string, context: Expr) {
+function select(selector: string, context?: Expr) {
   return t.selectorExpr(template(selector), false, context)
 }
 

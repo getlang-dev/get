@@ -1,14 +1,13 @@
-import { invariant, QuerySyntaxError } from '@getlang/utils'
+import { invariant } from '@getlang/utils'
+import { QuerySyntaxError } from '@getlang/utils/errors'
 import type { CExpr, Expr } from '../../ast/ast.js'
 import { NodeKind } from '../../ast/ast.js'
-import { RootScope } from '../../ast/scope.js'
-import type { TransformVisitor } from '../../visitor/transform.js'
-import type { RequestParsers } from '../reqparse.js'
+import { tx } from '../../utils.js'
+import type { DesugarPass } from '../desugar.js'
 import { traceVisitor } from '../trace.js'
-import { tx } from '../utils.js'
 
-export function inferContext(parsers: RequestParsers): TransformVisitor {
-  const scope = new RootScope<Expr>()
+export const resolveContext: DesugarPass = ({ parsers, macros }) => {
+  const { scope, trace } = traceVisitor()
 
   function infer(node: CExpr, mod?: string) {
     let resolved: Expr
@@ -28,8 +27,6 @@ export function inferContext(parsers: RequestParsers): TransformVisitor {
     return { resolved, from }
   }
 
-  const trace = traceVisitor(scope)
-
   return {
     ...trace,
 
@@ -38,8 +35,11 @@ export function inferContext(parsers: RequestParsers): TransformVisitor {
       return node
     },
 
-    Program(node) {
-      return { ...node, body: parsers.insert(node.body) }
+    Program: {
+      enter(node, visit) {
+        const xnode = trace.Program.enter(node, visit)
+        return { ...xnode, body: parsers.insert(xnode.body) }
+      },
     },
 
     SubqueryExpr: {
@@ -56,16 +56,11 @@ export function inferContext(parsers: RequestParsers): TransformVisitor {
       },
     },
 
-    CallExpr: {
+    ModifierExpr: {
       enter(node, visit) {
-        const callee = node.callee.value
-        if (node.calltype === 'module') {
-          return trace.CallExpr.enter(node, visit)
-        }
-
-        const { resolved: context, from } = infer(node, callee)
-        const xnode = trace.CallExpr.enter({ ...node, context }, visit)
-
+        const modifier = node.modifier.value
+        const { resolved: context, from } = infer(node, modifier)
+        const xnode = trace.ModifierExpr.enter({ ...node, context }, visit)
         const onRequest = from?.kind === NodeKind.RequestExpr
         // when inferred to request parser, replace modifier
         if (onRequest) {
@@ -73,6 +68,16 @@ export function inferContext(parsers: RequestParsers): TransformVisitor {
           return xnode.context
         }
         return xnode
+      },
+    },
+
+    ModuleExpr: {
+      enter(node, visit) {
+        const module = node.module.value
+        const context = macros.includes(module)
+          ? infer(node).resolved
+          : node.context
+        return trace.ModuleExpr.enter({ ...node, context }, visit)
       },
     },
   }

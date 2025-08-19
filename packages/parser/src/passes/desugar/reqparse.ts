@@ -1,7 +1,8 @@
-import { invariant, QuerySyntaxError } from '@getlang/utils'
-import type { Expr, RequestExpr, Stmt } from '../ast/ast.js'
-import { NodeKind, t } from '../ast/ast.js'
-import { getContentField, tx } from './utils.js'
+import { invariant } from '@getlang/utils'
+import { QuerySyntaxError } from '@getlang/utils/errors'
+import type { Expr, RequestExpr, Stmt } from '../../ast/ast.js'
+import { NodeKind, t } from '../../ast/ast.js'
+import { getContentField, tx } from '../../utils.js'
 
 type Parsers = Record<string, { written: boolean }>
 
@@ -52,7 +53,7 @@ export class RequestParsers {
           context = tx.select('body', reqId)
         }
       }
-      return t.callExpr(tx.token(field), undefined, context)
+      return t.modifierExpr(tx.token(field), undefined, context)
     }
 
     const id = this.id(idx, field)
