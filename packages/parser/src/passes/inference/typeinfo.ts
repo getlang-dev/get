@@ -49,6 +49,29 @@ function rewrap(
   }
 }
 
+function specialize(macroType: TypeInfo, contextType?: TypeInfo) {
+  function walk(ti: TypeInfo): TypeInfo {
+    switch (ti.type) {
+      case Type.Context:
+        invariant(contextType, 'Specialize requires context type')
+        return contextType
+      case Type.Maybe:
+        return { ...ti, option: walk(ti.option) }
+      case Type.List:
+        return { ...ti, of: walk(ti.of) }
+      case Type.Struct: {
+        const schema = Object.fromEntries(
+          Object.entries(ti.schema).map(e => [e[0], walk(e[1])])
+        )
+        return { ...ti, schema }
+      }
+      default:
+        return ti
+    }
+  }
+  return walk(macroType)
+}
+
 type ResolveTypeOptions = {
   returnTypes: { [module: string]: TypeInfo }
   contextType?: TypeInfo
@@ -176,17 +199,20 @@ export function resolveTypes(ast: Program, options: ResolveTypeOptions) {
       enter: withContext((node, visit) => {
         const xnode = trace.ModifierExpr.enter(node, visit)
         const typeInfo = modTypeMap[node.modifier.value]
-        invariant(typeInfo, 'Modifier type info lookup failed')
+        invariant(typeInfo, 'Modifier type lookup failed')
         return { ...xnode, typeInfo }
       }),
     },
 
     ModuleExpr: {
       enter: withContext((node, visit) => {
-        const module = node.module.value
         const xnode = trace.ModuleExpr.enter(node, visit)
-        const typeInfo = node.call ? returnTypes[module] : node.args.typeInfo
-        invariant(typeInfo, 'Module type info lookup failed')
+        if (!node.call) {
+          return { ...xnode, typeInfo: { type: Type.Value } }
+        }
+        const returnType = returnTypes[node.module.value]
+        invariant(returnType, 'Module return type lookup failed')
+        const typeInfo = specialize(returnType, xnode.context?.typeInfo)
         return { ...xnode, typeInfo }
       }),
     },

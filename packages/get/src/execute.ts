@@ -235,10 +235,13 @@ export async function execute(
 
   const scope = new RootScope<any>()
   const modules = new Modules(hooks, executeModule)
+
   const rootEntry = await modules.import(rootModule)
   const ex = await executeModule(rootEntry, rootInputs)
+
   const retType: any = rootEntry.program.body.find(
     stmt => stmt.kind === NodeKind.ExtractStmt,
   )
+
   return retType ? toValue(ex, retType.value.typeInfo) : ex
 }

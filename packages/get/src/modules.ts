@@ -121,7 +121,7 @@ export class Modules {
     }
     await this.hooks.extract(module, inputs, extracted)
 
-    if (typeof extracted !== 'object') {
+    if (typeof extracted !== 'object' || entry.returnType.type !== Type.Value) {
       if (attrArgs.length) {
         const dropped = attrArgs.map(e => e[0]).join(', ')
         const err = [

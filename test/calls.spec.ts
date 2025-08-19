@@ -14,6 +14,21 @@ describe('calls', () => {
     })
   })
 
+  test.only('semantics', async () => {
+    const modules = {
+      Call: 'return { called: `true` }',
+      Home: `
+        set called = \`false\`
+        set select = @Call({ $called })
+        extract { $select }
+      `
+    }
+    const result = await execute(modules)
+    expect(result).toEqual({
+      select: { called: true }
+    })
+  })
+
   test('drill return value', async () => {
     const modules = {
       Req: `
@@ -168,5 +183,28 @@ describe('calls', () => {
     })
   })
 
-  // test('macro return types')
+  test('drill macro return types', async () => {
+    const modules = {
+      Home: `
+        GET http://stub
+
+        extract @Data({text: \`'first'\`})
+          -> xpath:@data-json
+          -> @json
+      `,
+      Data: `
+        inputs { text }
+
+        extract xpath://div[p[contains(text(), '$text')]]
+      `,
+    }
+
+    const result = await execute(
+      modules,
+      {},
+      () => new Response(`<div data-json='{"x": 1}'><p>first</p></li>`),
+    )
+
+    expect(result).toEqual({ x: 1 })
+  })
 })
