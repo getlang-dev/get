@@ -347,7 +347,7 @@ describe('values', () => {
     /* eslint-enable prefer-template */
 
     const src = `
-      set all = \`\`\`(${slice.toString()})()\`\`\`
+      set all = |(${slice.toString()})()|
       extract $all
         -> @json -> docHtml
         -> @html -> pre

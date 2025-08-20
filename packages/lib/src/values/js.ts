@@ -10,7 +10,10 @@ import esquery from 'esquery'
 
 export const parse = (js: string): AnyNode => {
   try {
-    return acorn(js, { ecmaVersion: 'latest' })
+    return acorn(js, {
+      ecmaVersion: 'latest',
+      allowAwaitOutsideFunction: true,
+    })
   } catch (e) {
     throw new SliceSyntaxError('Could not parse slice', { cause: e })
   }

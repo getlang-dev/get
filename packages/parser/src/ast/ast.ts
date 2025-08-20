@@ -90,8 +90,10 @@ export type TemplateExpr = {
 
 type IdentifierExpr = {
   kind: NodeKind.IdentifierExpr
-  value: Token
+  id: Token
+  expand: boolean
   isUrlComponent: boolean
+  context?: Expr
   typeInfo: TypeInfo
 }
 
@@ -228,11 +230,17 @@ const subqueryExpr = (body: Stmt[], context?: Expr): SubqueryExpr => ({
   context,
 })
 
-const identifierExpr = (value: Token): IdentifierExpr => ({
+const identifierExpr = (
+  id: Token,
+  expand = false,
+  context?: Expr,
+): IdentifierExpr => ({
   kind: NodeKind.IdentifierExpr,
-  value,
-  isUrlComponent: value.text.startsWith(':'),
+  id,
+  expand,
+  isUrlComponent: id.text.startsWith(':'),
   typeInfo: { type: Type.Value },
+  context,
 })
 
 const selectorExpr = (
@@ -303,20 +311,14 @@ const templateExpr = (elements: (Expr | Token)[]): TemplateExpr => ({
 
 export const t = {
   program,
-
-  // STATEMENTS
   assignmentStmt,
   declInputsStmt,
   inputDeclStmt,
   extractStmt,
   requestStmt,
-
-  // EXPRESSIONS
   requestExpr,
-  identifierExpr,
   templateExpr,
-
-  // CONTEXTUAL EXPRESSIONS
+  identifierExpr,
   selectorExpr,
   modifierExpr,
   moduleExpr,

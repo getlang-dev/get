@@ -5,8 +5,10 @@ export * as html from './values/html.js'
 export * as js from './values/js.js'
 export * as json from './values/json.js'
 
-function runSlice(slice: string, context: unknown = {}, raw: unknown = {}) {
-  return new Function('$', '$$', slice)(context, raw)
+const AsyncFunction: any = (async () => {}).constructor
+
+function runSlice(slice: string, context: unknown = {}) {
+  return new AsyncFunction('$', slice)(context)
 }
 
 export const slice = { runSlice }

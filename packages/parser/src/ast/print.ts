@@ -1,4 +1,5 @@
 import { builders, printer } from 'prettier/doc'
+import { render } from '../utils.js'
 import type { InterpretVisitor } from '../visitor/visitor.js'
 import { visit } from '../visitor/visitor.js'
 import type { Node } from './ast.js'
@@ -82,7 +83,6 @@ const printVisitor: InterpretVisitor<Doc> = {
   },
 
   ObjectLiteralExpr(node, _path, orig) {
-    const shorthand: Doc[] = []
     const shouldBreak = orig.entries.some(
       e => e.value.kind === NodeKind.SelectorExpr,
     )
@@ -91,6 +91,15 @@ const printVisitor: InterpretVisitor<Doc> = {
       if (!origEntry) {
         throw new Error('Unmatched object literal entry')
       }
+
+      if (origEntry.value.kind === NodeKind.IdentifierExpr) {
+        const key = render(origEntry.key)
+        const value = origEntry.value.id.value
+        if (key === value || (key === '$' && value === '')) {
+          return entry.value
+        }
+      }
+
       const keyGroup: Doc[] = [entry.key]
       if (entry.optional) {
         keyGroup.push('?')
@@ -110,14 +119,13 @@ const printVisitor: InterpretVisitor<Doc> = {
         shValue = shValue[0]
       }
       if (typeof shValue === 'string' && entry.key === shValue) {
-        shorthand[i] = [value, entry.optional ? '?' : '']
+        return [value, entry.optional ? '?' : '']
       }
-      return { ...entry, key: keyGroup, value }
+      return group([keyGroup, value])
     })
 
-    const inner = entries.map((e, i) => shorthand[i] || group([e.key, e.value]))
     const sep = ifBreak(line, [',', line])
-    const obj = group(['{', indent([line, join(sep, inner)]), line, '}'], {
+    const obj = group(['{', indent([line, join(sep, entries)]), line, '}'], {
       shouldBreak,
     })
     return node.context ? [node.context, indent([line, '-> ', obj])] : obj
@@ -138,20 +146,24 @@ const printVisitor: InterpretVisitor<Doc> = {
         throw new Error(`Unexpected template node: ${og?.kind}`)
       }
 
-      // strip the leading `$` character
-      let ret = el.slice(1)
-
+      let id: Doc = [og.id.value]
       const nextEl = node.elements[i + 1]
       if (isToken(nextEl) && /^\w/.test(nextEl.value)) {
         // use ${id} syntax to delineate against next element in template
-        ret = ['{', ret, '}']
+        id = ['{', id, '}']
       }
-      return [og.isUrlComponent ? ':' : '$', ret]
+      return [og.isUrlComponent ? ':' : '$', id]
     })
   },
 
   IdentifierExpr(node) {
-    return ['$', node.value.value]
+    const id = node.id.value
+    if (!node.context) {
+      const arrow = node.expand ? '=> ' : ''
+      return [arrow, '$', id]
+    }
+    const arrow = node.expand ? '=> ' : '-> '
+    return [node.context, indent([line, arrow, '$', node.id.value])]
   },
 
   SelectorExpr(node) {
@@ -181,7 +193,7 @@ const printVisitor: InterpretVisitor<Doc> = {
 
   SliceExpr(node) {
     const { value } = node.slice
-    const quot = value.includes('`') ? '```' : '`'
+    const quot = value.includes('`') ? '|' : '`'
     const lines = value.split('\n')
     const slice = group([
       quot,

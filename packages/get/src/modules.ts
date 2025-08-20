@@ -26,27 +26,27 @@ type Entry = {
 
 export type Execute = (entry: Entry, inputs: Inputs) => Promise<any>
 
-function buildImportKey(module: string, typeInfo?: TypeInfo) {
-  function repr(ti: TypeInfo): string {
-    switch (ti.type) {
-      case Type.Maybe:
-        return `maybe<${repr(ti.option)}>`
-      case Type.List:
-        return `${repr(ti.of)}[]`
-      case Type.Struct: {
-        const fields = Object.entries(ti.schema)
-          .map(e => `${e[0]}: ${repr(e[1])};`)
-          .join(' ')
-        return `{ ${fields} }`
-      }
-      case Type.Context:
-      case Type.Never:
-        throw new ValueTypeError('Unsupported key type')
-      default:
-        return ti.type
+function repr(ti: TypeInfo): string {
+  switch (ti.type) {
+    case Type.Maybe:
+      return `maybe<${repr(ti.option)}>`
+    case Type.List:
+      return `${repr(ti.of)}[]`
+    case Type.Struct: {
+      const fields = Object.entries(ti.schema)
+        .map(e => `${e[0]}: ${repr(e[1])};`)
+        .join(' ')
+      return `{ ${fields} }`
     }
+    case Type.Context:
+    case Type.Never:
+      throw new ValueTypeError('Unsupported key type')
+    default:
+      return ti.type
   }
+}
 
+function buildImportKey(module: string, typeInfo?: TypeInfo) {
   let key = module
   if (typeInfo) {
     key += `<${repr(typeInfo)}>`
@@ -133,15 +133,24 @@ export class Modules {
     }
     await this.hooks.extract(module, inputs, extracted)
 
-    if (typeof extracted !== 'object' || entry.returnType.type !== Type.Value) {
+    function dropWarning(reason: string) {
       if (attrArgs.length) {
         const dropped = attrArgs.map(e => e[0]).join(', ')
         const err = [
-          `Module '${module}' returned a primitive`,
+          `Module '${module}' ${reason}`,
           `dropping view attributes: ${dropped}`,
         ].join(', ')
         console.warn(err)
       }
+    }
+
+    if (entry.returnType.type !== Type.Value) {
+      dropWarning(`returned ${repr(entry.returnType)}`)
+      return extracted
+    }
+
+    if (typeof extracted !== 'object') {
+      dropWarning('returned a primitive')
       return extracted
     }
 

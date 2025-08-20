@@ -104,9 +104,15 @@ export function traceVisitor(contextType: TypeInfo = { type: Type.Context }) {
       },
     },
 
+    // simple contextual expressions
+    IdentifierExpr: {
+      enter(node, visit) {
+        return withContext(node, visit, node => node)
+      },
+    },
+
     SliceExpr: {
       enter(node, visit) {
-        // contains no additional expressions (only .context)
         return withContext(node, visit, node => node)
       },
     },

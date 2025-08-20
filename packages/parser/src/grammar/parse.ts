@@ -1,5 +1,6 @@
 import { invariant } from '@getlang/utils'
 import { QuerySyntaxError } from '@getlang/utils/errors'
+import type { CExpr, Expr, TemplateExpr } from '../ast/ast.js'
 import { isToken, NodeKind, t } from '../ast/ast.js'
 import { tx } from '../utils.js'
 
@@ -106,7 +107,7 @@ export const object: PP = d => {
 export const objectEntry: PP = ([callkey, identifier, optional, , , value]) => {
   const key = {
     ...identifier,
-    value: `${callkey ? '@' : ''}${identifier.value}`,
+    value: `${callkey ? '@' : ''}${identifier.value || '$'}`,
   }
   return {
     key: t.templateExpr([key]),
@@ -126,32 +127,24 @@ export const objectEntryShorthandIdent: PP = ([identifier, optional]) => {
   return objectEntry([null, identifier, optional, null, null, value])
 }
 
-const expandingSelectors = [NodeKind.TemplateExpr, NodeKind.IdentifierExpr]
-export const drill: PP = ([context, , arrow, , bit]) => {
-  const expand = arrow.value.startsWith('=')
-  if (expandingSelectors.includes(bit.kind)) {
-    return t.selectorExpr(bit, expand, context)
+function drillBase(bit: CExpr | TemplateExpr, arrow?: string, context?: Expr) {
+  const expand = arrow === '=>'
+  if (bit.kind === NodeKind.TemplateExpr) {
+    bit = t.selectorExpr(bit, expand)
+  } else if (bit.kind === NodeKind.IdentifierExpr) {
+    bit.expand = expand
+  } else if (expand) {
+    throw new QuerySyntaxError('Wide arrow drill requires selector on RHS')
   }
-  invariant(
-    !expand,
-    new QuerySyntaxError('Wide arrow drill requires selector on RHS'),
-  )
-  invariant('context' in bit, new QuerySyntaxError('Invalid drill value'))
   bit.context = context
   return bit
 }
 
-export const drillContext: PP = ([arrow, expr]) => {
-  const expand = arrow?.[0].value === '=>'
-  if (expr.kind === NodeKind.TemplateExpr) {
-    return t.selectorExpr(expr, expand)
-  }
-  invariant(
-    !expand,
-    new QuerySyntaxError('Wide arrow drill requires selector on RHS'),
-  )
-  return expr
-}
+export const drill: PP = ([context, , arrow, , bit]) =>
+  drillBase(bit, arrow.value, context)
+
+export const drillContext: PP = ([arrow, bit]) =>
+  drillBase(bit, arrow?.[0].value)
 
 export const identifier: PP = ([id]) => {
   return t.identifierExpr(id)

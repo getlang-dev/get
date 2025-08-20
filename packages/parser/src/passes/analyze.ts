@@ -23,6 +23,12 @@ export function analyze(ast: Program) {
       inputs.add(node.id.value)
       return trace.InputDeclStmt(node)
     },
+    SelectorExpr: {
+      enter(node, visit) {
+        checkMacro(node)
+        return trace.SelectorExpr.enter(node, visit)
+      },
+    },
     ModifierExpr: {
       enter(node, visit) {
         checkMacro(node)
@@ -33,12 +39,6 @@ export function analyze(ast: Program) {
       enter(node, visit) {
         imports.add(node.module.value)
         return trace.ModuleExpr.enter(node, visit)
-      },
-    },
-    SelectorExpr: {
-      enter(node, visit) {
-        checkMacro(node)
-        return trace.SelectorExpr.enter(node, visit)
       },
     },
   }
