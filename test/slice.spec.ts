@@ -57,13 +57,19 @@ describe('slice', () => {
       `
         set html = \`'<main><h1>title</h1><p>para 1</p><p>para 2</p></main>'\`
 
-        extract $html -> @html => h1, p -> (
-          set raw = \`$$.outerHTML\`
-          extract $raw
-        )
+        extract $html -> @html => h1, p -> \`$\`
       `,
     )
-    expect(result).toEqual(['<h1>title</h1>', '<p>para 1</p>', '<p>para 2</p>'])
+    expect(result).toEqual(['title', 'para 1', 'para 2'])
+  })
+
+  it('can reference both context and outer variables', async () => {
+    const result = await execute(`
+        set obj = \`{key:"x"}\`
+        set html = \`"<div><span>key</span><span>val</span></div>"\` -> @html
+        extract $html -> span -> \`obj[$]\`
+    `)
+    expect(result).toEqual('x')
   })
 
   it('supports escaped backticks', async () => {
@@ -71,8 +77,8 @@ describe('slice', () => {
     expect(result).toEqual('escaped')
   })
 
-  it('triple backticks as delimiter allow non-escaped backticks', async () => {
-    const result = await execute('extract ```return `escaped````')
+  it('blocks allow non-escaped backticks', async () => {
+    const result = await execute('extract |return `escaped`|')
     expect(result).toEqual('escaped')
   })
 
@@ -82,14 +88,6 @@ describe('slice', () => {
       extract $html -> @html -> xpath://li -> \`$\`
     `)
     expect(result).toEqual('one')
-  })
-
-  it('provides a variable for raw context ($$)', async () => {
-    const result = await execute(`
-      set html = \`'<ul><li>one</li><li>two</li></ul>'\`
-      extract $html -> @html -> ul -> \`$$.outerHTML\`
-    `)
-    expect(result).toEqual('<ul><li>one</li><li>two</li></ul>')
   })
 
   it('operates on list item context', async () => {

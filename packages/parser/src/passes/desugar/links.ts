@@ -18,12 +18,15 @@ export const settleLinks: DesugarPass = ({ parsers }) => {
   return {
     ...trace,
 
-    IdentifierExpr(node) {
-      const id = node.value.value
-      const value = scope.vars[id]
-      invariant(value, new ValueReferenceError(id))
-      inherit(value, node)
-      return node
+    IdentifierExpr: {
+      enter(node, visit) {
+        const id = node.id.value
+        const xnode = trace.IdentifierExpr.enter(node, visit)
+        const value = id ? scope.vars[id] : scope.context
+        invariant(value, new ValueReferenceError(id))
+        inherit(value, xnode)
+        return xnode
+      },
     },
 
     SelectorExpr: {

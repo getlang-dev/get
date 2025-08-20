@@ -13,7 +13,6 @@ export type RequestHook = (
 export type SliceHook = (
   slice: string,
   context?: unknown,
-  raw?: unknown,
 ) => MaybePromise<unknown>
 
 export type ExtractHook = (

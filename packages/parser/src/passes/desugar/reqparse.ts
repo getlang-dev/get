@@ -11,7 +11,7 @@ export class RequestParsers {
   private parsers: Parsers[] = []
 
   private require(req: RequestExpr) {
-    const idx = this.requests.findIndex(r => r === req)
+    const idx = this.requests.indexOf(req)
     invariant(idx !== -1, new QuerySyntaxError('Unmapped request'))
     return idx
   }
@@ -21,7 +21,7 @@ export class RequestParsers {
   }
 
   visit(req: RequestExpr) {
-    let idx = this.requests.findIndex(r => r === req)
+    let idx = this.requests.indexOf(req)
     if (idx === -1) {
       idx = this.requests.length
       this.requests.push(req)

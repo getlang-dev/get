@@ -11,8 +11,16 @@ export function registerCalls(ast: Program, macros: string[] = []) {
   function registerCall(node?: Expr) {
     switch (node?.kind) {
       case NodeKind.IdentifierExpr: {
-        const value = scope.vars[node.value.value]
-        return registerCall(value)
+        const id = node.id.value
+        if (id) {
+          return registerCall(scope.vars[id])
+        }
+        const ctxs = scope.scopeStack.flatMap(s => s.contextStack)
+        return registerCall(
+          ctxs.findLast(
+            c => c.kind !== NodeKind.IdentifierExpr || c.id.value !== '',
+          ),
+        )
       }
       case NodeKind.SubqueryExpr: {
         const ex = node.body.find(s => s.kind === NodeKind.ExtractStmt)

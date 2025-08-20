@@ -63,6 +63,11 @@ const expr = {
     match: /[{(]/,
     pop: 1,
   },
+  template_interp: {
+    defaultType: 'ws',
+    match: /(?=\${)/,
+    next: 'template',
+  },
   identifier_expr: {
     match: patterns.identifierExpr,
     value: (text: string) => text.slice(1),

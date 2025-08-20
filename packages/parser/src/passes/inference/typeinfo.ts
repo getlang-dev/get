@@ -134,11 +134,18 @@ export function resolveTypes(ast: Program, options: ResolveTypeOptions) {
       },
     },
 
-    IdentifierExpr(node) {
-      const id = node.value.value
-      const value = scope.vars[id]
-      invariant(value, new ValueReferenceError(node.value.value))
-      return { ...node, typeInfo: structuredClone(value.typeInfo) }
+    IdentifierExpr: {
+      enter: withContext((node, visit) => {
+        const id = node.id.value
+        const xnode = trace.IdentifierExpr.enter(node, visit)
+        const value = id ? scope.vars[id] : xnode.context || scope.context
+        invariant(value, new ValueReferenceError(id))
+        let typeInfo = structuredClone(value.typeInfo)
+        if (xnode.expand) {
+          typeInfo = { type: Type.List, of: typeInfo }
+        }
+        return { ...xnode, typeInfo }
+      }),
     },
 
     RequestExpr(node) {

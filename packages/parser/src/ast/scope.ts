@@ -3,7 +3,7 @@ import { ValueReferenceError } from '@getlang/utils/errors'
 
 class Scope<T> {
   extracted: T | undefined
-  private contextStack: T[] = []
+  contextStack: T[] = []
 
   constructor(
     public vars: Record<string, T>,
@@ -16,27 +16,17 @@ class Scope<T> {
     return this.contextStack.at(-1)
   }
 
-  private update() {
-    if (this.context) {
-      this.vars[''] = this.context
-    } else {
-      delete this.vars['']
-    }
-  }
-
   push(context: T) {
     this.contextStack.push(context)
-    this.update()
   }
 
   pop() {
     this.contextStack.pop()
-    this.update()
   }
 }
 
 export class RootScope<T> {
-  private scopeStack: Scope<T>[] = []
+  scopeStack: Scope<T>[] = []
 
   private get head() {
     return this.scopeStack.at(-1)

@@ -21,6 +21,7 @@ const {
   SliceError,
   UnknownInputsError,
   ValueReferenceError,
+  ValueTypeError,
 } = errors
 
 export async function execute(
@@ -64,25 +65,13 @@ export async function execute(
         return els.join('')
       },
 
-      IdentifierExpr(node) {
-        const value = scope.vars[node.value.value]
-        invariant(
-          value !== undefined,
-          new ValueReferenceError(node.value.value),
-        )
-        return value
-      },
-
       SliceExpr: {
         async enter(node, visit) {
           return withContext(scope, node, visit, async context => {
             const { slice } = node
             try {
-              const value = await hooks.slice(
-                slice.value,
-                context ? toValue(context.value, context.typeInfo) : {},
-                context?.value ?? {},
-              )
+              const deps = context && toValue(context.value, context.typeInfo)
+              const value = await hooks.slice(slice.value, deps)
               const ret =
                 value === undefined ? new NullSelection('<slice>') : value
               const optional = node.typeInfo.type === Type.Maybe
@@ -94,13 +83,28 @@ export async function execute(
         },
       },
 
+      IdentifierExpr: {
+        async enter(node, visit) {
+          return withContext(scope, node, visit, async () => {
+            const id = node.id.value
+            const value = id ? scope.vars[id] : scope.context
+            invariant(
+              value !== undefined,
+              new ValueReferenceError(node.id.value),
+            )
+            return value
+          })
+        },
+      },
+
       SelectorExpr: {
         async enter(node, visit) {
           return withContext(scope, node, visit, async context => {
             const selector = await visit(node.selector)
-            if (typeof selector !== 'string') {
-              return selector
-            }
+            invariant(
+              typeof selector === 'string',
+              new ValueTypeError('Expected selector string'),
+            )
             const args = [context!.value, selector, node.expand] as const
 
             function select(typeInfo: TypeInfo) {

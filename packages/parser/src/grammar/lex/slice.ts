@@ -2,8 +2,8 @@ import { invariant } from '@getlang/utils'
 import { QuerySyntaxError } from '@getlang/utils/errors'
 import { until } from './templates.js'
 
-const getSliceValue = (text: string, places = 1) => {
-  const src = text.slice(places, -places).replace(/\\`/g, '`')
+const getSliceValue = (text: string) => {
+  const src = text.slice(1, -1).replace(/\\`/g, '`')
   let lines = src.split('\n')
   const firstIdx = lines.findIndex(x => x.trim().length)
   invariant(firstIdx !== -1, new QuerySyntaxError('Slice must contain source'))
@@ -15,16 +15,14 @@ const getSliceValue = (text: string, places = 1) => {
   return lines.join('\n').trim()
 }
 
-const getSliceBlockValue = (text: string) => getSliceValue(text, 3)
-
 export const slice_block = {
   defaultType: 'slice',
-  match: until(/```(?!`)/, {
-    prefix: /```/,
+  match: until(/\|/, {
+    prefix: /\|/,
     inclusive: true,
   }),
   lineBreaks: true,
-  value: getSliceBlockValue,
+  value: getSliceValue,
   pop: 1,
 }
 
