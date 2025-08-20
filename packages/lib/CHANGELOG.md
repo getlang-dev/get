@@ -1,5 +1,20 @@
 # @getlang/lib
 
+## 0.2.0
+
+### Minor Changes
+
+- [#43](https://github.com/getlang-dev/get/pull/43) [`0f1b076`](https://github.com/getlang-dev/get/commit/0f1b076e347b6ea8d36dd6e29af4c70a22f0fd41) Thanks [@mattfysh](https://github.com/mattfysh)! - slice dependencies analysis
+
+- [#42](https://github.com/getlang-dev/get/pull/42) [`b7385e8`](https://github.com/getlang-dev/get/commit/b7385e89ffcbe02e93fde9789d464b094ae4c726) Thanks [@mattfysh](https://github.com/mattfysh)! - module call context
+
+### Patch Changes
+
+- [#40](https://github.com/getlang-dev/get/pull/40) [`70cb95b`](https://github.com/getlang-dev/get/commit/70cb95be361513925eb9881ee2988787a98dcf1b) Thanks [@mattfysh](https://github.com/mattfysh)! - upgrade deps
+
+- Updated dependencies [[`0f1b076`](https://github.com/getlang-dev/get/commit/0f1b076e347b6ea8d36dd6e29af4c70a22f0fd41), [`70cb95b`](https://github.com/getlang-dev/get/commit/70cb95be361513925eb9881ee2988787a98dcf1b), [`b7385e8`](https://github.com/getlang-dev/get/commit/b7385e89ffcbe02e93fde9789d464b094ae4c726)]:
+  - @getlang/utils@0.2.0
+
 ## 0.1.5
 
 ### Patch Changes
