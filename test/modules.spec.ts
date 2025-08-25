@@ -17,8 +17,7 @@ describe('modules', () => {
       extrct { title }
     `,
       {},
-      undefined,
-      true,
+      { willThrow: true },
     )
     return expect(result).rejects.toThrow(
       'SyntaxError: Invalid token at line 3 col 1:\n\n1  GET https://test.com\n2  \n3  extrct { title }\n   ^',

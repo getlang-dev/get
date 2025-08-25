@@ -32,8 +32,9 @@ export const settleLinks: DesugarPass = ({ parsers }) => {
     SelectorExpr: {
       enter(node, visit) {
         const xnode = trace.SelectorExpr.enter(node, visit)
-        invariant(xnode.context, new QuerySyntaxError('Unresolved context'))
-        inherit(xnode.context, xnode)
+        const context = xnode.context || scope.context
+        invariant(context, new QuerySyntaxError('Unresolved context'))
+        inherit(context, xnode)
         return xnode
       },
     },
@@ -59,8 +60,9 @@ export const settleLinks: DesugarPass = ({ parsers }) => {
           }
         }
 
-        invariant(xnode.context, new QuerySyntaxError('Unresolved context'))
-        inherit(xnode.context, xnode)
+        const context = xnode.context || scope.context
+        invariant(context, new QuerySyntaxError('Unresolved context'))
+        inherit(context, xnode)
         return xnode
       },
     },

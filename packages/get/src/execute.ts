@@ -13,6 +13,7 @@ import { withContext } from './context.js'
 import { callModifier } from './modifiers.js'
 import type { Execute } from './modules.js'
 import { Modules } from './modules.js'
+import type { RuntimeValue } from './value.js'
 import { assert, toValue } from './value.js'
 
 const {
@@ -70,7 +71,7 @@ export async function execute(
           return withContext(scope, node, visit, async context => {
             const { slice } = node
             try {
-              const deps = context && toValue(context.value, context.typeInfo)
+              const deps = context && toValue(context.data, context.typeInfo)
               const value = await hooks.slice(slice.value, deps)
               const ret =
                 value === undefined ? new NullSelection('<slice>') : value
@@ -92,7 +93,7 @@ export async function execute(
               value !== undefined,
               new ValueReferenceError(node.id.value),
             )
-            return value
+            return value.data
           })
         },
       },
@@ -105,7 +106,7 @@ export async function execute(
               typeof selector === 'string',
               new ValueTypeError('Expected selector string'),
             )
-            const args = [context!.value, selector, node.expand] as const
+            const args = [context!.data, selector, node.expand] as const
 
             function select(typeInfo: TypeInfo) {
               switch (typeInfo.type) {
@@ -135,8 +136,13 @@ export async function execute(
         enter(node, visit) {
           return withContext(scope, node, visit, async context => {
             const args = await visit(node.args)
-            const { value, typeInfo } = context!
-            return callModifier(node, args, value, typeInfo)
+            const mod = node.modifier.value
+            const entry = await modules.importMod(mod)
+            if (entry) {
+              return entry.mod(context?.data, args)
+            }
+            invariant(context, new QuerySyntaxError('Unresolved context'))
+            return callModifier(mod, args, context.data, context.typeInfo)
           })
         },
       },
@@ -211,16 +217,26 @@ export async function execute(
               ? await visit(node.defaultValue)
               : new NullSelection(`input:${inputName}`)
           }
-          scope.vars[inputName] = inputValue
+          scope.vars[inputName] = {
+            data: inputValue,
+            typeInfo: { type: Type.Value },
+          }
         },
       },
 
-      AssignmentStmt(node) {
-        scope.vars[node.name.value] = node.value
+      AssignmentStmt(node, _, og) {
+        scope.vars[node.name.value] = {
+          data: node.value,
+          typeInfo: og.value.typeInfo,
+        }
       },
 
-      RequestStmt(node) {
-        scope.pushContext(node.request)
+      RequestStmt(node, _, og) {
+        og.request.typeInfo
+        scope.pushContext({
+          data: node.request,
+          typeInfo: og.request.typeInfo,
+        })
       },
 
       ExtractStmt(node) {
@@ -237,7 +253,7 @@ export async function execute(
     return ex
   }
 
-  const scope = new RootScope<any>()
+  const scope = new RootScope<RuntimeValue>()
   const modules = new Modules(hooks, executeModule)
 
   const rootEntry = await modules.import(rootModule)

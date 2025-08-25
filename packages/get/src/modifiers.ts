@@ -1,18 +1,15 @@
 import { cookies, html, js, json } from '@getlang/lib'
-import type { ModifierExpr } from '@getlang/parser/ast'
 import type { TypeInfo } from '@getlang/parser/typeinfo'
 import { NullSelection } from '@getlang/utils'
 import { ValueReferenceError } from '@getlang/utils/errors'
 import { toValue } from './value.js'
 
 export function callModifier(
-  node: ModifierExpr,
+  mod: string,
   args: any,
   value: any,
   typeInfo: TypeInfo,
 ) {
-  const mod = node.modifier.value
-
   if (mod === 'link') {
     const tag = value.type === 'tag' ? value.name : undefined
     if (tag === 'a') {

@@ -5,6 +5,8 @@ import { NullSelection } from '@getlang/utils'
 import { NullSelectionError, ValueTypeError } from '@getlang/utils/errors'
 import { mapValues } from 'lodash-es'
 
+export type RuntimeValue = { data: any; typeInfo: TypeInfo }
+
 export function toValue(value: any, typeInfo: TypeInfo): any {
   switch (typeInfo.type) {
     case Type.Html:

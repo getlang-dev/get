@@ -204,8 +204,9 @@ export function resolveTypes(ast: Program, options: ResolveTypeOptions) {
 
     ModifierExpr: {
       enter: withContext((node, visit) => {
+        const mod = node.modifier.value
         const xnode = trace.ModifierExpr.enter(node, visit)
-        const typeInfo = modTypeMap[node.modifier.value]
+        const typeInfo = modTypeMap[mod] || returnTypes[mod]
         invariant(typeInfo, 'Modifier type lookup failed')
         return { ...xnode, typeInfo }
       }),

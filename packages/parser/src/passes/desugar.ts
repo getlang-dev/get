@@ -14,14 +14,18 @@ export type DesugarPass = (tools: {
 
 function listCalls(ast: Program) {
   const calls = new Set<string>()
+  const modifiers = new Set<string>()
   visit(ast, {
     ModuleExpr(node) {
       if (node.call) {
         calls.add(node.module.value)
       }
     },
+    ModifierExpr(node) {
+      modifiers.add(node.modifier.value)
+    },
   } as TransformVisitor)
-  return calls
+  return { calls, modifiers }
 }
 
 export function desugar(ast: Program, macros: string[] = []) {
@@ -36,6 +40,6 @@ export function desugar(ast: Program, macros: string[] = []) {
   // inference pass `registerCalls` is included in the desugar phase
   // it produces the list of called modules required for type inference
   program = registerCalls(program, macros)
-  const calls = listCalls(program)
-  return { program, calls }
+  const { calls, modifiers } = listCalls(program)
+  return { program, calls, modifiers }
 }

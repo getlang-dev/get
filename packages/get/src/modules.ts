@@ -2,7 +2,7 @@ import { analyze, desugar, inference, parse } from '@getlang/parser'
 import type { ModuleExpr, Program } from '@getlang/parser/ast'
 import type { TypeInfo } from '@getlang/parser/typeinfo'
 import { Type } from '@getlang/parser/typeinfo'
-import type { Hooks, Inputs } from '@getlang/utils'
+import type { Hooks, Inputs, Modifier } from '@getlang/utils'
 import {
   ImportError,
   RecursiveCallError,
@@ -21,6 +21,11 @@ type Info = {
 type Entry = {
   program: Program
   inputs: Set<string>
+  returnType: TypeInfo
+}
+
+type ModEntry = {
+  mod: Modifier
   returnType: TypeInfo
 }
 
@@ -57,6 +62,7 @@ function buildImportKey(module: string, typeInfo?: TypeInfo) {
 export class Modules {
   private info: Record<string, Promise<Info>> = {}
   private entries: Record<string, Promise<Entry>> = {}
+  private modifiers: Record<string, Promise<ModEntry | null>> = {}
 
   constructor(
     private hooks: Required<Hooks>,
@@ -88,12 +94,18 @@ export class Modules {
         macros.push(i)
       }
     }
-    const { program: simplified, calls } = desugar(ast, macros)
+    const { program: simplified, calls, modifiers } = desugar(ast, macros)
 
     const returnTypes: Record<string, TypeInfo> = {}
     for (const call of calls) {
       const { returnType } = await this.import(call, stack)
       returnTypes[call] = returnType
+    }
+    for (const mod of modifiers) {
+      const entry = await this.importMod(mod)
+      if (entry) {
+        returnTypes[mod] = entry.returnType
+      }
     }
 
     const { program, returnType } = inference(simplified, {
@@ -112,6 +124,19 @@ export class Modules {
     const key = buildImportKey(module, contextType)
     this.entries[key] ??= this.compile(module, stack, contextType)
     return this.entries[key]
+  }
+
+  async compileMod(mod: string): Promise<ModEntry | null> {
+    const compiled = await this.hooks.modifier(mod)
+    if (!compiled) {
+      return null
+    }
+    return { mod: compiled.modifier, returnType: { type: Type.Value } }
+  }
+
+  importMod(mod: string) {
+    this.modifiers[mod] ??= this.compileMod(mod)
+    return this.modifiers[mod]
   }
 
   async call(node: ModuleExpr, args: any, contextType?: TypeInfo) {

@@ -1,39 +1,37 @@
 import type { CExpr, Expr } from '@getlang/parser/ast'
 import type { RootScope } from '@getlang/parser/scope'
-import type { TypeInfo } from '@getlang/parser/typeinfo'
 import { Type } from '@getlang/parser/typeinfo'
 import type { MaybePromise } from '@getlang/utils'
 import { NullSelection } from '@getlang/utils'
+import type { RuntimeValue } from './value.js'
 import { assert } from './value.js'
 
-type Contextual = { value: any; typeInfo: TypeInfo }
-
 export async function withContext(
-  scope: RootScope<any>,
+  scope: RootScope<RuntimeValue>,
   node: CExpr,
   visit: (node: Expr) => MaybePromise<any>,
-  cb: (ctx?: Contextual) => MaybePromise<any>,
+  cb: (ctx?: RuntimeValue) => MaybePromise<any>,
 ): Promise<any> {
   async function unwrap(
-    context: Contextual | undefined,
-    cb: (ctx?: Contextual) => MaybePromise<any>,
+    context: RuntimeValue | undefined,
+    cb: (ctx?: RuntimeValue) => MaybePromise<any>,
   ): Promise<any> {
     if (context?.typeInfo.type === Type.List) {
       const list = []
-      for (const item of context.value) {
-        const itemCtx = { value: item, typeInfo: context.typeInfo.of }
+      for (const item of context.data) {
+        const itemCtx = { data: item, typeInfo: context.typeInfo.of }
         list.push(await unwrap(itemCtx, cb))
       }
       return list
     }
 
-    context && scope.pushContext(context.value)
+    context && scope.pushContext(context)
     const value = await cb(context)
     context && scope.popContext()
     return value
   }
 
-  let context: Contextual | undefined
+  let context = scope.context
   if (node.context) {
     let value = await visit(node.context)
     const optional = node.typeInfo.type === Type.Maybe
@@ -41,7 +39,7 @@ export async function withContext(
     if (value instanceof NullSelection) {
       return value
     }
-    context = { value, typeInfo: node.context.typeInfo }
+    context = { data: value, typeInfo: node.context.typeInfo }
   }
   return unwrap(context, cb)
 }

@@ -76,7 +76,9 @@ describe('calls', () => {
     const result = await execute(
       modules,
       {},
-      () => new Response(`<!doctype html><div>x</div><span>y</span>`),
+      {
+        fetch: () => new Response(`<!doctype html><div>x</div><span>y</span>`),
+      },
     )
     expect(result).toEqual({ div: 'x', span: 'y' })
   })
@@ -97,7 +99,9 @@ describe('calls', () => {
     const result = await execute(
       modules,
       {},
-      () => new Response(`<!doctype html><div>x</div><span>y</span>`),
+      {
+        fetch: () => new Response(`<!doctype html><div>x</div><span>y</span>`),
+      },
     )
     expect(result).toEqual({ div: 'x', span: 'y' })
   })
@@ -133,8 +137,9 @@ describe('calls', () => {
     const result = await execute(
       modules,
       { query: 'gifts' },
-      () =>
-        new Response(`
+      {
+        fetch: () =>
+          new Response(`
           <!doctype html>
           <ul>
             <li class="result">
@@ -146,6 +151,7 @@ describe('calls', () => {
             <a class="next" href="/?s=gifts&page=2">next</a>
           </div>
         `),
+      },
     )
     expect(result).toEqual({
       items: [
@@ -180,8 +186,9 @@ describe('calls', () => {
     const result = await execute(
       modules,
       {},
-      () =>
-        new Response(`
+      {
+        fetch: () =>
+          new Response(`
           <!doctype html>
           <body>
             <div id="a">
@@ -192,6 +199,7 @@ describe('calls', () => {
             </div>
           </body>
         `),
+      },
     )
 
     expect(result).toEqual({
@@ -221,12 +229,14 @@ describe('calls', () => {
     const result = await execute(
       modules,
       {},
-      () =>
-        new Response(`
+      {
+        fetch: () =>
+          new Response(`
           <!doctype html>
           <div data-json='{"x": 1}'><p>first</p></li>
           <div data-json='{"y": 2}'><p>second</p></li>
         `),
+      },
     )
 
     expect(result).toEqual({
@@ -254,7 +264,10 @@ describe('calls', () => {
     const result = await execute(
       modules,
       {},
-      () => new Response(`<div data-json='{"x": 1}'><p>first</p></li>`),
+      {
+        fetch: () =>
+          new Response(`<div data-json='{"x": 1}'><p>first</p></li>`),
+      },
     )
 
     expect(result).toEqual({ x: 1 })

@@ -2,7 +2,6 @@ import { invariant } from '@getlang/utils'
 import { QuerySyntaxError } from '@getlang/utils/errors'
 import type { CExpr, Expr } from '../../ast/ast.js'
 import { NodeKind } from '../../ast/ast.js'
-import { tx } from '../../utils.js'
 import type { DesugarPass } from '../desugar.js'
 import { traceVisitor } from '../trace.js'
 
@@ -10,18 +9,15 @@ export const resolveContext: DesugarPass = ({ parsers, macros }) => {
   const { scope, trace } = traceVisitor()
 
   function infer(node: CExpr, mod?: string) {
-    let resolved: Expr
+    let resolved = node.context
     let from: Expr | undefined
-    if (node.context) {
-      resolved = node.context
-    } else {
+    if (!node.context) {
+      resolved = scope.context
       from = scope.context
       invariant(from, new QuerySyntaxError('Unresolved context'))
       if (from.kind === NodeKind.RequestExpr) {
         const field = mod === 'link' ? 'url' : mod
         resolved = parsers.lookup(from, field)
-      } else {
-        resolved = tx.ident('')
       }
     }
     return { resolved, from }
@@ -51,8 +47,9 @@ export const resolveContext: DesugarPass = ({ parsers, macros }) => {
 
     SelectorExpr: {
       enter(node, visit) {
-        const { resolved: context } = infer(node)
-        return trace.SelectorExpr.enter({ ...node, context }, visit)
+        const { resolved } = infer(node)
+        invariant(resolved, new QuerySyntaxError('Unresolved selector context'))
+        return trace.SelectorExpr.enter(node, visit)
       },
     },
 
@@ -64,7 +61,10 @@ export const resolveContext: DesugarPass = ({ parsers, macros }) => {
         const onRequest = from?.kind === NodeKind.RequestExpr
         // when inferred to request parser, replace modifier
         if (onRequest) {
-          invariant(xnode.context, new QuerySyntaxError('Unresolved context'))
+          invariant(
+            xnode.context,
+            new QuerySyntaxError('Unresolved modifier context'),
+          )
           return xnode.context
         }
         return xnode

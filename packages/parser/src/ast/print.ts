@@ -83,22 +83,32 @@ const printVisitor: InterpretVisitor<Doc> = {
   },
 
   ObjectLiteralExpr(node, _path, orig) {
-    const shouldBreak = orig.entries.some(
-      e => e.value.kind === NodeKind.SelectorExpr,
-    )
+    let shouldBreak = false
     const entries = node.entries.map((entry, i) => {
       const origEntry = orig.entries[i]
       if (!origEntry) {
         throw new Error('Unmatched object literal entry')
       }
 
+      const key = render(origEntry.key)
       if (origEntry.value.kind === NodeKind.IdentifierExpr) {
-        const key = render(origEntry.key)
         const value = origEntry.value.id.value
         if (key === value || (key === '$' && value === '')) {
           return entry.value
         }
       }
+
+      if (
+        typeof key === 'string' &&
+        origEntry.value.kind === NodeKind.SelectorExpr
+      ) {
+        const value = render(origEntry.value.selector)
+        if (key === value) {
+          return value
+        }
+      }
+
+      shouldBreak = true
 
       const keyGroup: Doc[] = [entry.key]
       if (entry.optional) {
@@ -110,17 +120,6 @@ const printVisitor: InterpretVisitor<Doc> = {
 
       // value
       const value = entry.value
-      let shValue: Doc = entry.value
-      if (
-        Array.isArray(shValue) &&
-        shValue.length === 1 &&
-        typeof shValue[0] === 'string'
-      ) {
-        shValue = shValue[0]
-      }
-      if (typeof shValue === 'string' && entry.key === shValue) {
-        return [value, entry.optional ? '?' : '']
-      }
       return group([keyGroup, value])
     })
 
