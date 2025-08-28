@@ -9,7 +9,7 @@ import { execute, SELSYN } from './helpers.js'
 describe('values', () => {
   test('into JS object', async () => {
     const result = await execute(`
-      set obj = \`{ a: "b" }\`
+      set obj = |{ a: "b" }|
       extract $obj -> a
     `)
     expect(result).toEqual('b')
@@ -149,7 +149,7 @@ describe('values', () => {
 
     test('wide arrow expansion', async () => {
       const result = await execute(`
-        set json = \`'{"data": { "list": [{"name": "item one"}, {"name": "item two"}] } }'\`
+        set json = |'{"data": { "list": [{"name": "item one"}, {"name": "item two"}] } }'|
         extract $json -> @json => data.list -> (
           extract name
         )
@@ -231,7 +231,7 @@ describe('values', () => {
   describe('js ast', () => {
     test('parse string', async () => {
       const result = await execute(`
-        set js = \`'var a = 2;'\`
+        set js = |'var a = 2;'|
         extract $js -> @js -> Literal
       `)
       expect(result).toEqual(2)
@@ -239,7 +239,7 @@ describe('values', () => {
 
     test('select from tree', async () => {
       const result = await execute(`
-        set js = \`'var a = 2;'\`
+        set js = |'var a = 2;'|
         set ast = $js -> @js
         set descend = $ast -> VariableDeclaration Literal
         set child = $ast -> VariableDeclarator > Literal
@@ -379,7 +379,7 @@ describe('values', () => {
 
     test('null, zero, or empty string are valid', async () => {
       const result = await execute(`
-        set o = \`return {"nul":null,"num":0,"str":""}\`
+        set o = |return {"nul":null,"num":0,"str":""}|
         extract {
           nul: $o -> nul
           num: $o -> num
@@ -391,7 +391,7 @@ describe('values', () => {
 
     test('optional value selection', async () => {
       const result = await execute(`
-        set json = \`{ x: 'test' }\`
+        set json = |{ x: 'test' }|
         extract {
           x: $json -> x
           opt?: $json -> a -> b -> c

@@ -1,84 +1,63 @@
 import { invariant } from '@getlang/utils'
 import { QuerySyntaxError } from '@getlang/utils/errors'
-import type { CExpr, Expr } from '../../ast/ast.js'
-import { NodeKind } from '../../ast/ast.js'
-import { tx } from '../../utils.js'
+import { ScopeTracker, walk } from '@getlang/walker'
+import { t } from '../../ast/ast.js'
 import type { DesugarPass } from '../desugar.js'
-import { traceVisitor } from '../trace.js'
 
-export const resolveContext: DesugarPass = ({ parsers, macros }) => {
-  const { scope, trace } = traceVisitor()
+export const resolveContext: DesugarPass = (ast, { parsers, macros }) => {
+  const scope = new ScopeTracker()
 
-  function infer(node: CExpr, mod?: string) {
-    let resolved: Expr
-    let from: Expr | undefined
-    if (node.context) {
-      resolved = node.context
-    } else {
-      from = scope.context
-      invariant(from, new QuerySyntaxError('Unresolved context'))
-      if (from.kind === NodeKind.RequestExpr) {
-        const field = mod === 'link' ? 'url' : mod
-        resolved = parsers.lookup(from, field)
-      } else {
-        resolved = tx.ident('')
-      }
-    }
-    return { resolved, from }
-  }
+  const program = walk(ast, {
+    scope,
 
-  return {
-    ...trace,
+    Program(node) {
+      const body = parsers.insert(node.body)
+      return { ...node, body }
+    },
+
+    SubqueryExpr(node) {
+      const body = parsers.insert(node.body)
+      return { ...node, body }
+    },
 
     RequestExpr(node) {
       parsers.visit(node)
-      return node
     },
 
-    Program: {
-      enter(node, visit) {
-        const xnode = trace.Program.enter(node, visit)
-        return { ...xnode, body: parsers.insert(xnode.body) }
-      },
-    },
+    DrillBitExpr(node, path) {
+      const { bit } = node
+      const isModifier = bit.kind === 'ModifierExpr'
+      const requireContext =
+        isModifier ||
+        bit.kind === 'SelectorExpr' ||
+        (bit.kind === 'ModuleExpr' && macros.includes(bit.module.value))
 
-    SubqueryExpr: {
-      enter(node, visit) {
-        const xnode = trace.SubqueryExpr.enter(node, visit)
-        return { ...xnode, body: parsers.insert(xnode.body) }
-      },
-    },
+      if (!requireContext) {
+        return
+      }
 
-    SelectorExpr: {
-      enter(node, visit) {
-        const { resolved: context } = infer(node)
-        return trace.SelectorExpr.enter({ ...node, context }, visit)
-      },
-    },
+      const ctx = scope.context
+      invariant(ctx, new QuerySyntaxError('Unresolved context'))
+      if (ctx.kind !== 'RequestExpr') {
+        return
+      }
 
-    ModifierExpr: {
-      enter(node, visit) {
-        const modifier = node.modifier.value
-        const { resolved: context, from } = infer(node, modifier)
-        const xnode = trace.ModifierExpr.enter({ ...node, context }, visit)
-        const onRequest = from?.kind === NodeKind.RequestExpr
-        // when inferred to request parser, replace modifier
-        if (onRequest) {
-          invariant(xnode.context, new QuerySyntaxError('Unresolved context'))
-          return xnode.context
-        }
-        return xnode
-      },
-    },
+      const field = isModifier ? bit.modifier.value : undefined
+      const resolved = t.drillBitExpr(parsers.lookup(ctx, field))
 
-    ModuleExpr: {
-      enter(node, visit) {
-        const module = node.module.value
-        const context = macros.includes(module)
-          ? infer(node).resolved
-          : node.context
-        return trace.ModuleExpr.enter({ ...node, context }, visit)
-      },
+      if (isModifier) {
+        // replace modifier with shared parser
+        return resolved
+      }
+
+      path.insertBefore(resolved)
     },
-  }
+  })
+
+  invariant(
+    program.kind === 'Program',
+    new QuerySyntaxError('Context inference exception'),
+  )
+
+  return program
 }

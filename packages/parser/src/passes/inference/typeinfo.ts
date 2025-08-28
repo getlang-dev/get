@@ -1,22 +1,12 @@
 import { invariant } from '@getlang/utils'
-import { QuerySyntaxError, ValueReferenceError } from '@getlang/utils/errors'
-import type { CExpr, Program } from '../../ast/ast.js'
-import { NodeKind, t } from '../../ast/ast.js'
+import { QuerySyntaxError } from '@getlang/utils/errors'
+import { ScopeTracker, walk } from '@getlang/walker'
+import { toPath } from 'lodash-es'
+import type { Program } from '../../ast/ast.js'
+import { t } from '../../ast/ast.js'
 import type { TypeInfo } from '../../ast/typeinfo.js'
 import { Type } from '../../ast/typeinfo.js'
-import { render, selectTypeInfo } from '../../utils.js'
-import type { TransformVisitor, Visit } from '../../visitor/transform.js'
-import { visit } from '../../visitor/visitor.js'
-import { traceVisitor } from '../trace.js'
-
-const modTypeMap: Record<string, TypeInfo> = {
-  html: { type: Type.Html },
-  js: { type: Type.Js },
-  json: { type: Type.Value },
-  link: { type: Type.Value },
-  headers: { type: Type.Headers },
-  cookies: { type: Type.Cookies },
-}
+import { render } from '../../utils.js'
 
 function unwrap(typeInfo: TypeInfo) {
   switch (typeInfo.type) {
@@ -25,14 +15,14 @@ function unwrap(typeInfo: TypeInfo) {
     case Type.Maybe:
       return unwrap(typeInfo.option)
     default:
-      return typeInfo
+      return structuredClone(typeInfo)
   }
 }
 
 function rewrap(
   typeInfo: TypeInfo | undefined,
   itemTypeInfo: TypeInfo,
-  optional: boolean,
+  optional?: boolean,
 ): TypeInfo {
   switch (typeInfo?.type) {
     case Type.List:
@@ -79,15 +69,9 @@ type ResolveTypeOptions = {
 
 export function resolveTypes(ast: Program, options: ResolveTypeOptions) {
   const { returnTypes, contextType } = options
-  const { scope, trace } = traceVisitor(contextType)
-  let optional = false
-  function setOptional<T>(opt: boolean, cb: () => T): T {
-    const last = optional
-    optional = opt
-    const ret = cb()
-    optional = last
-    return ret
-  }
+  const scope = new ScopeTracker()
+
+  const optional: boolean[] = [false]
 
   function withContext<C extends CExpr>(cb: (tnode: C, ivisit: Visit) => C) {
     return function enter(node: C, visit: Visit): C {
@@ -110,9 +94,8 @@ export function resolveTypes(ast: Program, options: ResolveTypeOptions) {
     }
   }
 
-  const visitor: TransformVisitor = {
-    ...trace,
-
+  const program: Program = walk(ast, {
+    scope,
     InputDeclStmt: {
       enter(node, visit) {
         const xnode = { ...node }
@@ -128,24 +111,24 @@ export function resolveTypes(ast: Program, options: ResolveTypeOptions) {
     },
 
     AssignmentStmt: {
-      enter(node, visit) {
-        const value = setOptional(node.optional, () => visit(node.value))
-        return trace.AssignmentStmt({ ...node, value })
+      enter(node) {
+        optional.push(node.optional)
+      },
+      exit() {
+        optional.pop()
       },
     },
 
-    IdentifierExpr: {
-      enter: withContext((node, visit) => {
-        const id = node.id.value
-        const xnode = trace.IdentifierExpr.enter(node, visit)
-        const value = id ? scope.vars[id] : xnode.context || scope.context
-        invariant(value, new ValueReferenceError(id))
-        let typeInfo = structuredClone(value.typeInfo)
-        if (xnode.expand) {
-          typeInfo = { type: Type.List, of: typeInfo }
-        }
-        return { ...xnode, typeInfo }
-      }),
+    IdentifierExpr(node) {
+      const value = scope.lookup(node.id.value)
+      const typeInfo = structuredClone(value.typeInfo)
+      return { ...node, typeInfo }
+    },
+
+    DrillIdentifierExpr(node) {
+      const value = scope.lookup(node.id.value)
+      const typeInfo = structuredClone(value.typeInfo)
+      return { ...node, typeInfo }
     },
 
     RequestExpr(node) {
@@ -163,52 +146,61 @@ export function resolveTypes(ast: Program, options: ResolveTypeOptions) {
       }
     },
 
-    SliceExpr: {
-      enter: withContext((node, visit) => {
-        const xnode = trace.SliceExpr.enter(node, visit)
-        let typeInfo: TypeInfo = { type: Type.Value }
-        if (optional) {
-          typeInfo = { type: Type.Maybe, option: typeInfo }
-        }
-        return { ...xnode, typeInfo }
-      }),
+    SliceExpr(node) {
+      let typeInfo: TypeInfo = { type: Type.Value }
+      if (optional.at(-1)) {
+        typeInfo = { type: Type.Maybe, option: typeInfo }
+      }
+      return { ...node, typeInfo }
     },
 
-    SelectorExpr: {
-      enter: withContext((node, visit) => {
-        const xnode = trace.SelectorExpr.enter(node, visit)
-        let typeInfo: TypeInfo = unwrap(
-          xnode.context?.typeInfo ?? { type: Type.Value },
+    SelectorExpr(node) {
+      function selectorTypeInfo() {
+        invariant(
+          node.selector.kind === 'TemplateExpr',
+          new QuerySyntaxError('Selector requires template'),
         )
-
-        if (typeInfo.type === Type.Struct) {
-          typeInfo = selectTypeInfo(typeInfo, xnode.selector) ?? {
-            type: Type.Value,
+        const scopeT = scope.context.typeInfo
+        switch (scopeT.type) {
+          case Type.Headers:
+          case Type.Cookies:
+            return { type: Type.Value }
+          case Type.Struct: {
+            const sel = render(node.selector)
+            return toPath(sel).reduce<TypeInfo>(
+              (acc, cur) =>
+                (acc.type === Type.Struct && acc.schema[cur]) || {
+                  type: Type.Value,
+                },
+              scopeT,
+            )
           }
-        } else if (
-          typeInfo.type === Type.Headers ||
-          typeInfo.type === Type.Cookies
-        ) {
-          typeInfo = { type: Type.Value }
+          default:
+            return scopeT
         }
+      }
 
-        if (xnode.expand) {
-          typeInfo = { type: Type.List, of: typeInfo }
-        } else if (optional) {
-          typeInfo = { type: Type.Maybe, option: typeInfo }
-        }
-
-        return { ...xnode, typeInfo }
-      }),
+      let typeInfo = structuredClone(selectorTypeInfo())
+      if (node.expand) {
+        typeInfo = { type: Type.List, of: typeInfo }
+      } else if (optional.at(-1)) {
+        typeInfo = { type: Type.Maybe, option: typeInfo }
+      }
+      return { ...node, typeInfo }
     },
 
-    ModifierExpr: {
-      enter: withContext((node, visit) => {
-        const xnode = trace.ModifierExpr.enter(node, visit)
-        const typeInfo = modTypeMap[node.modifier.value]
-        invariant(typeInfo, 'Modifier type lookup failed')
-        return { ...xnode, typeInfo }
-      }),
+    ModifierExpr(node) {
+      const modTypeMap: Record<string, TypeInfo> = {
+        html: { type: Type.Html },
+        js: { type: Type.Js },
+        json: { type: Type.Value },
+        link: { type: Type.Value },
+        headers: { type: Type.Headers },
+        cookies: { type: Type.Cookies },
+      }
+      const typeInfo = modTypeMap[node.modifier.value]
+      invariant(typeInfo, 'Modifier type lookup failed')
+      return { ...node, typeInfo }
     },
 
     ModuleExpr: {
@@ -224,52 +216,63 @@ export function resolveTypes(ast: Program, options: ResolveTypeOptions) {
       }),
     },
 
-    SubqueryExpr: {
-      enter: withContext((node, visit) => {
-        const xnode = trace.SubqueryExpr.enter(node, visit)
-        const typeInfo = xnode.body.find(
-          stmt => stmt.kind === NodeKind.ExtractStmt,
-        )?.value.typeInfo ?? { type: Type.Never }
-        return { ...xnode, typeInfo }
-      }),
+    SubqueryExpr(node) {
+      const ex = node.body.findLast(s => s.kind === 'ExtractStmt')
+      const typeInfo = ex?.value.typeInfo || { type: Type.Never }
+      return { ...node, typeInfo: structuredClone(typeInfo) }
     },
 
-    ObjectLiteralExpr: {
-      enter: withContext((node, visit) => {
-        const xnode = trace.ObjectLiteralExpr.enter(node, child => {
-          if (child === node.context) {
-            return visit(child)
-          }
-          const entry = node.entries.find(e => e.value === child)
-          invariant(
-            entry,
-            new QuerySyntaxError('Object entry missing typeinfo'),
-          )
-          return setOptional(entry.optional, () => visit(child))
-        })
-
-        const typeInfo: TypeInfo = {
-          type: Type.Struct,
-          schema: Object.fromEntries(
-            xnode.entries.map(e => {
-              const key = render(e.key)
-              invariant(
-                key,
-                new QuerySyntaxError('Object keys must be string literals'),
-              )
-              const value = e.value.typeInfo
-              return [key, value]
-            }),
-          ),
-        }
-
-        return { ...xnode, typeInfo }
-      }),
+    DrillExpr(node) {
+      const typeInfo = structuredClone(node.body.at(-1)!.typeInfo)
+      return { ...node, typeInfo }
     },
-  }
 
-  const program: Program = visit(ast, visitor)
-  const ex = program.body.find(s => s.kind === NodeKind.ExtractStmt)
+    DrillBitExpr: {
+      enter() {
+        const ctx = scope.context
+        const itemCtx = ctx && { ...ctx, typeInfo: unwrap(ctx.typeInfo) }
+        scope.push(itemCtx)
+      },
+      exit(node) {
+        scope.pop()
+        const ctx = scope.context
+        const itemTypeInfo = structuredClone(node.bit.typeInfo)
+        const typeInfo = ctx
+          ? rewrap(ctx.typeInfo, itemTypeInfo, optional.at(-1))
+          : itemTypeInfo
+        return { ...node, typeInfo }
+      },
+    },
+
+    ObjectEntryExpr: {
+      enter(node) {
+        optional.push(node.optional)
+      },
+      exit() {
+        optional.pop()
+      },
+    },
+
+    ObjectLiteralExpr(node) {
+      const typeInfo: TypeInfo = {
+        type: Type.Struct,
+        schema: Object.fromEntries(
+          node.entries.map(e => {
+            const key = render(e.key)
+            invariant(
+              key,
+              new QuerySyntaxError('Object keys must be string literals'),
+            )
+            const value = structuredClone(e.value.typeInfo)
+            return [key, value]
+          }),
+        ),
+      }
+      return { ...node, typeInfo }
+    },
+  })
+
+  const ex = program.body.find(s => s.kind === 'ExtractStmt')
   const returnType = ex?.value.typeInfo ?? { type: Type.Never }
 
   return { program, returnType }

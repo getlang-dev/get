@@ -1,30 +1,12 @@
-import { toPath } from 'lodash-es'
 import type { Expr, RequestExpr } from './ast/ast.js'
-import { isToken, NodeKind, t } from './ast/ast.js'
-import type { Struct, TypeInfo } from './ast/typeinfo.js'
-import { Type } from './ast/typeinfo.js'
+import { isToken, t } from './ast/ast.js'
 
 export const render = (template: Expr) => {
-  if (template.kind !== NodeKind.TemplateExpr) {
+  if (template.kind !== 'TemplateExpr') {
     return null
   }
   const els = template.elements
   return els?.every(isToken) ? els.map(el => el.value).join('') : null
-}
-
-export function selectTypeInfo(
-  typeInfo: Struct,
-  selector: Expr,
-): TypeInfo | null {
-  const sel = render(selector)
-  if (!sel) {
-    return null
-  }
-  return toPath(sel).reduce<TypeInfo>(
-    (acc, cur) =>
-      (acc.type === Type.Struct && acc.schema[cur]) || { type: Type.Value },
-    typeInfo,
-  )
 }
 
 export function getContentField(req: RequestExpr) {
@@ -60,8 +42,12 @@ function template(contents: string) {
   return t.templateExpr([token(contents)])
 }
 
-function select(selector: string, context?: Expr) {
-  return t.selectorExpr(template(selector), false, context)
+function select(selector: string) {
+  return t.selectorExpr(template(selector), false)
 }
 
-export const tx = { token, ident, template, select }
+function drill(...bits: Expr[]) {
+  return t.drillExpr(bits.map(bit => t.drillBitExpr(bit)))
+}
+
+export const tx = { token, ident, template, select, drill }

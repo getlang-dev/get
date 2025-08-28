@@ -1,9 +1,14 @@
 import { cookies, headers, html, js } from '@getlang/lib'
 import type { TypeInfo } from '@getlang/parser/typeinfo'
 import { Type } from '@getlang/parser/typeinfo'
-import { NullSelection } from '@getlang/utils'
+import { invariant, NullSelection } from '@getlang/utils'
 import { NullSelectionError, ValueTypeError } from '@getlang/utils/errors'
 import { mapValues } from 'lodash-es'
+
+export type RuntimeValue = {
+  data: any
+  typeInfo: TypeInfo
+}
 
 export function toValue(value: any, typeInfo: TypeInfo): any {
   switch (typeInfo.type) {
@@ -28,9 +33,10 @@ export function toValue(value: any, typeInfo: TypeInfo): any {
   }
 }
 
-export function assert(value: any) {
-  if (value instanceof NullSelection) {
-    throw new NullSelectionError(value.selector)
+export function assert(value: RuntimeValue) {
+  const optional = value.typeInfo.type === Type.Maybe
+  if (!optional && value.data instanceof NullSelection) {
+    throw new NullSelectionError(value.data.selector)
   }
   return value
 }

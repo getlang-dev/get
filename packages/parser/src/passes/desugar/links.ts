@@ -1,7 +1,7 @@
 import { invariant } from '@getlang/utils'
 import { QuerySyntaxError, ValueReferenceError } from '@getlang/utils/errors'
 import type { Expr, RequestExpr } from '../../ast/ast.js'
-import { NodeKind, t } from '../../ast/ast.js'
+import { t } from '../../ast/ast.js'
 import { render, tx } from '../../utils.js'
 import type { DesugarPass } from '../desugar.js'
 import { traceVisitor } from '../trace.js'
@@ -42,7 +42,7 @@ export const settleLinks: DesugarPass = ({ parsers }) => {
       enter(node, visit) {
         const xnode = trace.ModifierExpr.enter(node, visit)
         invariant(
-          xnode.args.kind === NodeKind.ObjectLiteralExpr,
+          xnode.args.kind === 'ObjectLiteralExpr',
           new QuerySyntaxError('Modifier options must be an object'),
         )
 
@@ -51,7 +51,7 @@ export const settleLinks: DesugarPass = ({ parsers }) => {
           const hasBase = xnode.args.entries.some(e => render(e.key) === 'base')
           if (contextBase && !hasBase) {
             xnode.args.entries.push(
-              t.objectEntry(
+              t.objectEntryExpr(
                 tx.template('base'),
                 parsers.lookup(contextBase, 'url'),
               ),
@@ -74,7 +74,7 @@ export const settleLinks: DesugarPass = ({ parsers }) => {
             entries: node.args.entries.map(e => {
               if (
                 render(e.key) !== '@link' ||
-                (e.value.kind === NodeKind.ModifierExpr &&
+                (e.value.kind === 'ModifierExpr' &&
                   e.value.modifier.value === 'link')
               ) {
                 return e
@@ -104,9 +104,7 @@ export const settleLinks: DesugarPass = ({ parsers }) => {
     SubqueryExpr: {
       enter(node, visit) {
         let xnode = trace.SubqueryExpr.enter(node, visit)
-        const extracted = xnode.body.find(
-          stmt => stmt.kind === NodeKind.ExtractStmt,
-        )
+        const extracted = xnode.body.find(stmt => stmt.kind === 'ExtractStmt')
         xnode = { ...xnode, body: parsers.insert(xnode.body) }
         extracted && inherit(extracted.value, xnode)
         return xnode

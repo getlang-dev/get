@@ -1,9 +1,10 @@
 import { invariant } from '@getlang/utils'
 import { SliceSyntaxError } from '@getlang/utils/errors'
+import { ScopeTracker, walk } from '@getlang/walker'
 import { parse as acorn } from 'acorn'
 import { traverse } from 'estree-toolkit'
 import globals from 'globals'
-import { NodeKind, t } from '../../ast/ast.js'
+import { t } from '../../ast/ast.js'
 import { render, tx } from '../../utils.js'
 import type { DesugarPass } from '../desugar.js'
 
@@ -66,37 +67,40 @@ const analyzeSlice = (slice: string) => {
   return { source, deps, usesVars }
 }
 
-export const insertSliceDeps: DesugarPass = () => {
-  return {
+export const insertSliceDeps: DesugarPass = ast => {
+  const scope = new ScopeTracker()
+  return walk(ast, {
+    scope,
     SliceExpr(node) {
+      if (node.kind !== 'SliceExpr') {
+        return
+      }
+
       const stat = analyzeSlice(node.slice.value)
       if (!stat) {
         return node
       }
 
       const { source, deps, usesVars } = stat
-      const slice = tx.token(source)
-      let context = node.context
+      const xnode = { ...node, slice: tx.token(source) }
+
+      let context = scope.context
 
       if (usesVars) {
-        if (context?.kind !== NodeKind.ObjectLiteralExpr) {
-          context = t.objectLiteralExpr([], context)
+        if (context?.kind !== 'ObjectLiteralExpr') {
+          context = t.objectLiteralExpr([])
         }
         const keys = new Set(context.entries.map(e => render(e.key)))
         const missing = deps.difference(keys)
         for (const dep of missing) {
           const id = tx.token(dep, dep === '$' ? '' : dep)
-          context.entries.push({
-            key: tx.template(dep),
-            value: t.identifierExpr(id),
-            optional: false,
-          })
+          context.entries.push(
+            t.objectEntryExpr(tx.template(dep), t.identifierExpr(id), false),
+          )
         }
-      } else if (deps.size === 1 && !context) {
-        context = t.identifierExpr(tx.token('$', ''), false, context)
       }
 
-      return { ...node, slice, context }
+      return context === scope.context ? xnode : [context, xnode]
     },
-  }
+  })
 }

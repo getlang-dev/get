@@ -1,6 +1,5 @@
 import { wait, waitMap } from '@getlang/utils'
 import type { Node } from '../ast/ast.js'
-import { NodeKind } from '../ast/ast.js'
 import type { AsyncInterpretVisitor, InterpretVisitor } from './interpret.js'
 import type { TransformVisitor } from './transform.js'
 
@@ -58,5 +57,5 @@ export function visit<N extends Node, V extends Visitor>(
 
 function isNode(value: unknown): value is Node {
   const kind = (value as any)?.kind
-  return typeof kind === 'string' && Object.keys(NodeKind).includes(kind)
+  return typeof kind === 'string'
 }

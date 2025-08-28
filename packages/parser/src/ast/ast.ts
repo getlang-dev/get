@@ -7,139 +7,141 @@ export function isToken(value: unknown): value is Token {
   return !!value && typeof value === 'object' && 'offset' in value
 }
 
-export enum NodeKind {
-  Program = 'Program',
-  ExtractStmt = 'ExtractStmt',
-  AssignmentStmt = 'AssignmentStmt',
-  DeclInputsStmt = 'DeclInputsStmt',
-  InputDeclStmt = 'InputDeclStmt',
-  RequestStmt = 'RequestStmt',
-  RequestExpr = 'RequestExpr',
-  TemplateExpr = 'TemplateExpr',
-  IdentifierExpr = 'IdentifierExpr',
-  SelectorExpr = 'SelectorExpr',
-  ModifierExpr = 'ModifierExpr',
-  ModuleExpr = 'ModuleExpr',
-  SubqueryExpr = 'SubqueryExpr',
-  ObjectLiteralExpr = 'ObjectLiteralExpr',
-  SliceExpr = 'SliceExpr',
-}
-
-type ObjectEntry = {
-  key: Expr
-  value: Expr
-  optional: boolean
-}
-
 export type Program = {
-  kind: NodeKind.Program
+  kind: 'Program'
   body: Stmt[]
 }
 
 type ExtractStmt = {
-  kind: NodeKind.ExtractStmt
+  kind: 'ExtractStmt'
   value: Expr
 }
 
 type AssignmentStmt = {
-  kind: NodeKind.AssignmentStmt
+  kind: 'AssignmentStmt'
   name: Token
   value: Expr
   optional: boolean
 }
 
 export type DeclInputsStmt = {
-  kind: NodeKind.DeclInputsStmt
+  kind: 'DeclInputsStmt'
   inputs: InputDeclStmt[]
 }
 
 export type InputDeclStmt = {
-  kind: NodeKind.InputDeclStmt
+  kind: 'InputDeclStmt'
   id: Token
   optional: boolean
   defaultValue?: SliceExpr
 }
 
 type RequestStmt = {
-  kind: NodeKind.RequestStmt
+  kind: 'RequestStmt'
   request: RequestExpr
 }
 
-type RequestBlocks = {
-  query?: ObjectLiteralExpr
-  cookies?: ObjectLiteralExpr
-  json?: ObjectLiteralExpr
-  form?: ObjectLiteralExpr
-}
-
 export type RequestExpr = {
-  kind: NodeKind.RequestExpr
+  kind: 'RequestExpr'
   method: Token
   url: Expr
-  headers: ObjectLiteralExpr
-  blocks: RequestBlocks
-  body?: Expr
+  headers: RequestBlockExpr
+  blocks: RequestBlockExpr[]
+  body: Expr
+  typeInfo: TypeInfo
+}
+
+type RequestBlockExpr = {
+  kind: 'RequestBlockExpr'
+  name: Token
+  entries: RequestEntryExpr[]
+  typeInfo: TypeInfo
+}
+
+type RequestEntryExpr = {
+  kind: 'RequestEntryExpr'
+  key: Expr
+  value: Expr
   typeInfo: TypeInfo
 }
 
 export type TemplateExpr = {
-  kind: NodeKind.TemplateExpr
+  kind: 'TemplateExpr'
   elements: (Expr | Token)[]
   typeInfo: TypeInfo
 }
 
 type IdentifierExpr = {
-  kind: NodeKind.IdentifierExpr
+  kind: 'IdentifierExpr'
+  id: Token
+  isUrlComponent: boolean
+  typeInfo: TypeInfo
+}
+
+type DrillIdentifierExpr = {
+  kind: 'DrillIdentifierExpr'
   id: Token
   expand: boolean
-  isUrlComponent: boolean
-  context?: Expr
   typeInfo: TypeInfo
 }
 
 type SelectorExpr = {
-  kind: NodeKind.SelectorExpr
-  selector: TemplateExpr
+  kind: 'SelectorExpr'
+  selector: Expr
   expand: boolean
-  context?: Expr
   typeInfo: TypeInfo
 }
 
 export type ModifierExpr = {
-  kind: NodeKind.ModifierExpr
+  kind: 'ModifierExpr'
   modifier: Token
   args: ObjectLiteralExpr
-  context?: Expr
   typeInfo: TypeInfo
 }
 
 export type ModuleExpr = {
-  kind: NodeKind.ModuleExpr
+  kind: 'ModuleExpr'
   module: Token
   call: boolean
   args: ObjectLiteralExpr
-  context?: Expr
   typeInfo: TypeInfo
 }
 
 type SubqueryExpr = {
-  kind: NodeKind.SubqueryExpr
+  kind: 'SubqueryExpr'
   body: Stmt[]
-  context?: Expr
+  typeInfo: TypeInfo
+}
+
+type DrillExpr = {
+  kind: 'DrillExpr'
+  body: DrillBitExpr[]
+  typeInfo: TypeInfo
+}
+
+type DrillBitExpr = {
+  kind: 'DrillBitExpr'
+  bit: Expr
+  typeInfo: TypeInfo
+}
+
+type ObjectEntryExpr = {
+  kind: 'ObjectEntryExpr'
+  key: Expr
+  value: Expr
+  optional: boolean
   typeInfo: TypeInfo
 }
 
 type ObjectLiteralExpr = {
-  kind: NodeKind.ObjectLiteralExpr
-  entries: ObjectEntry[]
-  context?: Expr
+  kind: 'ObjectLiteralExpr'
+  entries: ObjectEntryExpr[]
   typeInfo: TypeInfo
 }
 
 type SliceExpr = {
-  kind: NodeKind.SliceExpr
+  kind: 'SliceExpr'
   slice: Token
-  context?: Expr
   typeInfo: TypeInfo
 }
 
@@ -153,20 +155,25 @@ export type Stmt =
 
 export type Expr =
   | RequestExpr
+  | RequestBlockExpr
+  | RequestEntryExpr
   | TemplateExpr
   | IdentifierExpr
+  | DrillIdentifierExpr
   | SelectorExpr
   | ModifierExpr
   | ModuleExpr
   | SubqueryExpr
+  | ObjectEntryExpr
   | ObjectLiteralExpr
   | SliceExpr
+  | DrillExpr
+  | DrillBitExpr
 
-export type CExpr = Extract<Expr, { context?: any }>
 export type Node = Stmt | Expr
 
 const program = (body: Stmt[]): Program => ({
-  kind: NodeKind.Program,
+  kind: 'Program',
   body,
 })
 
@@ -175,14 +182,14 @@ const assignmentStmt = (
   value: Expr,
   optional: boolean,
 ): AssignmentStmt => ({
-  kind: NodeKind.AssignmentStmt,
+  kind: 'AssignmentStmt',
   name,
   optional,
   value,
 })
 
 const declInputsStmt = (inputs: InputDeclStmt[]): DeclInputsStmt => ({
-  kind: NodeKind.DeclInputsStmt,
+  kind: 'DeclInputsStmt',
   inputs,
 })
 
@@ -191,122 +198,146 @@ const inputDeclStmt = (
   optional: boolean,
   defaultValue?: SliceExpr,
 ): InputDeclStmt => ({
-  kind: NodeKind.InputDeclStmt,
+  kind: 'InputDeclStmt',
   id,
   optional,
   defaultValue,
 })
 
 const extractStmt = (value: Expr): ExtractStmt => ({
-  kind: NodeKind.ExtractStmt,
+  kind: 'ExtractStmt',
   value,
 })
 
 const requestStmt = (request: RequestExpr): RequestStmt => ({
-  kind: NodeKind.RequestStmt,
+  kind: 'RequestStmt',
   request,
 })
 
 const requestExpr = (
   method: Token,
   url: Expr,
-  headers: ObjectLiteralExpr,
-  blocks: RequestBlocks,
+  headers: RequestBlockExpr,
+  blocks: RequestBlockExpr[],
   body: Expr,
 ): RequestExpr => ({
-  kind: NodeKind.RequestExpr,
+  kind: 'RequestExpr',
+  typeInfo: { type: Type.Value },
   method,
   url,
   headers,
   blocks,
   body,
-  typeInfo: { type: Type.Value },
 })
 
-const subqueryExpr = (body: Stmt[], context?: Expr): SubqueryExpr => ({
-  kind: NodeKind.SubqueryExpr,
+const requestBlockExpr = (
+  name: Token,
+  entries: RequestEntryExpr[],
+): RequestBlockExpr => ({
+  kind: 'RequestBlockExpr',
+  typeInfo: { type: Type.Value },
+  name,
+  entries,
+})
+
+const requestEntryExpr = (key: Expr, value: Expr): RequestEntryExpr => ({
+  kind: 'RequestEntryExpr',
+  typeInfo: { type: Type.Value },
+  key,
+  value,
+})
+
+const subqueryExpr = (body: Stmt[]): SubqueryExpr => ({
+  kind: 'SubqueryExpr',
+  typeInfo: { type: Type.Value },
   body,
-  typeInfo: { type: Type.Value },
-  context,
 })
 
-const identifierExpr = (
+const drillExpr = (body: DrillBitExpr[]): DrillExpr => ({
+  kind: 'DrillExpr',
+  typeInfo: { type: Type.Value },
+  body,
+})
+
+const drillBitExpr = (bit: Expr): DrillBitExpr => ({
+  kind: 'DrillBitExpr',
+  typeInfo: { type: Type.Value },
+  bit,
+})
+
+const identifierExpr = (id: Token): IdentifierExpr => ({
+  kind: 'IdentifierExpr',
+  typeInfo: { type: Type.Value },
+  id,
+  isUrlComponent: id.text.startsWith(':'),
+})
+
+const drillIdentifierExpr = (
   id: Token,
-  expand = false,
-  context?: Expr,
-): IdentifierExpr => ({
-  kind: NodeKind.IdentifierExpr,
+  expand: boolean,
+): DrillIdentifierExpr => ({
+  kind: 'DrillIdentifierExpr',
+  typeInfo: { type: Type.Value },
   id,
   expand,
-  isUrlComponent: id.text.startsWith(':'),
-  typeInfo: { type: Type.Value },
-  context,
 })
 
-const selectorExpr = (
-  selector: TemplateExpr,
-  expand: boolean,
-  context?: Expr,
-): SelectorExpr => ({
-  kind: NodeKind.SelectorExpr,
+const selectorExpr = (selector: Expr, expand: boolean): SelectorExpr => ({
+  kind: 'SelectorExpr',
+  typeInfo: { type: Type.Value },
   expand,
   selector,
-  typeInfo: { type: Type.Value },
-  context,
 })
 
 const modifierExpr = (
   modifier: Token,
   inputs: ObjectLiteralExpr = objectLiteralExpr([]),
-  context?: Expr,
 ): ModifierExpr => ({
-  kind: NodeKind.ModifierExpr,
+  kind: 'ModifierExpr',
+  typeInfo: { type: Type.Value },
   modifier,
   args: inputs,
-  typeInfo: { type: Type.Value },
-  context,
 })
 
 const moduleExpr = (
   module: Token,
   inputs: ObjectLiteralExpr = objectLiteralExpr([]),
-  context?: Expr,
 ): ModuleExpr => ({
-  kind: NodeKind.ModuleExpr,
+  kind: 'ModuleExpr',
+  typeInfo: { type: Type.Value },
   module,
   call: false,
   args: inputs,
-  typeInfo: { type: Type.Value },
-  context,
 })
 
-const objectLiteralExpr = (
-  entries: ObjectEntry[],
-  context?: Expr,
-): ObjectLiteralExpr => ({
-  kind: NodeKind.ObjectLiteralExpr,
-  entries,
-  typeInfo: { type: Type.Value },
-  context,
-})
-
-const objectEntry = (
+const objectEntryExpr = (
   key: Expr,
   value: Expr,
   optional = false,
-): ObjectEntry => ({ key, value, optional })
-
-const sliceExpr = (slice: Token, context?: Expr): SliceExpr => ({
-  kind: NodeKind.SliceExpr,
-  slice,
+): ObjectEntryExpr => ({
+  kind: 'ObjectEntryExpr',
   typeInfo: { type: Type.Value },
-  context,
+  key,
+  optional,
+  value,
+})
+
+const objectLiteralExpr = (entries: ObjectEntryExpr[]): ObjectLiteralExpr => ({
+  kind: 'ObjectLiteralExpr',
+  typeInfo: { type: Type.Value },
+  entries,
+})
+
+const sliceExpr = (slice: Token): SliceExpr => ({
+  kind: 'SliceExpr',
+  typeInfo: { type: Type.Value },
+  slice,
 })
 
 const templateExpr = (elements: (Expr | Token)[]): TemplateExpr => ({
-  kind: NodeKind.TemplateExpr,
-  elements,
+  kind: 'TemplateExpr',
   typeInfo: { type: Type.Value },
+  elements,
 })
 
 export const t = {
@@ -317,13 +348,18 @@ export const t = {
   extractStmt,
   requestStmt,
   requestExpr,
+  requestBlockExpr,
+  requestEntryExpr,
   templateExpr,
   identifierExpr,
+  drillIdentifierExpr,
   selectorExpr,
   modifierExpr,
   moduleExpr,
   sliceExpr,
+  objectEntryExpr,
   objectLiteralExpr,
-  objectEntry,
   subqueryExpr,
+  drillExpr,
+  drillBitExpr,
 }
