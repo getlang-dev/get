@@ -3,9 +3,10 @@ import { QuerySyntaxError } from '@getlang/utils/errors'
 import { ScopeTracker, walk } from '@getlang/walker'
 import { toPath } from 'lodash-es'
 import type { Program } from '../../ast/ast.js'
+import { t } from '../../ast/ast.js'
 import type { TypeInfo } from '../../ast/typeinfo.js'
 import { Type } from '../../ast/typeinfo.js'
-import { render } from '../../utils.js'
+import { render, tx } from '../../utils.js'
 
 function unwrap(typeInfo: TypeInfo) {
   switch (typeInfo.type) {
@@ -67,34 +68,22 @@ type ResolveTypeOptions = {
 }
 
 export function resolveTypes(ast: Program, options: ResolveTypeOptions) {
-  const { returnTypes, contextType } = options
+  const { returnTypes, contextType = { type: Type.Context } } = options
   const scope = new ScopeTracker()
 
   const optional: boolean[] = [false]
 
-  function withContext<C extends CExpr>(cb: (tnode: C, ivisit: Visit) => C) {
-    return function enter(node: C, visit: Visit): C {
-      if (!node.context) {
-        return cb(node, visit)
-      }
-      const context = visit(node.context)
-      const itemContext: any = {
-        ...context,
-        typeInfo: unwrap(context.typeInfo),
-      }
-
-      const ivisit: Visit = child =>
-        child === itemContext ? itemContext : visit(child)
-
-      const xnode = cb({ ...node, context: itemContext }, ivisit)
-
-      const typeInfo = rewrap(context.typeInfo, xnode.typeInfo, optional)
-      return { ...xnode, context, typeInfo }
-    }
-  }
-
   const program: Program = walk(ast, {
     scope,
+
+    Program: {
+      enter() {
+        scope.context = {
+          ...t.InputExpr(tx.token(''), false),
+          typeInfo: contextType,
+        }
+      },
+    },
 
     InputExpr(node) {
       let typeInfo: TypeInfo = { type: Type.Value }
@@ -200,17 +189,14 @@ export function resolveTypes(ast: Program, options: ResolveTypeOptions) {
       return { ...node, typeInfo }
     },
 
-    ModuleExpr: {
-      enter: withContext((node, visit) => {
-        const xnode = trace.ModuleExpr.enter(node, visit)
-        if (!node.call) {
-          return { ...xnode, typeInfo: { type: Type.Value } }
-        }
+    ModuleExpr(node) {
+      let typeInfo: TypeInfo = { type: Type.Value }
+      if (node.call) {
         const returnType = returnTypes[node.module.value]
         invariant(returnType, 'Module return type lookup failed')
-        const typeInfo = specialize(returnType, xnode.context?.typeInfo)
-        return { ...xnode, typeInfo }
-      }),
+        typeInfo = specialize(returnType, scope.context?.typeInfo)
+      }
+      return { ...node, typeInfo }
     },
 
     SubqueryExpr(node) {

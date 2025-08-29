@@ -89,15 +89,17 @@ export const call: PP = ([callee, maybeInputs]) => {
 }
 
 export const link: PP = ([maybePrior, callee, _, link]) => {
+  const body = []
+  const [context, , arrow] = maybePrior || []
+  if (context) {
+    body.push(...context.body)
+  }
   const bit = t.moduleExpr(
     callee,
     t.objectLiteralExpr([t.objectEntryExpr(tx.template('@link'), link, true)]),
   )
-  if (!maybePrior) {
-    return bit
-  }
-  const [context, , arrow] = maybePrior
-  return drill([context, null, arrow, null, bit])
+  body.push(drillBase(bit, arrow))
+  return t.drillExpr(body)
 }
 
 export const object: PP = d => {

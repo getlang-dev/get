@@ -7,7 +7,6 @@ import { invariant, NullSelection } from '@getlang/utils'
 import * as errors from '@getlang/utils/errors'
 import type { WalkOptions } from '@getlang/walker'
 import { ScopeTracker, walk } from '@getlang/walker'
-import { withContext } from './context.js'
 import { callModifier } from './modifiers.js'
 import type { Execute } from './modules.js'
 import { Modules } from './modules.js'
@@ -26,12 +25,12 @@ export async function execute(
   rootInputs: Inputs,
   hooks: Required<Hooks>,
 ) {
+  const scope = new ScopeTracker()
+
   const executeModule: Execute = async (entry, inputs) => {
     const provided = new Set(Object.keys(inputs))
     const unknown = provided.difference(entry.inputs)
     invariant(unknown.size === 0, new UnknownInputsError([...unknown]))
-
-    const scope = new ScopeTracker()
 
     const visitor: WalkOptions = {
       scope,
@@ -145,15 +144,14 @@ export async function execute(
         }
       },
 
-      ModuleExpr: {
-        enter(node, visit) {
-          return withContext(scope, node, visit, async context => {
-            const args = await visit(node.args)
-            return node.call
-              ? modules.call(node, args, context?.typeInfo)
-              : toValue(args, node.args.typeInfo)
-          })
-        },
+      ModuleExpr(node) {
+        if (node.call) {
+          return modules.call(node, node.args.data, scope.context?.typeInfo)
+        }
+        return {
+          data: toValue(node.args.data, node.args.typeInfo),
+          typeInfo: node.typeInfo,
+        }
       },
 
       ObjectEntryExpr(node) {

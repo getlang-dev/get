@@ -131,7 +131,7 @@ export class Modules {
     if (typeof extracted === 'undefined') {
       extracted = await this.execute(entry, inputs)
     }
-    await this.hooks.extract(module, inputs, extracted)
+    await this.hooks.extract(module, inputs, extracted.data)
 
     function dropWarning(reason: string) {
       if (attrArgs.length) {

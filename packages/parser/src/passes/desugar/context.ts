@@ -25,6 +25,7 @@ export const resolveContext: DesugarPass = (ast, { parsers, macros }) => {
     },
 
     DrillBitExpr(node, path) {
+      const ctx = scope.context
       const { bit } = node
       const isModifier = bit.kind === 'ModifierExpr'
       const requireContext =
@@ -32,13 +33,7 @@ export const resolveContext: DesugarPass = (ast, { parsers, macros }) => {
         bit.kind === 'SelectorExpr' ||
         (bit.kind === 'ModuleExpr' && macros.includes(bit.module.value))
 
-      if (!requireContext) {
-        return
-      }
-
-      const ctx = scope.context
-      invariant(ctx, new QuerySyntaxError('Unresolved context'))
-      if (ctx.kind !== 'RequestExpr') {
+      if (!requireContext || ctx?.kind !== 'RequestExpr') {
         return
       }
 
