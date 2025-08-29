@@ -49,26 +49,26 @@ describe('hook', () => {
     const modules: Record<string, string> = {
       Top: `
         inputs { inputA }
-        extract { value: \`"top::" + inputA\` }
+        extract { value: |"top::" + inputA| }
       `,
       Mid: `
-        set inputA = \`"bar"\`
+        set inputA = |"bar"|
         extract {
           value: {
             topValue: @Top({ $inputA }) -> value
-            midValue: \`"mid"\`
+            midValue: |"mid"|
           }
         }
       `,
     }
 
     const src = `
-      set inputA = \`"foo"\`
+      set inputA = |"foo"|
 
       extract {
         topValue: @Top({ $inputA }) -> value
         midValue: @Mid -> value
-        botValue: \`"bot"\`
+        botValue: |"bot"|
       }
     `
 

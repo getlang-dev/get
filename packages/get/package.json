@@ -17,9 +17,11 @@
   },
   "homepage": "https://getlang.dev",
   "dependencies": {
+    "@getlang/ast": "workspace:^0.0.1",
     "@getlang/lib": "workspace:^0.1.5",
     "@getlang/parser": "workspace:^0.3.4",
     "@getlang/utils": "workspace:^0.1.6",
+    "@getlang/walker": "workspace:^0.0.1",
     "lodash-es": "^4.17.21"
   },
   "devDependencies": {

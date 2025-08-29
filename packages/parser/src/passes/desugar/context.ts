@@ -1,7 +1,7 @@
+import { t } from '@getlang/ast'
 import { invariant } from '@getlang/utils'
 import { QuerySyntaxError } from '@getlang/utils/errors'
 import { ScopeTracker, walk } from '@getlang/walker'
-import { t } from '../../ast/ast.js'
 import type { DesugarPass } from '../desugar.js'
 
 export const resolveContext: DesugarPass = (ast, { parsers, macros }) => {

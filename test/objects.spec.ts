@@ -9,7 +9,7 @@ describe('objects', () => {
 
   test('variable', async () => {
     const result = await execute(`
-      set x = { test: \`true\` }
+      set x = { test: |true| }
       extract $x
     `)
     expect(result).toEqual({ test: true })
@@ -17,7 +17,7 @@ describe('objects', () => {
 
   test('variable ref', async () => {
     const result = await execute(`
-      set x = \`"varref"\`
+      set x = |"varref"|
       extract { x: $x }
     `)
     expect(result).toEqual({ x: 'varref' })
@@ -25,7 +25,7 @@ describe('objects', () => {
 
   test('variable ref shorthand', async () => {
     const result = await execute(`
-      set x = \`"varref"\`
+      set x = |"varref"|
       extract { $x }
     `)
     expect(result).toEqual({ x: 'varref' })
@@ -33,12 +33,12 @@ describe('objects', () => {
 
   test('variable combination', async () => {
     const result = await execute(`
-      set foo = \`"foo"\`
-      set bar = \`"bar"\`
+      set foo = |"foo"|
+      set bar = |"bar"|
       extract {
         $foo,
         bar: $bar
-        baz: \`"baz"\`
+        baz: |"baz"|
         xyz: $foo
       }
     `)
@@ -54,9 +54,9 @@ describe('objects', () => {
   test('nested inline', async () => {
     const result = await execute(`
       extract {
-        pos: \`"outer"\`,
+        pos: |"outer"|,
         value: {
-          pos: \`"inner"\`
+          pos: |"inner"|
         }
       }
     `)
@@ -70,9 +70,9 @@ describe('objects', () => {
 
   test('nested variable ref shorthand', async () => {
     const result = await execute(`
-      set value = { pos: \`"inner"\` }
+      set value = { pos: |"inner"| }
       extract {
-        pos: \`"outer"\`,
+        pos: |"outer"|,
         $value
       }
     `)

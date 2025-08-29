@@ -1,9 +1,9 @@
+import type { Node } from '@getlang/ast'
+import { isToken } from '@getlang/ast'
 import type { Visitor } from '@getlang/walker'
 import { walk } from '@getlang/walker'
 import { builders, printer } from 'prettier/doc'
-import { render } from '../utils.js'
-import type { Node } from './ast.js'
-import { isToken } from './ast.js'
+import { render } from './utils.js'
 
 type Doc = builders.Doc
 
@@ -141,6 +141,8 @@ const printVisitor: Visitor = {
           return true
         case 'DrillExpr':
           return e.value.body.at(-1).bit.kind === 'SelectorExpr'
+        default:
+          return false
       }
     })
     const sep = ifBreak(line, [',', line])

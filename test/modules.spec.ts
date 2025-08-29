@@ -65,7 +65,7 @@ describe('modules', () => {
     test('optional input', async () => {
       const src = `
         inputs { value? }
-        extract \`12\`
+        extract |12|
       `
       const result = await execute(src)
       // does not throw error
@@ -74,7 +74,7 @@ describe('modules', () => {
 
     test('default value', async () => {
       const src = `
-        inputs { stopA = \`'big sur'\`, stopB = \`'carmel'\` }
+        inputs { stopA = |'big sur'|, stopB = |'carmel'| }
 
         extract { $stopA, $stopB }
       `
@@ -87,7 +87,7 @@ describe('modules', () => {
 
     test('falsy default value', async () => {
       const src = `
-        inputs { offset = \`0\` }
+        inputs { offset = |0| }
         extract { $offset }
       `
       const result = await execute(src, {})
@@ -97,7 +97,7 @@ describe('modules', () => {
 
   test('variables', async () => {
     const result = await execute(`
-      set x = \`{ test: true }\`
+      set x = |{ test: true }|
       extract $x
     `)
     expect(result).toEqual({ test: true })
@@ -105,7 +105,7 @@ describe('modules', () => {
 
   test('subquery scope with context', async () => {
     const result = await execute(`
-      set x = \`{ test: true }\`
+      set x = |{ test: true }|
       extract $x -> ( extract $ )
     `)
     expect(result).toEqual({ test: true })
@@ -113,7 +113,7 @@ describe('modules', () => {
 
   test('subquery scope with closures', async () => {
     const result = await execute(`
-      set x = \`{ test: true }\`
+      set x = |{ test: true }|
       extract (
         extract $x
       )

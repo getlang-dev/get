@@ -1,5 +1,5 @@
-import type { Expr, RequestExpr } from './ast/ast.js'
-import { isToken, t } from './ast/ast.js'
+import type { Expr, RequestExpr } from '@getlang/ast'
+import { isToken, t } from '@getlang/ast'
 
 export const render = (template: Expr) => {
   if (template.kind !== 'TemplateExpr') {

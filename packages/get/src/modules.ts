@@ -1,7 +1,6 @@
+import type { ModuleExpr, Program, TypeInfo } from '@getlang/ast'
+import { Type } from '@getlang/ast'
 import { analyze, desugar, inference, parse } from '@getlang/parser'
-import type { ModuleExpr, Program } from '@getlang/parser/ast'
-import type { TypeInfo } from '@getlang/parser/typeinfo'
-import { Type } from '@getlang/parser/typeinfo'
 import type { Hooks, Inputs } from '@getlang/utils'
 import {
   ImportError,

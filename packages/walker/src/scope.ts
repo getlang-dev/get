@@ -1,4 +1,4 @@
-import type { Node } from '@getlang/parser/ast'
+import type { Node } from '@getlang/ast'
 import { invariant } from '@getlang/utils'
 import { ValueReferenceError } from '@getlang/utils/errors'
 import type { Path } from './index.js'

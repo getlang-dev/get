@@ -1,4 +1,4 @@
-import type { Node } from '@getlang/parser/ast'
+import type { Node } from '@getlang/ast'
 import { invariant } from '@getlang/utils'
 
 type Staging = {

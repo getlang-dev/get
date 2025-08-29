@@ -1,7 +1,7 @@
+import type { TypeInfo } from '@getlang/ast'
+import { Type } from '@getlang/ast'
 import { cookies, headers, html, js } from '@getlang/lib'
-import type { TypeInfo } from '@getlang/parser/typeinfo'
-import { Type } from '@getlang/parser/typeinfo'
-import { invariant, NullSelection } from '@getlang/utils'
+import { NullSelection } from '@getlang/utils'
 import { NullSelectionError, ValueTypeError } from '@getlang/utils/errors'
 import { mapValues } from 'lodash-es'
 

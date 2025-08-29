@@ -1,5 +1,5 @@
+import type { Program } from '@getlang/ast'
 import { walk } from '@getlang/walker'
-import type { Program } from '../ast/ast.js'
 import { resolveContext } from './desugar/context.js'
 import { settleLinks } from './desugar/links.js'
 import { RequestParsers } from './desugar/reqparse.js'

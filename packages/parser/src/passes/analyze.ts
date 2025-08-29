@@ -1,5 +1,5 @@
+import type { Program } from '@getlang/ast'
 import { ScopeTracker, walk } from '@getlang/walker'
-import type { Program } from '../ast/ast.js'
 
 export function analyze(ast: Program) {
   const scope = new ScopeTracker()

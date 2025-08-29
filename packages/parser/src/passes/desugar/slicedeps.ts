@@ -1,10 +1,10 @@
+import { t } from '@getlang/ast'
 import { invariant } from '@getlang/utils'
 import { SliceSyntaxError } from '@getlang/utils/errors'
 import { ScopeTracker, walk } from '@getlang/walker'
 import { parse as acorn } from 'acorn'
 import { traverse } from 'estree-toolkit'
 import globals from 'globals'
-import { t } from '../../ast/ast.js'
 import { render, tx } from '../../utils.js'
 import type { DesugarPass } from '../desugar.js'
 

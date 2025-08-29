@@ -6,5 +6,8 @@
   ],
   "ignoreBinaries": [
     "open"
+  ],
+  "exclude": [
+    "enumMembers"
   ]
 }

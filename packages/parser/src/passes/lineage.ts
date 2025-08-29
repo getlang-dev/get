@@ -1,6 +1,6 @@
+import type { Expr, Node } from '@getlang/ast'
 import type { Path } from '@getlang/walker'
 import { ScopeTracker } from '@getlang/walker'
-import type { Expr, Node } from '../ast/ast.js'
 
 export class LineageTracker extends ScopeTracker {
   private lineage = new Map<Expr, Expr>()

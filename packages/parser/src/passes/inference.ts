@@ -1,5 +1,4 @@
-import type { Program } from '../ast/ast.js'
-import type { TypeInfo } from '../ast/typeinfo.js'
+import type { Program, TypeInfo } from '@getlang/ast'
 import { resolveTypes } from './inference/typeinfo.js'
 
 type InferenceOptions = {

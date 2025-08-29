@@ -1,4 +1,4 @@
-import type { Node } from '@getlang/parser/ast'
+import type { Node } from '@getlang/ast'
 import { wait, waitMap } from '@getlang/utils'
 import { Path } from './path.js'
 import type { ScopeTracker } from './scope.js'

@@ -75,7 +75,7 @@ describe('request', () => {
 
     test('identifier', async () => {
       await execute(`
-        set ident = \`'http://ident.com'\`
+        set ident = |'http://ident.com'|
         GET $ident
       `)
       await expect(mockFetch).toHaveServed(
@@ -87,7 +87,7 @@ describe('request', () => {
 
     test('interpolated', async () => {
       await execute(`
-        set query = \`'monterey'\`
+        set query = |'monterey'|
         GET https://boogle.com/search/$query
       `)
       await expect(mockFetch).toHaveServed(
@@ -99,7 +99,7 @@ describe('request', () => {
 
     test('interpolated expression', async () => {
       await execute(`
-        set query = \`'big sur'\`
+        set query = |'big sur'|
         GET https://ging.com/\${query}_results
       `)
       await expect(mockFetch).toHaveServed(
@@ -111,7 +111,7 @@ describe('request', () => {
 
     test('interpolated value', async () => {
       await execute(`
-        set loc = \`'<div>sea ranch</div>'\` -> @html
+        set loc = |'<div>sea ranch</div>'| -> @html
         GET https://goto.ca/:loc
       `)
       await expect(mockFetch).toHaveServed(
@@ -122,7 +122,7 @@ describe('request', () => {
 
   test('headers', async () => {
     await execute(`
-      set token = \`123\`
+      set token = |123|
 
       GET http://api.unweb.com
       Authorization: Bearer $token
@@ -143,8 +143,8 @@ describe('request', () => {
   describe('blocks', () => {
     test('querystring', async () => {
       await execute(`
-        set ident = \`"b"\`
-        set interp = \`"olated"\`
+        set ident = |"b"|
+        set interp = |"olated"|
 
         GET https://example.com
         X-Test: true
@@ -201,7 +201,7 @@ describe('request', () => {
 
     test('raw body', async () => {
       await execute(`
-        set hello = \`"hi there"\`
+        set hello = |"hi there"|
 
         POST https://example.com
         [body]
@@ -223,7 +223,7 @@ describe('request', () => {
 
     test('omits undefined', async () => {
       await execute(`
-        set foo? = \`undefined\`
+        set foo? = |undefined|
 
         POST https://example.com
         X-Foo: $foo
@@ -253,7 +253,7 @@ describe('request', () => {
 
     test('optional template groups', async () => {
       await execute(`
-        set foo? = \`undefined\`
+        set foo? = |undefined|
 
         GET https://example.com/pre$[/:foo]/post
         X-Foo: $foo
@@ -346,7 +346,7 @@ describe('request', () => {
 
     test('updates subquery context', async () => {
       const result = await execute(`
-        set x? = \`'<p>'\` -> @html -> (
+        set x? = |'<p>'| -> @html -> (
           GET http://example.com
 
           extract h1

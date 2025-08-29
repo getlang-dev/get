@@ -1,11 +1,9 @@
+import type { Program, TypeInfo } from '@getlang/ast'
+import { Type, t } from '@getlang/ast'
 import { invariant } from '@getlang/utils'
 import { QuerySyntaxError } from '@getlang/utils/errors'
 import { ScopeTracker, walk } from '@getlang/walker'
 import { toPath } from 'lodash-es'
-import type { Program } from '../../ast/ast.js'
-import { t } from '../../ast/ast.js'
-import type { TypeInfo } from '../../ast/typeinfo.js'
-import { Type } from '../../ast/typeinfo.js'
 import { render, tx } from '../../utils.js'
 
 function unwrap(typeInfo: TypeInfo) {

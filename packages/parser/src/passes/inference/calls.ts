@@ -1,6 +1,6 @@
+import type { Expr, Program } from '@getlang/ast'
+import { isToken } from '@getlang/ast'
 import { walk } from '@getlang/walker'
-import type { Expr, Program } from '../../ast/ast.js'
-import { isToken } from '../../ast/ast.js'
 import { LineageTracker } from '../lineage.js'
 
 export function registerCalls(ast: Program, macros: string[] = []) {

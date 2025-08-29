@@ -1,5 +1,5 @@
 {
-  "name": "@getlang/walker",
+  "name": "@getlang/ast",
   "version": "0.0.1",
   "license": "Apache-2.0",
   "type": "module",
@@ -15,11 +15,10 @@
   "repository": {
     "type": "git",
     "url": "git+https://github.com/getlang-dev/get.git",
-    "directory": "packages/walker"
+    "directory": "packages/ast"
   },
   "homepage": "https://getlang.dev",
   "dependencies": {
-    "@getlang/ast": "workspace:^0.0.1",
-    "@getlang/utils": "workspace:^0.1.6"
+    "moo": "^0.5.2"
   }
 }
