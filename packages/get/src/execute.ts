@@ -3,7 +3,7 @@ import { isToken } from '@getlang/parser/ast'
 import type { TypeInfo } from '@getlang/parser/typeinfo'
 import { Type } from '@getlang/parser/typeinfo'
 import type { Hooks, Inputs } from '@getlang/utils'
-import { invariant, NullSelection, wait, waitMap } from '@getlang/utils'
+import { invariant, NullSelection } from '@getlang/utils'
 import * as errors from '@getlang/utils/errors'
 import type { WalkOptions } from '@getlang/walker'
 import { ScopeTracker, walk } from '@getlang/walker'
@@ -33,22 +33,6 @@ export async function execute(
 
     const scope = new ScopeTracker()
 
-    // function withItemContext(cb) {
-    //   const ctx = scope.context
-    //   if (ctx?.typeInfo.type === Type.List) {
-    //     scope.push()
-    //     const list = waitMap(ctx.data, item => {
-    //       scope.context = { data: item, typeInfo: ctx.typeInfo.of }
-    //       return withItemContext(cb)
-    //     })
-    //     return wait(list, list => {
-    //       scope.pop()
-    //       return list
-    //     })
-    //   }
-    //   return cb()
-    // }
-
     const visitor: WalkOptions = {
       scope,
 
@@ -56,45 +40,50 @@ export async function execute(
        * Statement nodes
        */
 
-      InputDeclStmt: {
-        async enter(node, visit) {
-          const inputName = node.id.value
-          let inputValue = inputs[inputName]
-          if (inputValue === undefined) {
-            if (!node.optional) {
-              throw new NullInputError(inputName)
-            }
-            inputValue = node.defaultValue
-              ? await visit(node.defaultValue)
-              : new NullSelection(`input:${inputName}`)
+      InputExpr(node) {
+        const name = node.id.value
+        let data = inputs[name]
+        if (data === undefined) {
+          if (!node.optional) {
+            throw new NullInputError(name)
+          } else if (node.defaultValue) {
+            data = node.defaultValue.data
+          } else {
+            data = new NullSelection(`input:${name}`)
           }
-          scope.vars[inputName] = inputValue
-        },
+        }
+        return { data, typeInfo: node.typeInfo }
       },
 
       ExtractStmt(node) {
         assert(node.value)
       },
 
-      Program() {
-        return scope.extracted
+      Program: {
+        enter() {
+          scope.extracted = { data: null, typeInfo: { type: Type.Value } }
+        },
+        exit() {
+          return scope.extracted
+        },
       },
 
       /**
        * Expression nodes
        */
-      TemplateExpr(node, { node: orig }) {
-        const firstNull = node.elements.find(el => el instanceof NullSelection)
+      TemplateExpr(node, path) {
+        const firstNull = node.elements.find(
+          el => el.data instanceof NullSelection,
+        )
         if (firstNull) {
-          const parents = path.slice(0, -1)
-          const isRoot = !parents.find(n => n.kind === 'TemplateExpr')
+          const isRoot = path.parent?.node.kind !== 'TemplateExpr'
           return isRoot ? firstNull : ''
         }
-        const els = node.elements.map((el, i) => {
-          const og = orig.elements[i]!
-          return isToken(og) ? og.value : toValue(el, og.typeInfo)
+        const els = node.elements.map(el => {
+          return isToken(el) ? el.value : toValue(el.data, el.typeInfo)
         })
-        return els.join('')
+        const data = els.join('')
+        return { data, typeInfo: node.typeInfo }
       },
 
       async SliceExpr({ slice, typeInfo }) {
@@ -118,12 +107,13 @@ export async function execute(
       },
 
       SelectorExpr(node) {
+        const selector = node.selector.data
         invariant(
-          typeof node.selector === 'string',
+          typeof selector === 'string',
           new ValueTypeError('Expected selector string'),
         )
 
-        const args = [scope.context.data, node.selector, node.expand] as const
+        const args = [scope.context.data, selector, node.expand] as const
 
         function select(typeInfo: TypeInfo) {
           switch (typeInfo.type) {
@@ -147,8 +137,10 @@ export async function execute(
       },
 
       ModifierExpr(node) {
+        const mod = node.modifier.value
+        const args = node.args.data
         return {
-          data: callModifier(node, scope.context),
+          data: callModifier(mod, args, scope.context),
           typeInfo: node.typeInfo,
         }
       },
@@ -166,7 +158,7 @@ export async function execute(
 
       ObjectEntryExpr(node) {
         const value = assert(node.value)
-        return [node.key, value.data]
+        return [node.key.data, value.data]
       },
 
       ObjectLiteralExpr(node) {
@@ -191,24 +183,24 @@ export async function execute(
           const ctx = scope.context
           const optional = node.typeInfo.type === Type.Maybe
           if (optional && ctx?.data instanceof NullSelection) {
-            return scope.context
+            return ctx
           }
 
           async function withItemContext() {
             const ctx = scope.context
-            if (ctx?.typeInfo.type === Type.List) {
-              const list = []
-              scope.push()
-              for (const data of ctx.data) {
-                scope.context = { data, typeInfo: ctx.typeInfo.of }
-                const item = await withItemContext()
-                list.push(item)
-              }
-              scope.pop()
-              return list
+            if (ctx?.typeInfo.type !== Type.List) {
+              const { data } = await walk(node.bit, visitor)
+              return data
             }
-            const { data } = await walk(node.bit, visitor)
-            return data
+            const list = []
+            scope.push()
+            for (const data of ctx.data) {
+              scope.context = { data, typeInfo: ctx.typeInfo.of }
+              const item = await withItemContext()
+              list.push(item)
+            }
+            scope.pop()
+            return list
           }
 
           const data = await withItemContext()
@@ -222,17 +214,34 @@ export async function execute(
 
       async RequestExpr(node) {
         const method = node.method.value
-        const url = node.url
-        const body = node.body ?? ''
+        const url = node.url.data
+        const body = node.body?.data ?? ''
+
+        const headers = node.headers.data[1]
+        const blocks = Object.fromEntries(node.blocks.map(v => v.data))
+
         const data = await http.request(
           method,
           url,
-          node.headers,
-          node.blocks,
+          headers,
+          blocks,
           body,
           hooks.request,
         )
         return { data, typeInfo: node.typeInfo }
+      },
+
+      RequestBlockExpr(node) {
+        const value = Object.fromEntries(
+          node.entries.filter(e => !(e[1] instanceof NullSelection)),
+        )
+        const data = [node.name.value, value]
+        return { data, typeInfo: node.typeInfo }
+      },
+
+      RequestEntryExpr(node) {
+        const value = assert(node.value)
+        return [node.key.data, value.data]
       },
     }
 

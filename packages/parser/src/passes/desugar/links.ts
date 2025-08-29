@@ -1,13 +1,13 @@
 import { invariant } from '@getlang/utils'
-import { QuerySyntaxError, ValueReferenceError } from '@getlang/utils/errors'
+import { QuerySyntaxError } from '@getlang/utils/errors'
+import { ScopeTracker, walk } from '@getlang/walker'
 import type { Expr, RequestExpr } from '../../ast/ast.js'
 import { t } from '../../ast/ast.js'
 import { render, tx } from '../../utils.js'
 import type { DesugarPass } from '../desugar.js'
-import { traceVisitor } from '../trace.js'
 
-export const settleLinks: DesugarPass = ({ parsers }) => {
-  const { scope, trace } = traceVisitor()
+export const settleLinks: DesugarPass = (ast, { parsers }) => {
+  const scope = new ScopeTracker()
 
   const bases = new Map<Expr, RequestExpr>()
   function inherit(c: Expr, n: Expr) {
@@ -15,77 +15,74 @@ export const settleLinks: DesugarPass = ({ parsers }) => {
     base && bases.set(n, base)
   }
 
-  return {
-    ...trace,
+  const ret = walk(ast, {
+    scope,
 
-    IdentifierExpr: {
-      enter(node, visit) {
-        const id = node.id.value
-        const xnode = trace.IdentifierExpr.enter(node, visit)
-        const value = id ? scope.vars[id] : scope.context
-        invariant(value, new ValueReferenceError(id))
-        inherit(value, xnode)
-        return xnode
-      },
+    IdentifierExpr(node) {
+      const value = scope.lookup(node.id.value)
+      inherit(value, node)
     },
 
-    SelectorExpr: {
-      enter(node, visit) {
-        const xnode = trace.SelectorExpr.enter(node, visit)
-        invariant(xnode.context, new QuerySyntaxError('Unresolved context'))
-        inherit(xnode.context, xnode)
-        return xnode
-      },
+    DrillExpr(node) {
+      inherit(node.body.at(-1), node)
     },
 
-    ModifierExpr: {
-      enter(node, visit) {
-        const xnode = trace.ModifierExpr.enter(node, visit)
-        invariant(
-          xnode.args.kind === 'ObjectLiteralExpr',
-          new QuerySyntaxError('Modifier options must be an object'),
-        )
+    DrillBitExpr(node) {
+      inherit(node.bit, node)
+    },
 
-        if (xnode.modifier.value === 'link' && xnode.context) {
-          const contextBase = bases.get(xnode.context)
-          const hasBase = xnode.args.entries.some(e => render(e.key) === 'base')
-          if (contextBase && !hasBase) {
-            xnode.args.entries.push(
-              t.objectEntryExpr(
-                tx.template('base'),
-                parsers.lookup(contextBase, 'url'),
-              ),
-            )
-          }
+    DrillIdentifierExpr(node) {
+      const value = scope.lookup(node.id.value)
+      inherit(value, node)
+    },
+
+    SelectorExpr(node) {
+      invariant(scope.context, new QuerySyntaxError('Unresolved context'))
+      inherit(scope.context, node)
+    },
+
+    ModifierExpr(node) {
+      invariant(
+        node.args.kind === 'ObjectLiteralExpr',
+        new QuerySyntaxError('Modifier options must be an object'),
+      )
+
+      const ctx = scope.context
+      if (node.modifier.value === 'link' && ctx) {
+        const contextBase = bases.get(ctx)
+        const hasBase = node.args.entries.some(e => render(e.key) === 'base')
+        if (contextBase && !hasBase) {
+          node.args.entries.push(
+            t.objectEntryExpr(
+              tx.template('base'),
+              parsers.lookup(contextBase, 'link'),
+            ),
+          )
         }
+      }
 
-        invariant(xnode.context, new QuerySyntaxError('Unresolved context'))
-        inherit(xnode.context, xnode)
-        return xnode
-      },
+      invariant(ctx, new QuerySyntaxError('Unresolved context'))
+      inherit(ctx, node)
     },
 
-    ModuleExpr: {
-      enter(node, visit) {
-        const tnode = {
-          ...node,
-          args: {
-            ...node.args,
-            entries: node.args.entries.map(e => {
-              if (
-                render(e.key) !== '@link' ||
-                (e.value.kind === 'ModifierExpr' &&
-                  e.value.modifier.value === 'link')
-              ) {
-                return e
-              }
-              const value = t.modifierExpr(tx.token('link'), undefined, e.value)
-              return { ...e, value }
-            }),
-          },
-        }
-        return trace.ModuleExpr.enter(tnode, visit)
-      },
+    ModuleExpr(node) {
+      return {
+        ...node,
+        args: {
+          ...node.args,
+          entries: node.args.entries.map(e => {
+            if (
+              render(e.key) !== '@link' ||
+              (e.value.kind === 'ModifierExpr' &&
+                e.value.modifier.value === 'link')
+            ) {
+              return e
+            }
+            const value = t.modifierExpr(tx.token('link'), undefined, e.value)
+            return { ...e, value }
+          }),
+        },
+      }
     },
 
     RequestExpr(node) {
@@ -94,21 +91,19 @@ export const settleLinks: DesugarPass = ({ parsers }) => {
       return node
     },
 
-    Program: {
-      enter(node, visit) {
-        const xnode = trace.Program.enter(node, visit)
-        return { ...xnode, body: parsers.insert(xnode.body) }
-      },
+    Program(node) {
+      const body = parsers.insert(node.body)
+      return { ...node, body }
     },
 
-    SubqueryExpr: {
-      enter(node, visit) {
-        let xnode = trace.SubqueryExpr.enter(node, visit)
-        const extracted = xnode.body.find(stmt => stmt.kind === 'ExtractStmt')
-        xnode = { ...xnode, body: parsers.insert(xnode.body) }
-        extracted && inherit(extracted.value, xnode)
-        return xnode
-      },
+    SubqueryExpr(node) {
+      if (scope.extracted) {
+        inherit(scope.extracted, node)
+      }
+      const body = parsers.insert(node.body)
+      return { ...node, body }
     },
-  }
+  })
+
+  return ret
 }

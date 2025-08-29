@@ -26,8 +26,7 @@ function listCalls(ast: Program) {
 
 export function desugar(ast: Program, macros: string[] = []) {
   const parsers = new RequestParsers()
-  // const visitors = [resolveContext, settleLinks, insertSliceDeps]
-  const visitors = [resolveContext, insertSliceDeps]
+  const visitors = [resolveContext, settleLinks, insertSliceDeps]
   let program = visitors.reduce((ast, pass) => {
     parsers.reset()
     return pass(ast, { parsers, macros })

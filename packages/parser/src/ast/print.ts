@@ -42,7 +42,7 @@ const printVisitor: Visitor = {
     const parts: Doc[] = []
     const name = node.name.value
     if (name) {
-      parts.shift(hardline, '[', name, ']')
+      parts.unshift(hardline, '[', name, ']')
     }
     for (const entry of node.entries) {
       parts.push(hardline, entry)
@@ -51,10 +51,10 @@ const printVisitor: Visitor = {
   },
 
   RequestEntryExpr(node) {
-    return [node.kind, ': ', node.value]
+    return [node.key, ': ', node.value]
   },
 
-  InputDeclStmt(node) {
+  InputExpr(node) {
     const parts: Doc[] = [node.id.text]
     if (node.optional) {
       parts.push('?')

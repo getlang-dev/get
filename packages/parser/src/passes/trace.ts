@@ -25,7 +25,7 @@ export function traceVisitor(contextType: TypeInfo = { type: Type.Context }) {
 
   const trace = {
     // statements with scope affect
-    InputDeclStmt(node) {
+    InputExpr(node) {
       scope.vars[node.id.value] = tx.select('')
       return node
     },

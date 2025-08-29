@@ -26,14 +26,15 @@ type AssignmentStmt = {
 
 export type DeclInputsStmt = {
   kind: 'DeclInputsStmt'
-  inputs: InputDeclStmt[]
+  inputs: InputExpr[]
 }
 
-export type InputDeclStmt = {
-  kind: 'InputDeclStmt'
+export type InputExpr = {
+  kind: 'InputExpr'
   id: Token
   optional: boolean
   defaultValue?: SliceExpr
+  typeInfo: TypeInfo
 }
 
 type RequestStmt = {
@@ -150,10 +151,10 @@ export type Stmt =
   | ExtractStmt
   | AssignmentStmt
   | DeclInputsStmt
-  | InputDeclStmt
   | RequestStmt
 
 export type Expr =
+  | InputExpr
   | RequestExpr
   | RequestBlockExpr
   | RequestEntryExpr
@@ -188,17 +189,18 @@ const assignmentStmt = (
   value,
 })
 
-const declInputsStmt = (inputs: InputDeclStmt[]): DeclInputsStmt => ({
+const declInputsStmt = (inputs: InputExpr[]): DeclInputsStmt => ({
   kind: 'DeclInputsStmt',
   inputs,
 })
 
-const inputDeclStmt = (
+const InputExpr = (
   id: Token,
   optional: boolean,
   defaultValue?: SliceExpr,
-): InputDeclStmt => ({
-  kind: 'InputDeclStmt',
+): InputExpr => ({
+  kind: 'InputExpr',
+  typeInfo: { type: Type.Value },
   id,
   optional,
   defaultValue,
@@ -344,7 +346,7 @@ export const t = {
   program,
   assignmentStmt,
   declInputsStmt,
-  inputDeclStmt,
+  InputExpr,
   extractStmt,
   requestStmt,
   requestExpr,

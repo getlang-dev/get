@@ -88,6 +88,10 @@ export class ScopeTracker {
         this.context = xnode.request
         break
 
+      case 'InputExpr':
+        this.vars[node.id.value] = xnode
+        break
+
       case 'AssignmentStmt':
         this.vars[node.name.value] = xnode.value
         break

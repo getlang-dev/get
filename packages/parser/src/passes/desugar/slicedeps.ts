@@ -71,14 +71,11 @@ export const insertSliceDeps: DesugarPass = ast => {
   const scope = new ScopeTracker()
   return walk(ast, {
     scope,
-    SliceExpr(node) {
-      if (node.kind !== 'SliceExpr') {
-        return
-      }
 
+    SliceExpr(node, path) {
       const stat = analyzeSlice(node.slice.value)
       if (!stat) {
-        return node
+        return
       }
 
       const { source, deps, usesVars } = stat
@@ -100,7 +97,15 @@ export const insertSliceDeps: DesugarPass = ast => {
         }
       }
 
-      return context === scope.context ? xnode : [context, xnode]
+      if (context !== scope.context) {
+        invariant(
+          path.parent?.node.kind === 'DrillBitExpr',
+          'Slice dependencies require drill expression',
+        )
+        path.parent.insertBefore(t.drillBitExpr(context))
+      }
+
+      return xnode
     },
   })
 }

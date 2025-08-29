@@ -27,7 +27,7 @@ export const declInputs: PP = ([, , , , first, maybeRest]) => {
 
 export const inputDecl: PP = ([id, optional, maybeDefault]) => {
   const defaultValue = maybeDefault?.[3]
-  return t.inputDeclStmt(id, Boolean(optional || defaultValue), defaultValue)
+  return t.InputExpr(id, Boolean(optional || defaultValue), defaultValue)
 }
 
 export const request: PP = ([method, url, headerBlock, { blocks, body }]) => {
@@ -36,7 +36,9 @@ export const request: PP = ([method, url, headerBlock, { blocks, body }]) => {
   return t.requestStmt(req)
 }
 
-export const requestBlocks: PP = ([blocks, maybeBody]) => {
+export const requestBlocks: PP = ([namedBlocks, maybeBody]) => {
+  const blocks = namedBlocks.map(d => d[1])
+
   const body = maybeBody?.[1]
   if (body) {
     for (const el of body.elements) {

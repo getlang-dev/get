@@ -3,7 +3,6 @@ import { QuerySyntaxError } from '@getlang/utils/errors'
 import { ScopeTracker, walk } from '@getlang/walker'
 import { toPath } from 'lodash-es'
 import type { Program } from '../../ast/ast.js'
-import { t } from '../../ast/ast.js'
 import type { TypeInfo } from '../../ast/typeinfo.js'
 import { Type } from '../../ast/typeinfo.js'
 import { render } from '../../utils.js'
@@ -96,18 +95,13 @@ export function resolveTypes(ast: Program, options: ResolveTypeOptions) {
 
   const program: Program = walk(ast, {
     scope,
-    InputDeclStmt: {
-      enter(node, visit) {
-        const xnode = { ...node }
-        const dv = node.defaultValue
-        xnode.defaultValue = dv && setOptional(node.optional, () => visit(dv))
-        const input = t.identifierExpr(node.id)
-        if (node.optional) {
-          input.typeInfo = { type: Type.Maybe, option: input.typeInfo }
-        }
-        scope.vars[node.id.value] = input
-        return xnode
-      },
+
+    InputExpr(node) {
+      let typeInfo: TypeInfo = { type: Type.Value }
+      if (node.optional) {
+        typeInfo = { type: Type.Maybe, option: typeInfo }
+      }
+      return { ...node, typeInfo }
     },
 
     AssignmentStmt: {
@@ -127,7 +121,10 @@ export function resolveTypes(ast: Program, options: ResolveTypeOptions) {
 
     DrillIdentifierExpr(node) {
       const value = scope.lookup(node.id.value)
-      const typeInfo = structuredClone(value.typeInfo)
+      let typeInfo = structuredClone(value.typeInfo)
+      if (node.expand) {
+        typeInfo = { type: Type.List, of: typeInfo }
+      }
       return { ...node, typeInfo }
     },
 

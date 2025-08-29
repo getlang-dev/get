@@ -43,7 +43,7 @@ describe('values', () => {
 
   test('wide arrow expands drill into variable', async () => {
     const result = await execute(`
-      set list = \`[{a: 1}, {a: 2}]\`
+      set list = |[{a: 1}, {a: 2}]|
       extract $list => $ -> a
     `)
     expect(result).toEqual([1, 2])

@@ -9,7 +9,7 @@ export function analyze(ast: Program) {
 
   walk(ast, {
     scope,
-    InputDeclStmt(node) {
+    InputExpr(node) {
       inputs.add(node.id.value)
     },
     ModuleExpr(node) {

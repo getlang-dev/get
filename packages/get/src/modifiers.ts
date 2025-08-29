@@ -1,14 +1,16 @@
 import { cookies, html, js, json } from '@getlang/lib'
-import type { ModifierExpr } from '@getlang/parser/ast'
+
 import { NullSelection } from '@getlang/utils'
 import { ValueReferenceError } from '@getlang/utils/errors'
 import type { RuntimeValue } from './value.js'
 import { toValue } from './value.js'
 
-export function callModifier(node: ModifierExpr, context: RuntimeValue) {
+export function callModifier(
+  mod: string,
+  args: Record<string, unknown>,
+  context: RuntimeValue,
+) {
   let { data, typeInfo } = context
-
-  const mod = node.modifier.value
   if (mod === 'link') {
     const tag = data.type === 'tag' ? data.name : undefined
     if (tag === 'a') {
@@ -23,7 +25,7 @@ export function callModifier(node: ModifierExpr, context: RuntimeValue) {
   switch (mod) {
     case 'link':
       return doc
-        ? new URL(doc, node.args.base).toString()
+        ? new URL(doc, args.base).toString()
         : new NullSelection('@link')
     case 'html':
       return html.parse(doc)

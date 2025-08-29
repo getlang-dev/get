@@ -13,7 +13,7 @@ export class Path {
 
   constructor(
     public node: Node,
-    private parent?: Path,
+    public parent?: Path,
   ) {}
 
   add(node: Node) {
