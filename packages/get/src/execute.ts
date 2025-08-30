@@ -1,14 +1,15 @@
-import type { TypeInfo } from '@getlang/ast'
+import type { Expr, TypeInfo } from '@getlang/ast'
 import { isToken, Type } from '@getlang/ast'
 import { cookies, headers, html, http, js, json } from '@getlang/lib'
 import type { Hooks, Inputs } from '@getlang/utils'
 import { invariant, NullSelection } from '@getlang/utils'
 import * as errors from '@getlang/utils/errors'
-import type { WalkOptions } from '@getlang/walker'
+import type { Path, WalkOptions } from '@getlang/walker'
 import { ScopeTracker, walk } from '@getlang/walker'
 import { callModifier } from './modifiers.js'
 import type { Execute } from './modules.js'
 import { Modules } from './modules.js'
+import type { RuntimeValue } from './value.js'
 import { assert, toValue } from './value.js'
 
 const {
@@ -19,17 +20,41 @@ const {
   ValueTypeError,
 } = errors
 
+class ExecutionTracker extends ScopeTracker {
+  override exit(value: RuntimeValue, path: Path) {
+    if ('typeInfo' in path.node) {
+      assert(value)
+    }
+    super.exit(value, path)
+  }
+}
+
 export async function execute(
   rootModule: string,
   rootInputs: Inputs,
   hooks: Required<Hooks>,
 ) {
-  const scope = new ScopeTracker()
+  const scope = new ExecutionTracker()
 
   const executeModule: Execute = async (entry, inputs) => {
     const provided = new Set(Object.keys(inputs))
     const unknown = provided.difference(entry.inputs)
     invariant(unknown.size === 0, new UnknownInputsError([...unknown]))
+
+    async function withItemContext(expr: Expr): Promise<RuntimeValue> {
+      const ctx = scope.context
+      if (ctx?.typeInfo.type !== Type.List) {
+        return walk(expr, visitor)
+      }
+      const list = []
+      for (const data of ctx.data) {
+        scope.push({ data, typeInfo: ctx.typeInfo.of })
+        const value = await withItemContext(expr)
+        list.push(value.data)
+        scope.pop()
+      }
+      return { data: list, typeInfo: expr.typeInfo }
+    }
 
     const visitor: WalkOptions = {
       scope,
@@ -51,10 +76,6 @@ export async function execute(
           }
         }
         return { data, typeInfo: node.typeInfo }
-      },
-
-      ExtractStmt(node) {
-        assert(node.value)
       },
 
       Program: {
@@ -90,7 +111,7 @@ export async function execute(
           const deps = ctx && toValue(ctx.data, ctx.typeInfo)
           const ret = await hooks.slice(slice.value, deps)
           const data = ret === undefined ? new NullSelection('<slice>') : ret
-          return assert({ data, typeInfo })
+          return { data, typeInfo }
         } catch (e) {
           throw new SliceError({ cause: e })
         }
@@ -101,7 +122,8 @@ export async function execute(
       },
 
       DrillIdentifierExpr(node) {
-        return scope.lookup(node.id.value)
+        const { data } = scope.lookup(node.id.value)
+        return { data, typeInfo: node.typeInfo }
       },
 
       SelectorExpr(node) {
@@ -154,13 +176,15 @@ export async function execute(
       },
 
       ObjectEntryExpr(node) {
-        const value = assert(node.value)
-        return [node.key.data, value.data]
+        const data = [node.key.data, node.value.data]
+        return { data, typeInfo: { type: Type.Value } }
       },
 
       ObjectLiteralExpr(node) {
         const data = Object.fromEntries(
-          node.entries.filter(e => !(e[1] instanceof NullSelection)),
+          node.entries
+            .map(e => e.data)
+            .filter(e => !(e[1] instanceof NullSelection)),
         )
         return { data, typeInfo: node.typeInfo }
       },
@@ -171,41 +195,17 @@ export async function execute(
         return ex
       },
 
-      DrillExpr(node) {
-        return node.body.at(-1)
-      },
-
-      DrillBitExpr: {
-        async enter(node) {
-          const ctx = scope.context
-          const optional = node.typeInfo.type === Type.Maybe
-          if (optional && ctx?.data instanceof NullSelection) {
-            return ctx
-          }
-
-          async function withItemContext() {
-            const ctx = scope.context
-            if (ctx?.typeInfo.type !== Type.List) {
-              const { data } = await walk(node.bit, visitor)
-              return data
+      DrillExpr: {
+        async enter(node, path) {
+          for (const expr of node.body) {
+            scope.context = await withItemContext(expr)
+            const optional = expr.typeInfo.type === Type.Maybe
+            if (optional && scope.context.data instanceof NullSelection) {
+              break
             }
-            const list = []
-            scope.push()
-            for (const data of ctx.data) {
-              scope.context = { data, typeInfo: ctx.typeInfo.of }
-              const item = await withItemContext()
-              list.push(item)
-            }
-            scope.pop()
-            return list
           }
-
-          const data = await withItemContext()
-          const bit = { data, typeInfo: node.typeInfo }
-          return { ...node, bit }
-        },
-        exit(node) {
-          return node.bit
+          path.skip()
+          return scope.context
         },
       },
 
@@ -230,15 +230,17 @@ export async function execute(
 
       RequestBlockExpr(node) {
         const value = Object.fromEntries(
-          node.entries.filter(e => !(e[1] instanceof NullSelection)),
+          node.entries
+            .map(e => e.data)
+            .filter(e => !(e[1] instanceof NullSelection)),
         )
         const data = [node.name.value, value]
         return { data, typeInfo: node.typeInfo }
       },
 
       RequestEntryExpr(node) {
-        const value = assert(node.value)
-        return [node.key.data, value.data]
+        const data = [node.key.data, node.value.data]
+        return { data, typeInfo: { type: Type.Value } }
       },
     }
 

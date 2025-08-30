@@ -1,6 +1,7 @@
 import type { Program } from '@getlang/ast'
 import { walk } from '@getlang/walker'
 import { resolveContext } from './desugar/context.js'
+import { dropDrills } from './desugar/dropdrill.js'
 import { settleLinks } from './desugar/links.js'
 import { RequestParsers } from './desugar/reqparse.js'
 import { insertSliceDeps } from './desugar/slicedeps.js'
@@ -24,9 +25,10 @@ function listCalls(ast: Program) {
   return calls
 }
 
+const visitors = [resolveContext, settleLinks, insertSliceDeps, dropDrills]
+
 export function desugar(ast: Program, macros: string[] = []) {
   const parsers = new RequestParsers()
-  const visitors = [resolveContext, settleLinks, insertSliceDeps]
   let program = visitors.reduce((ast, pass) => {
     parsers.reset()
     return pass(ast, { parsers, macros })

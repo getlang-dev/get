@@ -41,8 +41,8 @@ export const settleLinks: DesugarPass = (ast, { parsers }) => {
       const { value } = linkArg
       invariant(value.kind === 'DrillExpr', 'Module links [1]')
       const base = scope.getLineage(value)
-      invariant(base?.kind === 'DrillBitExpr', 'Module links [2]')
-      if (base.bit.kind === 'ModifierExpr') {
+      invariant(base, 'Module links [2]')
+      if (base.kind === 'ModifierExpr') {
         return
       }
       const root = scope.traceLineageRoot(value)
@@ -53,7 +53,7 @@ export const settleLinks: DesugarPass = (ast, { parsers }) => {
           t.objectEntryExpr(tx.template('base'), parsers.lookup(root, 'link')),
         ]),
       )
-      value.body.push(t.drillBitExpr(mod))
+      value.body.push(mod)
     },
 
     RequestExpr(node) {

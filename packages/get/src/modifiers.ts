@@ -1,6 +1,5 @@
 import { cookies, html, js, json } from '@getlang/lib'
 
-import { NullSelection } from '@getlang/utils'
 import { ValueReferenceError } from '@getlang/utils/errors'
 import type { RuntimeValue } from './value.js'
 import { toValue } from './value.js'
@@ -24,9 +23,7 @@ export function callModifier(
 
   switch (mod) {
     case 'link':
-      return doc
-        ? new URL(doc, args.base).toString()
-        : new NullSelection('@link')
+      return new URL(doc, args.base).toString()
     case 'html':
       return html.parse(doc)
     case 'js':

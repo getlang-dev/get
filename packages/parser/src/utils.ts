@@ -46,8 +46,4 @@ function select(selector: string) {
   return t.selectorExpr(template(selector), false)
 }
 
-function drill(...bits: Expr[]) {
-  return t.drillExpr(bits.map(bit => t.drillBitExpr(bit)))
-}
-
-export const tx = { token, ident, template, select, drill }
+export const tx = { token, ident, template, select }

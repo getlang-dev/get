@@ -6,8 +6,8 @@ import { LineageTracker } from '../lineage.js'
 export function registerCalls(ast: Program, macros: string[] = []) {
   const scope = new LineageTracker()
 
-  function registerCall(node?: Expr) {
-    const lineage = node && scope.traceLineageRoot(node)
+  function registerCall(node: Expr) {
+    const lineage = scope.traceLineageRoot(node) || node
     if (lineage?.kind === 'ModuleExpr') {
       lineage.call = true
     }
@@ -25,18 +25,21 @@ export function registerCalls(ast: Program, macros: string[] = []) {
       return node
     },
 
-    DrillBitExpr({ bit }) {
-      switch (bit.kind) {
-        case 'SelectorExpr':
-        case 'ModifierExpr':
-          registerCall(scope.context)
-          break
+    SelectorExpr() {
+      if (scope.context) {
+        registerCall(scope.context)
+      }
+    },
 
-        case 'ModuleExpr':
-          if (macros.includes(bit.module.value)) {
-            bit.call = true
-          }
-          break
+    ModifierExpr() {
+      if (scope.context) {
+        registerCall(scope.context)
+      }
+    },
+
+    ModuleExpr(node) {
+      if (macros.includes(node.module.value)) {
+        return { ...node, call: true }
       }
     },
   })

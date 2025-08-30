@@ -1,4 +1,3 @@
-import { t } from '@getlang/ast'
 import { invariant } from '@getlang/utils'
 import { QuerySyntaxError } from '@getlang/utils/errors'
 import { ScopeTracker, walk } from '@getlang/walker'
@@ -24,28 +23,27 @@ export const resolveContext: DesugarPass = (ast, { parsers, macros }) => {
       parsers.visit(node)
     },
 
-    DrillBitExpr(node, path) {
+    SelectorExpr(_node, path) {
       const ctx = scope.context
-      const { bit } = node
-      const isModifier = bit.kind === 'ModifierExpr'
-      const requireContext =
-        isModifier ||
-        bit.kind === 'SelectorExpr' ||
-        (bit.kind === 'ModuleExpr' && macros.includes(bit.module.value))
-
-      if (!requireContext || ctx?.kind !== 'RequestExpr') {
-        return
+      if (ctx?.kind === 'RequestExpr') {
+        path.insertBefore(parsers.lookup(ctx))
       }
+    },
 
-      const field = isModifier ? bit.modifier.value : undefined
-      const resolved = t.drillBitExpr(parsers.lookup(ctx, field))
-
-      if (isModifier) {
+    ModifierExpr(node) {
+      const ctx = scope.context
+      if (ctx?.kind === 'RequestExpr') {
+        const mod = node.modifier.value
         // replace modifier with shared parser
-        return resolved
+        return parsers.lookup(ctx, mod)
       }
+    },
 
-      path.insertBefore(resolved)
+    ModuleExpr(node, path) {
+      const ctx = scope.context
+      if (macros.includes(node.module.value) && ctx?.kind === 'RequestExpr') {
+        path.insertBefore(parsers.lookup(ctx))
+      }
     },
   })
 

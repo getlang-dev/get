@@ -119,13 +119,7 @@ type SubqueryExpr = {
 
 type DrillExpr = {
   kind: 'DrillExpr'
-  body: DrillBitExpr[]
-  typeInfo: TypeInfo
-}
-
-type DrillBitExpr = {
-  kind: 'DrillBitExpr'
-  bit: Expr
+  body: Expr[]
   typeInfo: TypeInfo
 }
 
@@ -172,7 +166,6 @@ export type Expr =
   | ObjectLiteralExpr
   | SliceExpr
   | DrillExpr
-  | DrillBitExpr
 
 export type Node = Stmt | Expr
 
@@ -258,16 +251,10 @@ const subqueryExpr = (body: Stmt[]): SubqueryExpr => ({
   body,
 })
 
-const drillExpr = (body: DrillBitExpr[]): DrillExpr => ({
+const drillExpr = (body: Expr[]): DrillExpr => ({
   kind: 'DrillExpr',
   typeInfo: { type: Type.Value },
   body,
-})
-
-const drillBitExpr = (bit: Expr): DrillBitExpr => ({
-  kind: 'DrillBitExpr',
-  typeInfo: { type: Type.Value },
-  bit,
 })
 
 const identifierExpr = (id: Token): IdentifierExpr => ({
@@ -366,5 +353,4 @@ export const t = {
   objectLiteralExpr,
   subqueryExpr,
   drillExpr,
-  drillBitExpr,
 }

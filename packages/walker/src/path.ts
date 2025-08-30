@@ -10,6 +10,7 @@ type Mutation = Map<Node, Staging>
 export class Path {
   private staging: Staging = { before: [] }
   protected mutations: Mutation = new Map()
+  public skipped = false
 
   constructor(
     public node: Node,
@@ -22,6 +23,10 @@ export class Path {
 
   insertBefore(node: Node) {
     this.staging.before.push(node)
+  }
+
+  skip() {
+    this.skipped = true
   }
 
   private mutate(node: Node) {

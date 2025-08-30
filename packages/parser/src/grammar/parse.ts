@@ -37,7 +37,7 @@ export const request: PP = ([method, url, headerBlock, { blocks, body }]) => {
 }
 
 export const requestBlocks: PP = ([namedBlocks, maybeBody]) => {
-  const blocks = namedBlocks.map(d => d[1])
+  const blocks = namedBlocks.map((d: any) => d[1])
 
   const body = maybeBody?.[1]
   if (body) {
@@ -88,18 +88,14 @@ export const call: PP = ([callee, maybeInputs]) => {
     : t.moduleExpr(callee, inputs)
 }
 
-export const link: PP = ([maybePrior, callee, _, link]) => {
-  const body = []
-  const [context, , arrow] = maybePrior || []
-  if (context) {
-    body.push(...context.body)
-  }
+export const link: PP = ([context, callee, _, link]) => {
   const bit = t.moduleExpr(
     callee,
     t.objectLiteralExpr([t.objectEntryExpr(tx.template('@link'), link, true)]),
   )
-  body.push(drillBase(bit, arrow))
-  return t.drillExpr(body)
+  const [drill, , arrow] = context || []
+  const body = drill?.body || []
+  return t.drillExpr([...body, drillBase(bit, arrow)])
 }
 
 export const object: PP = d => {
@@ -117,7 +113,7 @@ export const objectEntry: PP = ([callkey, identifier, optional, , , value]) => {
 
 export const objectEntryShorthandSelect: PP = ([identifier, optional]) => {
   const value = t.templateExpr([identifier])
-  const selector = t.drillExpr([t.drillBitExpr(t.selectorExpr(value, false))])
+  const selector = t.selectorExpr(value, false)
   return objectEntry([null, identifier, optional, null, null, selector])
 }
 
@@ -128,21 +124,23 @@ export const objectEntryShorthandIdent: PP = ([identifier, optional]) => {
 
 function drillBase(bit: Expr, arrow?: string): Expr {
   const expand = arrow === '=>'
-  if (bit.kind === 'TemplateExpr') {
-    bit = t.selectorExpr(bit, expand)
-  } else if (bit.kind === 'IdentifierExpr') {
-    bit = t.drillIdentifierExpr(bit.id, expand)
-  } else if (expand) {
-    throw new QuerySyntaxError('Wide arrow drill requires selector on RHS')
+  switch (bit.kind) {
+    case 'TemplateExpr':
+      return t.selectorExpr(bit, expand)
+    case 'IdentifierExpr':
+      return t.drillIdentifierExpr(bit.id, expand)
+    default:
+      invariant(!expand, new QuerySyntaxError('Misplaced wide arrow drill'))
+      return bit
   }
-  return t.drillBitExpr(bit)
 }
 
 export const drill: PP = ([arrow, bit, bits]) => {
-  return t.drillExpr([
-    drillBase(bit, arrow?.[0].value),
-    ...bits.map(([, arrow, , bit]: any) => drillBase(bit, arrow.value)),
-  ])
+  const expr = drillBase(bit, arrow?.[0].value)
+  const exprs = bits.map(([, arrow, , bit]: any) => {
+    return drillBase(bit, arrow.value)
+  })
+  return t.drillExpr([expr, ...exprs])
 }
 
 export const identifier: PP = ([id]) => {

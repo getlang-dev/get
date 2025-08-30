@@ -99,10 +99,10 @@ export const insertSliceDeps: DesugarPass = ast => {
 
       if (context !== scope.context) {
         invariant(
-          path.parent?.node.kind === 'DrillBitExpr',
+          path.parent?.node.kind === 'DrillExpr',
           'Slice dependencies require drill expression',
         )
-        path.parent.insertBefore(t.drillBitExpr(context))
+        path.insertBefore(context)
       }
 
       return xnode

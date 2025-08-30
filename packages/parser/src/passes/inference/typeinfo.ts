@@ -1,7 +1,8 @@
-import type { Program, TypeInfo } from '@getlang/ast'
+import type { Node, Program, TypeInfo } from '@getlang/ast'
 import { Type, t } from '@getlang/ast'
 import { invariant } from '@getlang/utils'
 import { QuerySyntaxError } from '@getlang/utils/errors'
+import type { Path, WalkOptions } from '@getlang/walker'
 import { ScopeTracker, walk } from '@getlang/walker'
 import { toPath } from 'lodash-es'
 import { render, tx } from '../../utils.js'
@@ -60,6 +61,32 @@ function specialize(macroType: TypeInfo, contextType?: TypeInfo) {
   return walk(macroType)
 }
 
+class ItemScopeTracker extends ScopeTracker {
+  optional = [false]
+
+  override enter(node: Node) {
+    super.enter(node)
+    if (this.context && 'typeInfo' in node) {
+      this.push({
+        ...this.context,
+        typeInfo: unwrap(this.context.typeInfo),
+      })
+    }
+  }
+
+  override exit(node: Node, path: Path) {
+    if (this.context && 'typeInfo' in node) {
+      this.pop()
+      node.typeInfo = rewrap(
+        this.context.typeInfo,
+        structuredClone(node.typeInfo),
+        this.optional.at(-1),
+      )
+    }
+    super.exit(node, path)
+  }
+}
+
 type ResolveTypeOptions = {
   returnTypes: { [module: string]: TypeInfo }
   contextType?: TypeInfo
@@ -67,11 +94,9 @@ type ResolveTypeOptions = {
 
 export function resolveTypes(ast: Program, options: ResolveTypeOptions) {
   const { returnTypes, contextType = { type: Type.Context } } = options
-  const scope = new ScopeTracker()
+  const scope = new ItemScopeTracker()
 
-  const optional: boolean[] = [false]
-
-  const program: Program = walk(ast, {
+  const visitor: WalkOptions = {
     scope,
 
     Program: {
@@ -93,10 +118,10 @@ export function resolveTypes(ast: Program, options: ResolveTypeOptions) {
 
     AssignmentStmt: {
       enter(node) {
-        optional.push(node.optional)
+        scope.optional.push(node.optional)
       },
       exit() {
-        optional.pop()
+        scope.optional.pop()
       },
     },
 
@@ -132,7 +157,7 @@ export function resolveTypes(ast: Program, options: ResolveTypeOptions) {
 
     SliceExpr(node) {
       let typeInfo: TypeInfo = { type: Type.Value }
-      if (optional.at(-1)) {
+      if (scope.optional.at(-1)) {
         typeInfo = { type: Type.Maybe, option: typeInfo }
       }
       return { ...node, typeInfo }
@@ -167,7 +192,7 @@ export function resolveTypes(ast: Program, options: ResolveTypeOptions) {
       let typeInfo = structuredClone(selectorTypeInfo())
       if (node.expand) {
         typeInfo = { type: Type.List, of: typeInfo }
-      } else if (optional.at(-1)) {
+      } else if (scope.optional.at(-1)) {
         typeInfo = { type: Type.Maybe, option: typeInfo }
       }
       return { ...node, typeInfo }
@@ -208,29 +233,12 @@ export function resolveTypes(ast: Program, options: ResolveTypeOptions) {
       return { ...node, typeInfo }
     },
 
-    DrillBitExpr: {
-      enter() {
-        const ctx = scope.context
-        const itemCtx = ctx && { ...ctx, typeInfo: unwrap(ctx.typeInfo) }
-        scope.push(itemCtx)
-      },
-      exit(node) {
-        scope.pop()
-        const ctx = scope.context
-        const itemTypeInfo = structuredClone(node.bit.typeInfo)
-        const typeInfo = ctx
-          ? rewrap(ctx.typeInfo, itemTypeInfo, optional.at(-1))
-          : itemTypeInfo
-        return { ...node, typeInfo }
-      },
-    },
-
     ObjectEntryExpr: {
       enter(node) {
-        optional.push(node.optional)
+        scope.optional.push(node.optional)
       },
       exit() {
-        optional.pop()
+        scope.optional.pop()
       },
     },
 
@@ -251,8 +259,9 @@ export function resolveTypes(ast: Program, options: ResolveTypeOptions) {
       }
       return { ...node, typeInfo }
     },
-  })
+  }
 
+  const program = walk(ast, visitor)
   const ex = program.body.find(s => s.kind === 'ExtractStmt')
   const returnType = ex?.value.typeInfo ?? { type: Type.Never }
 

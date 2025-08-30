@@ -5,6 +5,7 @@ import type { Path } from './index.js'
 
 class Scope {
   extracted: any
+
   constructor(
     public vars: { [name: string]: any },
     public context: any,
@@ -72,16 +73,12 @@ export class ScopeTracker {
     }
   }
 
-  exit(xnode: any, { node }: Path) {
-    switch (node.kind) {
+  exit(xnode: any, path: Path) {
+    switch (path.node.kind) {
       case 'Program':
       case 'SubqueryExpr':
       case 'DrillExpr':
         this.pop()
-        break
-
-      case 'DrillBitExpr':
-        this.context = xnode
         break
 
       case 'RequestStmt':
@@ -89,16 +86,20 @@ export class ScopeTracker {
         break
 
       case 'InputExpr':
-        this.vars[node.id.value] = xnode
+        this.vars[path.node.id.value] = xnode
         break
 
       case 'AssignmentStmt':
-        this.vars[node.name.value] = xnode.value
+        this.vars[path.node.name.value] = xnode.value
         break
 
       case 'ExtractStmt':
         this.extracted = xnode.value
         break
+    }
+
+    if (path.parent?.node.kind === 'DrillExpr') {
+      this.context = xnode
     }
   }
 }

@@ -83,22 +83,20 @@ const printVisitor: Visitor = {
     return group(['extract ', node.value])
   },
 
-  DrillExpr(node) {
-    const [first, ...rest] = node.body
+  DrillExpr(node, { node: orig }) {
+    const body = node.body.map((expr, i) => {
+      const og = orig.body[i]
+      let expand = false
+      if (og.kind === 'SelectorExpr' || og.kind === 'DrillIdentifierExpr') {
+        expand = og.expand
+      }
+      const arrow = expand ? '=> ' : '-> '
+      return indent([line, arrow, expr])
+    })
+    const [first, ...rest] = body
     const [, arrow, bit] = first.contents
     const lead = arrow === '=> ' ? [arrow, bit] : bit
     return [lead, ...rest]
-  },
-
-  DrillBitExpr(node, { node: orig }) {
-    let arrow = '-> '
-    if (
-      (orig.kind === 'SelectorExpr' || orig.kind === 'DrillIdentifierExpr') &&
-      orig.expand
-    ) {
-      arrow = '=> '
-    }
-    return indent([line, arrow, node.bit])
   },
 
   ObjectEntryExpr(node, { node: orig }) {
@@ -140,7 +138,7 @@ const printVisitor: Visitor = {
         case 'SelectorExpr':
           return true
         case 'DrillExpr':
-          return e.value.body.at(-1).bit.kind === 'SelectorExpr'
+          return e.value.body.at(-1).kind === 'SelectorExpr'
         default:
           return false
       }

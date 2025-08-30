@@ -43,27 +43,27 @@ export class RequestParsers {
 
     switch (field) {
       case 'link': {
-        const expr = tx.drill(req, tx.select('url'))
+        const expr = t.drillExpr([req, tx.select('url')])
         return t.assignmentStmt(id, expr, false)
       }
 
       case 'headers': {
-        const expr = tx.drill(req, tx.select('headers'))
+        const expr = t.drillExpr([req, tx.select('headers')])
         return t.assignmentStmt(id, expr, false)
       }
 
       case 'cookies': {
-        const expr = tx.drill(
+        const expr = t.drillExpr([
           req,
           tx.select('headers'),
           tx.select('set-cookie'),
           modbit,
-        )
+        ])
         return t.assignmentStmt(id, expr, true)
       }
 
       default: {
-        const expr = tx.drill(req, tx.select('body'), modbit)
+        const expr = t.drillExpr([req, tx.select('body'), modbit])
         return t.assignmentStmt(id, expr, false)
       }
     }

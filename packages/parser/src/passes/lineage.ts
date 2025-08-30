@@ -26,10 +26,6 @@ export class LineageTracker extends ScopeTracker {
         derive(this.lookup(node.id.value))
         break
 
-      case 'DrillBitExpr':
-        derive(node.bit)
-        break
-
       case 'DrillExpr':
         derive(node.body.at(-1))
         break

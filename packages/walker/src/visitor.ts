@@ -5,7 +5,8 @@ type Visit<N extends Node> =
   | ((node: N, path: Path) => N)
   | ((node: N, path: Path) => void)
 type NodeVisitor<N extends Node> = { enter: Visit<N>; exit: Visit<N> }
-type NodeConfig<N extends Node> = Visit<N> | Partial<NodeVisitor<N>>
+
+export type NodeConfig<N extends Node> = Visit<N> | Partial<NodeVisitor<N>>
 
 export type Visitor = Partial<{
   [N in Node as N['kind']]: NodeConfig<N>
