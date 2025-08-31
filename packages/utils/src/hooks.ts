@@ -21,12 +21,18 @@ export type ExtractHook = (
   value: any,
 ) => MaybePromise<any>
 
+export type Modifier = (context: any, options: Record<string, unknown>) => any
+export type ModifierHook = (
+  modifier: string,
+) => MaybePromise<{ modifier: Modifier } | undefined>
+
 export type Hooks = Partial<{
   import: ImportHook
   request: RequestHook
   slice: SliceHook
   call: CallHook
   extract: ExtractHook
+  modifier: ModifierHook
 }>
 
 type RequestInit = {

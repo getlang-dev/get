@@ -10,24 +10,28 @@ export type RuntimeValue = {
   typeInfo: TypeInfo
 }
 
-export function toValue(value: any, typeInfo: TypeInfo): any {
+export function materialize({ data, typeInfo }: RuntimeValue): any {
   switch (typeInfo.type) {
     case Type.Html:
-      return html.toValue(value)
+      return html.toValue(data)
     case Type.Js:
-      return js.toValue(value)
+      return js.toValue(data)
     case Type.Headers:
-      return headers.toValue(value)
+      return headers.toValue(data)
     case Type.Cookies:
-      return cookies.toValue(value)
+      return cookies.toValue(data)
     case Type.List:
-      return value.map((item: any) => toValue(item, typeInfo.of))
+      return data.map((item: any) =>
+        materialize({ data: item, typeInfo: typeInfo.of }),
+      )
     case Type.Struct:
-      return mapValues(value, (v, k) => toValue(v, typeInfo.schema[k]!))
+      return mapValues(data, (v, k) =>
+        materialize({ data: v, typeInfo: typeInfo.schema[k]! }),
+      )
     case Type.Maybe:
-      return toValue(value, typeInfo.option)
+      return materialize({ data, typeInfo: typeInfo.option })
     case Type.Value:
-      return value
+      return data
     default:
       throw new ValueTypeError('Unsupported conversion type')
   }

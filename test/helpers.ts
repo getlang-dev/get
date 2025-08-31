@@ -1,11 +1,17 @@
 import { expect } from 'bun:test'
 import { executeModule } from '@getlang/get'
 import { desugar, parse, print } from '@getlang/parser'
-import type { Hooks, Inputs, MaybePromise } from '@getlang/utils'
+import type { Hooks, Inputs, MaybePromise, ModifierHook } from '@getlang/utils'
 import { invariant } from '@getlang/utils'
 import { ImportError } from '@getlang/utils/errors'
 import dedent from 'dedent'
 import './expect.js'
+
+type ExecuteOptions = Partial<{
+  fetch: Fetch
+  modifier: ModifierHook
+  willThrow: boolean
+}>
 
 export type Fetch = (req: Request) => MaybePromise<Response>
 
@@ -20,9 +26,9 @@ function testIdempotency(source: string) {
 export async function execute(
   program: string | Record<string, string>,
   inputs?: Inputs,
-  fetch?: Fetch,
-  willThrow = false,
+  options: ExecuteOptions = {},
 ): Promise<any> {
+  const { fetch, modifier, willThrow } = options
   const normalized = typeof program === 'string' ? { Home: program } : program
   const modules: Record<string, string> = {}
   for (const [name, source] of Object.entries(normalized)) {
@@ -33,6 +39,7 @@ export async function execute(
   }
 
   const hooks: Hooks = {
+    modifier,
     import(module) {
       const src = modules[module]
       invariant(src, new ImportError(`Failed to import module: ${module}`))

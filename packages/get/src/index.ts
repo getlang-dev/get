@@ -7,12 +7,11 @@ import { execute as exec } from './execute.js'
 function buildHooks(hooks: Hooks): Required<Hooks> {
   return {
     import: (module: string) => {
-      invariant(
-        hooks.import,
-        new ImportError('Imports are not supported by the current runtime'),
-      )
+      const err = 'Imports are not supported by the current runtime'
+      invariant(hooks.import, new ImportError(err))
       return hooks.import(module)
     },
+    modifier: modifier => hooks.modifier?.(modifier),
     call: hooks.call ?? (() => {}),
     request: hooks.request ?? http.requestHook,
     slice: hooks.slice ?? slice.runSlice,
