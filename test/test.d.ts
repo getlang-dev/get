@@ -1,8 +1,8 @@
 declare module 'bun:test' {
   interface AsymmetricMatchers {
-    toHaveServed(request: Request): void
+    toHaveServed(url: string, opts: RequestInit): void
   }
   interface Matchers<R> {
-    toHaveServed(request: Request): R
+    toHaveServed(url: string, opts: RequestInit): R
   }
 }

@@ -13,7 +13,7 @@ type ExecuteOptions = Partial<{
   willThrow: boolean
 }>
 
-export type Fetch = (req: Request) => MaybePromise<Response>
+export type Fetch = (url: string, opts: RequestInit) => MaybePromise<Response>
 
 export const SELSYN = true
 
@@ -47,7 +47,7 @@ export async function execute(
     },
     async request(url, opts) {
       invariant(fetch, `Fetch required: ${url}`)
-      const res = await fetch(new Request(url, opts))
+      const res = await fetch(url, opts)
       return {
         status: res.status,
         headers: res.headers,

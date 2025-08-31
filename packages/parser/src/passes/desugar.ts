@@ -5,6 +5,7 @@ import { dropDrills } from './desugar/dropdrill.js'
 import { settleLinks } from './desugar/links.js'
 import { RequestParsers } from './desugar/reqparse.js'
 import { insertSliceDeps } from './desugar/slicedeps.js'
+import { addUrlInputs } from './desugar/urlinputs.js'
 import { registerCalls } from './inference/calls.js'
 
 export type DesugarPass = (
@@ -15,10 +16,15 @@ export type DesugarPass = (
   },
 ) => Program
 
-function listCalls(ast: Program) {
+function analyze2(ast: Program) {
+  const inputs = new Set<string>()
   const calls = new Set<string>()
   const modifiers = new Set<string>()
+
   transform(ast, {
+    InputExpr(node) {
+      inputs.add(node.id.value)
+    },
     ModuleExpr(node) {
       node.call && calls.add(node.module.value)
     },
@@ -26,10 +32,17 @@ function listCalls(ast: Program) {
       modifiers.add(node.modifier.value)
     },
   })
-  return { calls, modifiers }
+
+  return { inputs, calls, modifiers }
 }
 
-const visitors = [resolveContext, settleLinks, insertSliceDeps, dropDrills]
+const visitors = [
+  addUrlInputs,
+  resolveContext,
+  settleLinks,
+  insertSliceDeps,
+  dropDrills,
+]
 
 export function desugar(ast: Program, macros: string[] = []) {
   const parsers = new RequestParsers()
@@ -41,6 +54,6 @@ export function desugar(ast: Program, macros: string[] = []) {
   // inference pass `registerCalls` is included in the desugar phase
   // it produces the list of called modules required for type inference
   program = registerCalls(program, macros)
-  const { calls, modifiers } = listCalls(program)
-  return { program, calls, modifiers }
+  const info = analyze2(program)
+  return { program, ...info }
 }
