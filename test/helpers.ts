@@ -7,7 +7,7 @@ import { ImportError } from '@getlang/utils/errors'
 import dedent from 'dedent'
 import './expect.js'
 
-export type ExecuteOptions = Partial<{
+type ExecuteOptions = Partial<{
   fetch: Fetch
   modifier: ModifierHook
   willThrow: boolean
