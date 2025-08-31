@@ -9,7 +9,7 @@ import { execute, SELSYN } from './helpers.js'
 describe('values', () => {
   test('into JS object', async () => {
     const result = await execute(`
-      set obj = \`{ a: "b" }\`
+      set obj = |{ a: "b" }|
       extract $obj -> a
     `)
     expect(result).toEqual('b')
@@ -17,7 +17,7 @@ describe('values', () => {
 
   test('unbound drills can be variable ref', async () => {
     const result = await execute(`
-      set x = \`{ a: "b" }\`
+      set x = |{ a: "b" }|
       extract $x -> a
     `)
     expect(result).toEqual('b')
@@ -25,7 +25,7 @@ describe('values', () => {
 
   test('nested drills into JSON', async () => {
     const result = await execute(`
-      set x = \`{ a: { b: ["c", "d"] } }\`
+      set x = |{ a: { b: ["c", "d"] } }|
       extract $x -> a -> b[1]
     `)
     expect(result).toEqual('d')
@@ -33,9 +33,9 @@ describe('values', () => {
 
   test('nested drill not a variable ref', async () => {
     const result = await execute(`
-      set a = \`"unused A"\`
-      set b = \`"unused B"\`
-      set obj = \`{ a: { b: "c" } }\`
+      set a = |"unused A"|
+      set b = |"unused B"|
+      set obj = |{ a: { b: "c" } }|
       extract $obj -> a -> b
     `)
     expect(result).toEqual('c')
@@ -43,7 +43,7 @@ describe('values', () => {
 
   test('wide arrow expands drill into variable', async () => {
     const result = await execute(`
-      set list = \`[{a: 1}, {a: 2}]\`
+      set list = |[{a: 1}, {a: 2}]|
       extract $list => $ -> a
     `)
     expect(result).toEqual([1, 2])
@@ -51,7 +51,7 @@ describe('values', () => {
 
   test('wide arrow expands drill into context', async () => {
     const result = await execute(`
-      set list = \`[{a: 1}, {a: 2}]\`
+      set list = |[{a: 1}, {a: 2}]|
       extract $list => $ -> (
         extract a
       )
@@ -63,7 +63,7 @@ describe('values', () => {
     // nested scope context is an element of `list`
     // `n` in the nested scope selects from this context
     const result = await execute(`
-      set list = \`[{n:'one'},{n:'two'},{n:'three'}]\`
+      set list = |[{n:'one'},{n:'two'},{n:'three'}]|
       extract $list => $ -> (
         extract n
       )
@@ -73,7 +73,7 @@ describe('values', () => {
 
   test('make reference to context variable ($)', async () => {
     const result = await execute(`
-      set list = \`['one','two','three']\`
+      set list = |['one','two','three']|
       extract $list => $ -> {
         id: $
       }
@@ -83,13 +83,13 @@ describe('values', () => {
 
   test('thin arrow does not expand list', async () => {
     let result = await execute(`
-      set list = \`[{a: 1}, {a: 2}]\`
+      set list = |[{a: 1}, {a: 2}]|
       extract $list -> 0
     `)
     expect(result).toEqual({ a: 1 })
 
     result = await execute(`
-      set list = \`[{a: 1}, {a: 2}]\`
+      set list = |[{a: 1}, {a: 2}]|
       extract $list -> (
         extract [1].a
       )
@@ -99,7 +99,7 @@ describe('values', () => {
 
   test('list of lists', async () => {
     const result = await execute(`
-        set data = \`[ {list: [{n: "one"}, {n: "two"}]}, {list: [{n: "three"}, {n: "four"}]} ]\`
+        set data = |[ {list: [{n: "one"}, {n: "two"}]}, {list: [{n: "three"}, {n: "four"}]} ]|
         extract $data => $ => list -> n
       `)
 
@@ -112,7 +112,7 @@ describe('values', () => {
   test('values not closed until final extract stmt', async () => {
     const result = await execute(`
         set fn_out = (
-          set html = \`"<html><h1>unweb</h1><html>"\`
+          set html = |"<html><h1>unweb</h1><html>"|
           extract {
             doc: $html -> @html
           }
@@ -125,7 +125,7 @@ describe('values', () => {
   describe('json', () => {
     test('parse string', async () => {
       const result = await execute(`
-        set json = \`'{"test": true }'\`
+        set json = |'{"test": true }'|
         extract $json -> @json
       `)
       expect(result).toEqual({ test: true })
@@ -133,7 +133,7 @@ describe('values', () => {
 
     test('select from value', async () => {
       const result = await execute(`
-        set json = \`'{"test": true }'\`
+        set json = |'{"test": true }'|
         extract $json -> @json -> test
       `)
       expect(result).toEqual(true)
@@ -141,7 +141,7 @@ describe('values', () => {
 
     test('nested selectors', async () => {
       const result = await execute(`
-        set json = \`'{"data": { "list": ["item one", "item two"] } }'\`
+        set json = |'{"data": { "list": ["item one", "item two"] } }'|
         extract $json -> @json -> data -> list[1]
       `)
       expect(result).toEqual('item two')
@@ -149,7 +149,7 @@ describe('values', () => {
 
     test('wide arrow expansion', async () => {
       const result = await execute(`
-        set json = \`'{"data": { "list": [{"name": "item one"}, {"name": "item two"}] } }'\`
+        set json = |'{"data": { "list": [{"name": "item one"}, {"name": "item two"}] } }'|
         extract $json -> @json => data.list -> (
           extract name
         )
@@ -161,7 +161,7 @@ describe('values', () => {
   describe('html', () => {
     test('parse string', async () => {
       const result = await execute(`
-        set html = \`"<html><h1>unweb</h1><html>"\`
+        set html = |"<html><h1>unweb</h1><html>"|
         extract $html -> @html
       `)
       expect(result).toEqual('unweb')
@@ -169,7 +169,7 @@ describe('values', () => {
 
     test('select from doc', async () => {
       const result = await execute(`
-        set html = \`"<html><h1>unweb</h1><p>welcome</p><html>"\`
+        set html = |"<html><h1>unweb</h1><p>welcome</p><html>"|
         extract $html -> @html -> p
       `)
       expect(result).toEqual('welcome')
@@ -177,7 +177,7 @@ describe('values', () => {
 
     test.if(SELSYN)('css parsing error', () => {
       const result = execute(`
-        set html = \`'<div>test</div>'\`
+        set html = |'<div>test</div>'|
         extract $html -> @html -> p/*&@#^
       `)
       return expect(result).rejects.toThrow(
@@ -187,7 +187,7 @@ describe('values', () => {
 
     test('nested selectors', async () => {
       const result = await execute(`
-        set html = \`"<html><h1>unweb</h1><ul><li>item one</li><li>item two</li></ul><html>"\`
+        set html = |"<html><h1>unweb</h1><ul><li>item one</li><li>item two</li></ul><html>"|
         extract $html -> @html -> ul -> li:nth-child(2)
       `)
       expect(result).toEqual('item two')
@@ -195,7 +195,7 @@ describe('values', () => {
 
     test('xpath selector', async () => {
       const result = await execute(`
-        set html = \`"<html><h1>unweb</h1><p class='intro'>welcome</p><html>"\`
+        set html = |"<html><h1>unweb</h1><p class='intro'>welcome</p><html>"|
         extract $html -> @html -> xpath://p/@class
       `)
       expect(result).toEqual('intro')
@@ -203,7 +203,7 @@ describe('values', () => {
 
     test.if(SELSYN)('xpath parsing error', async () => {
       const result = execute(`
-        set html = \`'<div>test</div>'\`
+        set html = |'<div>test</div>'|
         extract $html -> @html -> xpath:p/*&@#^
       `)
       return expect(result).rejects.toThrow(
@@ -213,7 +213,7 @@ describe('values', () => {
 
     test('wide arrow expansion', async () => {
       const result = await execute(`
-        set html = \`"<html><h1>unweb</h1><ul><li>item one</li><li>item two</li></ul><html>"\`
+        set html = |"<html><h1>unweb</h1><ul><li>item one</li><li>item two</li></ul><html>"|
         extract $html -> @html => ul li
       `)
       expect(result).toEqual(['item one', 'item two'])
@@ -221,7 +221,7 @@ describe('values', () => {
 
     test('drilling into items in an expanded lists', async () => {
       const result = await execute(`
-        set html = \`"<html><h1>unweb</h1><ul><li>item <span>one</span></li><li>item <span>two</span></li></ul><html>"\`
+        set html = |"<html><h1>unweb</h1><ul><li>item <span>one</span></li><li>item <span>two</span></li></ul><html>"|
         extract $html -> @html => ul li -> span
       `)
       expect(result).toEqual(['one', 'two'])
@@ -231,7 +231,7 @@ describe('values', () => {
   describe('js ast', () => {
     test('parse string', async () => {
       const result = await execute(`
-        set js = \`'var a = 2;'\`
+        set js = |'var a = 2;'|
         extract $js -> @js -> Literal
       `)
       expect(result).toEqual(2)
@@ -239,7 +239,7 @@ describe('values', () => {
 
     test('select from tree', async () => {
       const result = await execute(`
-        set js = \`'var a = 2;'\`
+        set js = |'var a = 2;'|
         set ast = $js -> @js
         set descend = $ast -> VariableDeclaration Literal
         set child = $ast -> VariableDeclarator > Literal
@@ -251,7 +251,7 @@ describe('values', () => {
 
     test.if(SELSYN)('esquery parsing error', () => {
       const result = execute(`
-        set js = \`'console.log(1 + 2)'\`
+        set js = |'console.log(1 + 2)'|
         extract $js -> @js -> Litera#$*& ><<>F
       `)
       return expect(result).rejects.toThrow(
@@ -261,7 +261,7 @@ describe('values', () => {
 
     test('select non-literal from tree throws conversion error', () => {
       const result = execute(`
-        set js = \`'var a = 2;'\`
+        set js = |'var a = 2;'|
         extract $js -> @js -> Identifier
       `)
       return expect(result).rejects.toThrow(new ConversionError('Identifier'))
@@ -269,7 +269,7 @@ describe('values', () => {
 
     test('nested selector', async () => {
       const result = await execute(`
-        set js = \`'var a = 501;'\`
+        set js = |'var a = 501;'|
         extract $js -> @js -> VariableDeclarator -> Literal
       `)
       expect(result).toEqual(501)
@@ -277,7 +277,7 @@ describe('values', () => {
 
     test('wide arrow expansion', async () => {
       const result = await execute(`
-        set js = \`'var a = 501; var x = "many"'\`
+        set js = |'var a = 501; var x = "many"'|
         extract $js -> @js => Literal
       `)
       expect(result).toEqual([501, 'many'])
@@ -319,7 +319,7 @@ describe('values', () => {
   describe('cookies', () => {
     test('parse string', async () => {
       const result = await execute(`
-        set cookies = \`"gt=1326368972816650241; Max-Age=10800; Domain=.twitter.com; Path=/; Secure"\`
+        set cookies = |"gt=1326368972816650241; Max-Age=10800; Domain=.twitter.com; Path=/; Secure"|
         extract $cookies -> @cookies
       `)
       expect(result).toEqual({ gt: '1326368972816650241' })
@@ -327,7 +327,7 @@ describe('values', () => {
 
     test('select from cookie set', async () => {
       const result = await execute(`
-        set cookies = \`"gt=1326368972816650241; Max-Age=10800; Domain=.twitter.com; Path=/; Secure"\`
+        set cookies = |"gt=1326368972816650241; Max-Age=10800; Domain=.twitter.com; Path=/; Secure"|
         extract $cookies -> @cookies -> gt
       `)
       expect(result).toEqual('1326368972816650241')
@@ -363,7 +363,7 @@ describe('values', () => {
   describe('optional v required', () => {
     test('error when html selector fails to locate', () => {
       const result = execute(`
-        set html = \`'<div>test</div>'\`
+        set html = |'<div>test</div>'|
         extract $html -> @html -> p
       `)
       return expect(result).rejects.toThrow(new NullSelectionError('p'))
@@ -371,7 +371,7 @@ describe('values', () => {
 
     test('error when json selector fails to locate', () => {
       const result = execute(`
-        set val = \`{x: 1}\`
+        set val = |{x: 1}|
         extract $val -> y
       `)
       return expect(result).rejects.toThrow(new NullSelectionError('y'))
@@ -379,7 +379,7 @@ describe('values', () => {
 
     test('null, zero, or empty string are valid', async () => {
       const result = await execute(`
-        set o = \`return {"nul":null,"num":0,"str":""}\`
+        set o = |return {"nul":null,"num":0,"str":""}|
         extract {
           nul: $o -> nul
           num: $o -> num
@@ -391,7 +391,7 @@ describe('values', () => {
 
     test('optional value selection', async () => {
       const result = await execute(`
-        set json = \`{ x: 'test' }\`
+        set json = |{ x: 'test' }|
         extract {
           x: $json -> x
           opt?: $json -> a -> b -> c
@@ -402,7 +402,7 @@ describe('values', () => {
 
     test('optional html selection', async () => {
       const result = await execute(`
-        set html = \`'<div>test</div>'\` -> @html
+        set html = |'<div>test</div>'| -> @html
         extract {
           el?: $html -> p
         }
@@ -412,7 +412,7 @@ describe('values', () => {
 
     test('optional html selection chaining', async () => {
       const result = await execute(`
-        set html = \`'<div>test</div>'\` -> @html
+        set html = |'<div>test</div>'| -> @html
         extract {
           el?: $html -> p -> span
         }
@@ -422,7 +422,7 @@ describe('values', () => {
 
     test('optional js selection', async () => {
       const result = await execute(`
-        set js = \`'const test = {};'\` -> @js
+        set js = |'const test = {};'| -> @js
         extract {
           val?: $js -> Literal
         }

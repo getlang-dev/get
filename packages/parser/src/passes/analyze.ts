@@ -1,49 +1,27 @@
-import type { CExpr, Program } from '../ast/ast.js'
-import { Type } from '../ast/typeinfo.js'
-import type { TransformVisitor } from '../visitor/transform.js'
-import { visit } from '../visitor/visitor.js'
-import { traceVisitor } from './trace.js'
+import type { Program } from '@getlang/ast'
+import { ScopeTracker, transform } from '@getlang/walker'
 
 export function analyze(ast: Program) {
-  const { scope, trace } = traceVisitor()
+  const scope = new ScopeTracker()
   const inputs = new Set<string>()
   const imports = new Set<string>()
   let isMacro = false
 
-  function checkMacro(node: CExpr) {
-    if (!node.context) {
-      const implicitType = scope.context?.typeInfo.type
-      isMacro ||= implicitType === Type.Context
-    }
-  }
-
-  const visitor: TransformVisitor = {
-    ...trace,
-    InputDeclStmt(node) {
+  transform(ast, {
+    scope,
+    InputExpr(node) {
       inputs.add(node.id.value)
-      return trace.InputDeclStmt(node)
     },
-    SelectorExpr: {
-      enter(node, visit) {
-        checkMacro(node)
-        return trace.SelectorExpr.enter(node, visit)
-      },
+    ModuleExpr(node) {
+      imports.add(node.module.value)
     },
-    ModifierExpr: {
-      enter(node, visit) {
-        checkMacro(node)
-        return trace.ModifierExpr.enter(node, visit)
-      },
+    SelectorExpr() {
+      isMacro ||= !scope.context
     },
-    ModuleExpr: {
-      enter(node, visit) {
-        imports.add(node.module.value)
-        return trace.ModuleExpr.enter(node, visit)
-      },
+    ModifierExpr() {
+      isMacro ||= !scope.context
     },
-  }
-
-  visit(ast, visitor)
+  })
 
   return { inputs, imports, isMacro }
 }

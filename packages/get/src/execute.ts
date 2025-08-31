@@ -1,18 +1,15 @@
+import type { Expr, TypeInfo } from '@getlang/ast'
+import { isToken, Type } from '@getlang/ast'
 import { cookies, headers, html, http, js, json } from '@getlang/lib'
-import type { Node, Stmt } from '@getlang/parser/ast'
-import { isToken, NodeKind } from '@getlang/parser/ast'
-import { RootScope } from '@getlang/parser/scope'
-import type { TypeInfo } from '@getlang/parser/typeinfo'
-import { Type } from '@getlang/parser/typeinfo'
-import type { AsyncInterpretVisitor } from '@getlang/parser/visitor'
-import { visit } from '@getlang/parser/visitor'
 import type { Hooks, Inputs } from '@getlang/utils'
 import { invariant, NullSelection } from '@getlang/utils'
 import * as errors from '@getlang/utils/errors'
-import { withContext } from './context.js'
+import type { Path, ReduceVisitor } from '@getlang/walker'
+import { reduce, ScopeTracker } from '@getlang/walker'
 import { callModifier } from './modifiers.js'
 import type { Execute } from './modules.js'
 import { Modules } from './modules.js'
+import type { RuntimeValue } from './value.js'
 import { assert, toValue } from './value.js'
 
 const {
@@ -20,232 +17,247 @@ const {
   QuerySyntaxError,
   SliceError,
   UnknownInputsError,
-  ValueReferenceError,
   ValueTypeError,
 } = errors
+
+class ExecutionTracker extends ScopeTracker<RuntimeValue> {
+  override exit(value: RuntimeValue, path: Path) {
+    if ('typeInfo' in path.node) {
+      assert(value)
+    }
+    super.exit(value, path)
+  }
+}
 
 export async function execute(
   rootModule: string,
   rootInputs: Inputs,
   hooks: Required<Hooks>,
 ) {
-  async function executeBody(visit: (stmt: Stmt) => void, body: Stmt[]) {
-    scope.push()
-    for (const stmt of body) {
-      await visit(stmt)
-      if (stmt.kind === NodeKind.ExtractStmt) {
-        break
-      }
-    }
-    return scope.pop()
-  }
+  const scope = new ExecutionTracker()
 
   const executeModule: Execute = async (entry, inputs) => {
     const provided = new Set(Object.keys(inputs))
     const unknown = provided.difference(entry.inputs)
     invariant(unknown.size === 0, new UnknownInputsError([...unknown]))
-    scope.push()
-    let ex: any
 
-    await visit<Node, AsyncInterpretVisitor<void, any>>(entry.program, {
+    async function withItemContext(expr: Expr): Promise<RuntimeValue> {
+      const ctx = scope.context
+      if (ctx?.typeInfo.type !== Type.List) {
+        return reduce(expr, options)
+      }
+      const list = []
+      for (const data of ctx.data) {
+        scope.push({ data, typeInfo: ctx.typeInfo.of })
+        const value = await withItemContext(expr)
+        list.push(value.data)
+        scope.pop()
+      }
+      return { data: list, typeInfo: expr.typeInfo }
+    }
+
+    let ex: RuntimeValue | undefined
+
+    const visitor: ReduceVisitor<void, RuntimeValue> = {
+      /**
+       * Statement nodes
+       */
+
+      InputExpr(node) {
+        const name = node.id.value
+        let data = inputs[name]
+        if (data === undefined) {
+          if (!node.optional) {
+            throw new NullInputError(name)
+          } else if (node.defaultValue) {
+            data = node.defaultValue.data
+          } else {
+            data = new NullSelection(`input:${name}`)
+          }
+        }
+        return { data, typeInfo: node.typeInfo }
+      },
+
+      Program: {
+        enter() {
+          scope.extracted = { data: null, typeInfo: { type: Type.Value } }
+        },
+        exit() {
+          ex = scope.extracted
+        },
+      },
+
       /**
        * Expression nodes
        */
-      TemplateExpr(node, path, origNode) {
-        const firstNull = node.elements.find(el => el instanceof NullSelection)
+      TemplateExpr(node, path) {
+        const firstNull = node.elements.find(
+          el => 'data' in el && el.data instanceof NullSelection,
+        )
         if (firstNull) {
-          const parents = path.slice(0, -1)
-          const isRoot = !parents.find(n => n.kind === NodeKind.TemplateExpr)
+          const isRoot = path.parent?.node.kind !== 'TemplateExpr'
           return isRoot ? firstNull : ''
         }
-        const els = node.elements.map((el, i) => {
-          const og = origNode.elements[i]!
-          return isToken(og) ? og.value : toValue(el, og.typeInfo)
+        const els = node.elements.map(el => {
+          return isToken(el) ? el.value : toValue(el.data, el.typeInfo)
         })
-        return els.join('')
+        const data = els.join('')
+        return { data, typeInfo: node.typeInfo }
       },
 
-      SliceExpr: {
-        async enter(node, visit) {
-          return withContext(scope, node, visit, async context => {
-            const { slice } = node
-            try {
-              const deps = context && toValue(context.value, context.typeInfo)
-              const value = await hooks.slice(slice.value, deps)
-              const ret =
-                value === undefined ? new NullSelection('<slice>') : value
-              const optional = node.typeInfo.type === Type.Maybe
-              return optional ? ret : assert(ret)
-            } catch (e) {
-              throw new SliceError({ cause: e })
+      async SliceExpr({ slice, typeInfo }) {
+        try {
+          const ctx = scope.context
+          const deps = ctx && toValue(ctx.data, ctx.typeInfo)
+          const ret = await hooks.slice(slice.value, deps)
+          const data = ret === undefined ? new NullSelection('<slice>') : ret
+          return { data, typeInfo }
+        } catch (e) {
+          throw new SliceError({ cause: e })
+        }
+      },
+
+      IdentifierExpr(node) {
+        return scope.lookup(node.id.value)
+      },
+
+      DrillIdentifierExpr(node) {
+        const { data } = scope.lookup(node.id.value)
+        return { data, typeInfo: node.typeInfo }
+      },
+
+      SelectorExpr(node) {
+        invariant(scope.context, 'Unresolved context')
+
+        const selector = node.selector.data
+        invariant(
+          typeof selector === 'string',
+          new ValueTypeError('Expected selector string'),
+        )
+
+        const args = [scope.context.data, selector, node.expand] as const
+
+        function select(typeInfo: TypeInfo) {
+          switch (typeInfo.type) {
+            case Type.Maybe:
+              return select(typeInfo.option)
+            case Type.Html:
+              return html.select(...args)
+            case Type.Js:
+              return js.select(...args)
+            case Type.Headers:
+              return headers.select(...args)
+            case Type.Cookies:
+              return cookies.select(...args)
+            default:
+              return json.select(...args)
+          }
+        }
+
+        const data = select(scope.context.typeInfo)
+        return { data, typeInfo: node.typeInfo }
+      },
+
+      ModifierExpr(node) {
+        invariant(scope.context, 'Unresolved context')
+        const mod = node.modifier.value
+        const args = node.args.data
+
+        return {
+          data: callModifier(mod, args, scope.context),
+          typeInfo: node.typeInfo,
+        }
+      },
+
+      ModuleExpr(node) {
+        if (node.call) {
+          return modules.call(
+            node.module.value,
+            node.args,
+            scope.context?.typeInfo,
+          )
+        }
+        return {
+          data: toValue(node.args.data, node.args.typeInfo),
+          typeInfo: node.typeInfo,
+        }
+      },
+
+      ObjectEntryExpr(node) {
+        const data = [node.key.data, node.value.data]
+        return { data, typeInfo: { type: Type.Value } }
+      },
+
+      ObjectLiteralExpr(node) {
+        const data = Object.fromEntries(
+          node.entries
+            .map(e => e.data)
+            .filter(e => !(e[1] instanceof NullSelection)),
+        )
+        return { data, typeInfo: node.typeInfo }
+      },
+
+      SubqueryExpr() {
+        const ex = scope.extracted
+        invariant(ex, new QuerySyntaxError('Subquery must extract a value'))
+        return ex
+      },
+
+      DrillExpr: {
+        async enter(node, path) {
+          for (const expr of node.body) {
+            scope.context = await withItemContext(expr)
+            const optional = expr.typeInfo.type === Type.Maybe
+            if (optional && scope.context.data instanceof NullSelection) {
+              break
             }
-          })
-        },
-      },
-
-      IdentifierExpr: {
-        async enter(node, visit) {
-          return withContext(scope, node, visit, async () => {
-            const id = node.id.value
-            const value = id ? scope.vars[id] : scope.context
-            invariant(
-              value !== undefined,
-              new ValueReferenceError(node.id.value),
-            )
-            return value
-          })
-        },
-      },
-
-      SelectorExpr: {
-        async enter(node, visit) {
-          return withContext(scope, node, visit, async context => {
-            const selector = await visit(node.selector)
-            invariant(
-              typeof selector === 'string',
-              new ValueTypeError('Expected selector string'),
-            )
-            const args = [context!.value, selector, node.expand] as const
-
-            function select(typeInfo: TypeInfo) {
-              switch (typeInfo.type) {
-                case Type.Maybe:
-                  return select(typeInfo.option)
-                case Type.Html:
-                  return html.select(...args)
-                case Type.Js:
-                  return js.select(...args)
-                case Type.Headers:
-                  return headers.select(...args)
-                case Type.Cookies:
-                  return cookies.select(...args)
-                default:
-                  return json.select(...args)
-              }
-            }
-
-            const value = select(context!.typeInfo)
-            const optional = node.typeInfo.type === Type.Maybe
-            return optional ? value : assert(value)
-          })
-        },
-      },
-
-      ModifierExpr: {
-        enter(node, visit) {
-          return withContext(scope, node, visit, async context => {
-            const args = await visit(node.args)
-            const { value, typeInfo } = context!
-            return callModifier(node, args, value, typeInfo)
-          })
-        },
-      },
-
-      ModuleExpr: {
-        enter(node, visit) {
-          return withContext(scope, node, visit, async context => {
-            const args = await visit(node.args)
-            return node.call
-              ? modules.call(node, args, context?.typeInfo)
-              : toValue(args, node.args.typeInfo)
-          })
-        },
-      },
-
-      ObjectLiteralExpr: {
-        async enter(node, visit) {
-          return withContext(scope, node, visit, async () => {
-            const obj: Record<string, any> = {}
-            for (const entry of node.entries) {
-              const value = await visit(entry.value)
-              if (!(value instanceof NullSelection)) {
-                const key = await visit(entry.key)
-                obj[key] = value
-              }
-            }
-            return obj
-          })
-        },
-      },
-
-      SubqueryExpr: {
-        async enter(node, visit) {
-          return withContext(scope, node, visit, async () => {
-            const ex = await executeBody(visit, node.body)
-            const err = new QuerySyntaxError('Subquery must extract a value')
-            invariant(ex, err)
-            return ex
-          })
+          }
+          path.replace(scope.context)
         },
       },
 
       async RequestExpr(node) {
         const method = node.method.value
-        const url = node.url
-        const body = node.body ?? ''
-        return await http.request(
+        const url = node.url.data
+        const body = node.body?.data ?? ''
+
+        const headers = node.headers.data[1]
+        const blocks = Object.fromEntries(node.blocks.map(v => v.data))
+
+        const data = await http.request(
           method,
           url,
-          node.headers,
-          node.blocks,
+          headers,
+          blocks,
           body,
           hooks.request,
         )
+        return { data, typeInfo: node.typeInfo }
       },
 
-      /**
-       * Statement nodes
-       */
-
-      DeclInputsStmt() {},
-
-      InputDeclStmt: {
-        async enter(node, visit) {
-          const inputName = node.id.value
-          let inputValue = inputs[inputName]
-          if (inputValue === undefined) {
-            if (!node.optional) {
-              throw new NullInputError(inputName)
-            }
-            inputValue = node.defaultValue
-              ? await visit(node.defaultValue)
-              : new NullSelection(`input:${inputName}`)
-          }
-          scope.vars[inputName] = inputValue
-        },
+      RequestBlockExpr(node) {
+        const value = Object.fromEntries(
+          node.entries
+            .map(e => e.data)
+            .filter(e => !(e[1] instanceof NullSelection)),
+        )
+        const data = [node.name.value, value]
+        return { data, typeInfo: node.typeInfo }
       },
 
-      AssignmentStmt(node) {
-        scope.vars[node.name.value] = node.value
+      RequestEntryExpr(node) {
+        const data = [node.key.data, node.value.data]
+        return { data, typeInfo: { type: Type.Value } }
       },
+    }
 
-      RequestStmt(node) {
-        scope.pushContext(node.request)
-      },
-
-      ExtractStmt(node) {
-        scope.extracted = assert(node.value)
-      },
-
-      Program: {
-        async enter(node, visit) {
-          ex = await executeBody(visit, node.body)
-        },
-      },
-    })
-
+    const options = { scope, ...visitor }
+    await reduce(entry.program, options)
     return ex
   }
 
-  const scope = new RootScope<any>()
   const modules = new Modules(hooks, executeModule)
-
   const rootEntry = await modules.import(rootModule)
   const ex = await executeModule(rootEntry, rootInputs)
-
-  const retType: any = rootEntry.program.body.find(
-    stmt => stmt.kind === NodeKind.ExtractStmt,
-  )
-
-  return retType ? toValue(ex, retType.value.typeInfo) : ex
+  return ex && toValue(ex.data, ex.typeInfo)
 }

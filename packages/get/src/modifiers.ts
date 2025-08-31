@@ -1,34 +1,30 @@
 import { cookies, html, js, json } from '@getlang/lib'
-import type { ModifierExpr } from '@getlang/parser/ast'
-import type { TypeInfo } from '@getlang/parser/typeinfo'
-import { NullSelection } from '@getlang/utils'
+import { invariant } from '@getlang/utils'
 import { ValueReferenceError } from '@getlang/utils/errors'
+import type { RuntimeValue } from './value.js'
 import { toValue } from './value.js'
 
 export function callModifier(
-  node: ModifierExpr,
-  args: any,
-  value: any,
-  typeInfo: TypeInfo,
+  mod: string,
+  args: Record<string, unknown>,
+  context: RuntimeValue,
 ) {
-  const mod = node.modifier.value
-
+  let { data, typeInfo } = context
   if (mod === 'link') {
-    const tag = value.type === 'tag' ? value.name : undefined
+    const tag = data.type === 'tag' ? data.name : undefined
     if (tag === 'a') {
-      value = html.select(value, 'xpath:@href', false)
+      data = html.select(data, 'xpath:@href', false)
     } else if (tag === 'img') {
-      value = html.select(value, 'xpath:@src', false)
+      data = html.select(data, 'xpath:@src', false)
     }
   }
 
-  const doc = toValue(value, typeInfo)
+  const doc = toValue(data, typeInfo)
 
   switch (mod) {
     case 'link':
-      return doc
-        ? new URL(doc, args.base).toString()
-        : new NullSelection('@link')
+      invariant(typeof args.base === 'string', '@link requires base url')
+      return new URL(doc, args.base).toString()
     case 'html':
       return html.parse(doc)
     case 'js':

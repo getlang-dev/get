@@ -1,7 +1,7 @@
+import type { Expr } from '@getlang/ast'
+import { isToken, t } from '@getlang/ast'
 import { invariant } from '@getlang/utils'
 import { QuerySyntaxError } from '@getlang/utils/errors'
-import type { CExpr, Expr, TemplateExpr } from '../ast/ast.js'
-import { isToken, NodeKind, t } from '../ast/ast.js'
 import { tx } from '../utils.js'
 
 type PP = nearley.Postprocessor
@@ -27,19 +27,17 @@ export const declInputs: PP = ([, , , , first, maybeRest]) => {
 
 export const inputDecl: PP = ([id, optional, maybeDefault]) => {
   const defaultValue = maybeDefault?.[3]
-  return t.inputDeclStmt(id, Boolean(optional || defaultValue), defaultValue)
+  return t.InputExpr(id, Boolean(optional || defaultValue), defaultValue)
 }
 
 export const request: PP = ([method, url, headerBlock, { blocks, body }]) => {
-  const headers = headerBlock?.[1] ?? t.objectLiteralExpr([])
-  return t.requestStmt(t.requestExpr(method, url, headers, blocks, body))
+  const headers = t.requestBlockExpr(tx.token(''), headerBlock?.[1] ?? [])
+  const req = t.requestExpr(method, url, headers, blocks, body)
+  return t.requestStmt(req)
 }
 
 export const requestBlocks: PP = ([namedBlocks, maybeBody]) => {
-  const blocks: Record<string, unknown> = {}
-  for (const [, block] of namedBlocks) {
-    blocks[block.name] = block.entries
-  }
+  const blocks = namedBlocks.map((d: any) => d[1])
 
   const body = maybeBody?.[1]
   if (body) {
@@ -54,12 +52,15 @@ export const requestBlocks: PP = ([namedBlocks, maybeBody]) => {
   return { blocks, body }
 }
 
-export const requestBlockNamed: PP = ([name, , entries]) => ({ name, entries })
+export const requestBlockNamed: PP = ([name, , entries]) =>
+  t.requestBlockExpr(name, entries)
 
 export const requestBlockBody: PP = ([, body]) => body
 
-export const requestBlock: PP = ([entry, entries]) =>
-  t.objectLiteralExpr([entry, ...entries.map((d: any) => d[1])])
+export const requestBlock: PP = ([entry, entries]) => [
+  entry,
+  ...entries.map((d: any) => d[1]),
+]
 
 export const requestEntry: PP = ([key, , maybeValue]) => {
   let value = maybeValue?.[1]
@@ -70,7 +71,7 @@ export const requestEntry: PP = ([key, , maybeValue]) => {
       text: '',
     }
   }
-  return { key, value, optional: true }
+  return t.requestEntryExpr(key, value)
 }
 
 export const assignment: PP = ([, , name, optional, , , , expr]) =>
@@ -87,16 +88,14 @@ export const call: PP = ([callee, maybeInputs]) => {
     : t.moduleExpr(callee, inputs)
 }
 
-export const link: PP = ([maybePrior, callee, _, link]) => {
+export const link: PP = ([context, callee, _, link]) => {
   const bit = t.moduleExpr(
     callee,
-    t.objectLiteralExpr([t.objectEntry(tx.template('@link'), link, true)]),
+    t.objectLiteralExpr([t.objectEntryExpr(tx.template('@link'), link, true)]),
   )
-  if (!maybePrior) {
-    return bit
-  }
-  const [context, , arrow] = maybePrior
-  return drill([context, null, arrow, null, bit])
+  const [drill, , arrow] = context || []
+  const body = drill?.body || []
+  return t.drillExpr([...body, drillBase(bit, arrow)])
 }
 
 export const object: PP = d => {
@@ -109,11 +108,7 @@ export const objectEntry: PP = ([callkey, identifier, optional, , , value]) => {
     ...identifier,
     value: `${callkey ? '@' : ''}${identifier.value || '$'}`,
   }
-  return {
-    key: t.templateExpr([key]),
-    value,
-    optional: Boolean(optional),
-  }
+  return t.objectEntryExpr(t.templateExpr([key]), value, Boolean(optional))
 }
 
 export const objectEntryShorthandSelect: PP = ([identifier, optional]) => {
@@ -127,24 +122,26 @@ export const objectEntryShorthandIdent: PP = ([identifier, optional]) => {
   return objectEntry([null, identifier, optional, null, null, value])
 }
 
-function drillBase(bit: CExpr | TemplateExpr, arrow?: string, context?: Expr) {
+function drillBase(bit: Expr, arrow?: string): Expr {
   const expand = arrow === '=>'
-  if (bit.kind === NodeKind.TemplateExpr) {
-    bit = t.selectorExpr(bit, expand)
-  } else if (bit.kind === NodeKind.IdentifierExpr) {
-    bit.expand = expand
-  } else if (expand) {
-    throw new QuerySyntaxError('Wide arrow drill requires selector on RHS')
+  switch (bit.kind) {
+    case 'TemplateExpr':
+      return t.selectorExpr(bit, expand)
+    case 'IdentifierExpr':
+      return t.drillIdentifierExpr(bit.id, expand)
+    default:
+      invariant(!expand, new QuerySyntaxError('Misplaced wide arrow drill'))
+      return bit
   }
-  bit.context = context
-  return bit
 }
 
-export const drill: PP = ([context, , arrow, , bit]) =>
-  drillBase(bit, arrow.value, context)
-
-export const drillContext: PP = ([arrow, bit]) =>
-  drillBase(bit, arrow?.[0].value)
+export const drill: PP = ([arrow, bit, bits]) => {
+  const expr = drillBase(bit, arrow?.[0].value)
+  const exprs = bits.map(([, arrow, , bit]: any) => {
+    return drillBase(bit, arrow.value)
+  })
+  return t.drillExpr([expr, ...exprs])
+}
 
 export const identifier: PP = ([id]) => {
   return t.identifierExpr(id)

@@ -11,10 +11,10 @@ describe('slice', () => {
   it('has access to script variables', async () => {
     const result = await execute(
       `
-      inputs { id, foo = \`[1]\` }
+      inputs { id, foo = |[1]| }
 
-      set bar = \`['x']\`
-      set baz = \`{ id, foo, bar }\`
+      set bar = |['x']|
+      set baz = |{ id, foo, bar }|
 
       extract { $baz }
     `,
@@ -35,12 +35,12 @@ describe('slice', () => {
     // variables should not cause ConversionError's (ie the BinaryExpression)
     const result = await execute(
       `
-        set js = \`'5 + 1'\`
+        set js = |'5 + 1'|
         set x = $js -> @js -> BinaryExpression
         set y = $js -> @js -> Literal
         set out = (
           extract {
-            greet: \`'hi there ' + y\`
+            greet: |'hi there ' + y|
           }
         )
         extract $out
@@ -55,9 +55,9 @@ describe('slice', () => {
   it('can reference and convert context', async () => {
     const result = await execute(
       `
-        set html = \`'<main><h1>title</h1><p>para 1</p><p>para 2</p></main>'\`
+        set html = |'<main><h1>title</h1><p>para 1</p><p>para 2</p></main>'|
 
-        extract $html -> @html => h1, p -> \`$\`
+        extract $html -> @html => h1, p -> |$|
       `,
     )
     expect(result).toEqual(['title', 'para 1', 'para 2'])
@@ -65,9 +65,9 @@ describe('slice', () => {
 
   it('can reference both context and outer variables', async () => {
     const result = await execute(`
-        set obj = \`{key:"x"}\`
-        set html = \`"<div><span>key</span><span>val</span></div>"\` -> @html
-        extract $html -> span -> \`obj[$]\`
+        set obj = |{key:"x"}|
+        set html = |"<div><span>key</span><span>val</span></div>"| -> @html
+        extract $html -> span -> |obj[$]|
     `)
     expect(result).toEqual('x')
   })
@@ -84,26 +84,26 @@ describe('slice', () => {
 
   it('converts context to value prior to run', async () => {
     const result = await execute(`
-      set html = \`'<ul><li>one</li><li>two</li></ul>'\`
-      extract $html -> @html -> xpath://li -> \`$\`
+      set html = |'<ul><li>one</li><li>two</li></ul>'|
+      extract $html -> @html -> xpath://li -> |$|
     `)
     expect(result).toEqual('one')
   })
 
   it('operates on list item context', async () => {
     const result = await execute(`
-      set html = \`'<ul><li>one</li><li>two</li></ul>'\`
-      extract $html -> @html => li -> \`$\`
+      set html = |'<ul><li>one</li><li>two</li></ul>'|
+      extract $html -> @html => li -> |$|
     `)
     expect(result).toEqual(['one', 'two'])
   })
 
   it('supports analysis on nested slices', async () => {
     const result = await execute(`
-      set x = \`0\`
+      set x = |0|
 
       extract $x -> (
-        set y = \`1\`
+        set y = |1|
         extract $y
       )
     `)
@@ -113,7 +113,7 @@ describe('slice', () => {
   describe('errors', () => {
     test.skip('parsing', () => {
       const result = execute(`
-        extract \`{ a: "b" \`
+        extract |{ a: "b" |
       `)
 
       // expect(result).rejects.toThrow()
@@ -122,7 +122,7 @@ describe('slice', () => {
 
     test('running', () => {
       const result = execute(`
-        extract \`({}).no.no.yes\`
+        extract |({}).no.no.yes|
       `)
       return expect(result).rejects.toThrow(
         /^An exception was thrown by the client-side slice/,

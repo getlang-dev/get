@@ -1,75 +1,46 @@
-import type { Expr, Program } from '../../ast/ast.js'
-import { isToken, NodeKind } from '../../ast/ast.js'
-import type { TransformVisitor } from '../../visitor/visitor.js'
-import { visit } from '../../visitor/visitor.js'
-import { traceVisitor } from '../trace.js'
+import type { Expr, Program } from '@getlang/ast'
+import { isToken } from '@getlang/ast'
+import { transform } from '@getlang/walker'
+import { LineageTracker } from '../lineage.js'
 
 export function registerCalls(ast: Program, macros: string[] = []) {
-  const { scope, trace } = traceVisitor()
-  const mutable = visit(ast, {} as TransformVisitor)
+  const scope = new LineageTracker()
 
-  function registerCall(node?: Expr) {
-    switch (node?.kind) {
-      case NodeKind.IdentifierExpr: {
-        const id = node.id.value
-        if (id) {
-          return registerCall(scope.vars[id])
-        }
-        const ctxs = scope.scopeStack.flatMap(s => s.contextStack)
-        return registerCall(
-          ctxs.findLast(
-            c => c.kind !== NodeKind.IdentifierExpr || c.id.value !== '',
-          ),
-        )
-      }
-      case NodeKind.SubqueryExpr: {
-        const ex = node.body.find(s => s.kind === NodeKind.ExtractStmt)
-        return registerCall(ex?.value)
-      }
-      case NodeKind.ModuleExpr: {
-        node.call = true
-      }
+  function registerCall(node: Expr) {
+    const lineage = scope.traceLineageRoot(node) || node
+    if (lineage?.kind === 'ModuleExpr') {
+      lineage.call = true
     }
   }
 
-  const visitor: TransformVisitor = {
-    ...trace,
+  return transform(ast, {
+    scope,
 
-    TemplateExpr: {
-      enter(node) {
-        for (const el of node.elements) {
-          if (!isToken(el)) {
-            registerCall(el)
-          }
+    TemplateExpr(node) {
+      for (const el of node.elements) {
+        if (!isToken(el)) {
+          registerCall(el)
         }
-        return node
-      },
+      }
+      return node
     },
 
-    SelectorExpr: {
-      enter(node, visit) {
-        registerCall(node.context)
-        return trace.SelectorExpr.enter(node, visit)
-      },
+    SelectorExpr() {
+      if (scope.context) {
+        registerCall(scope.context)
+      }
     },
 
-    ModifierExpr: {
-      enter(node, visit) {
-        registerCall(node.context)
-        return trace.ModifierExpr.enter(node, visit)
-      },
+    ModifierExpr() {
+      if (scope.context) {
+        registerCall(scope.context)
+      }
     },
 
-    ModuleExpr: {
-      enter(node, visit) {
-        const module = node.module.value
-        if (macros.includes(module)) {
-          registerCall(node)
-        }
-        return trace.ModuleExpr.enter(node, visit)
-      },
+    ModuleExpr(node) {
+      if (macros.includes(node.module.value)) {
+        return { ...node, call: true }
+      }
     },
-  }
-
-  return visit(mutable, visitor)
+  })
 }

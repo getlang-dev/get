@@ -15,49 +15,86 @@ describe('calls', () => {
     })
   })
 
-  test('semantics', async () => {
-    const modules = {
-      Call: `
-        inputs { called }
-        extract { called: \`true\` }
-      `,
-      Home: `
-        set called = \`false\`
-        set as_var = @Call({ $called })
+  describe('semantics', () => {
+    const Call = `
+      inputs { called }
+      extract { called: |true| }
+    `
+
+    test('select', async () => {
+      const modules = {
+        Call,
+        Home: `
+          set called = |false|
+          extract {
+            select: @Call({ $called }) -> called
+          }
+        `,
+      }
+      const result = await execute(modules)
+      expect(result).toEqual({ select: true })
+    })
+
+    test('from var', async () => {
+      const modules = {
+        Call,
+        Home: `
+          set called = |false|
+          set as_var = @Call({ $called })
+          extract {
+            from_var: $as_var -> called
+          }
+        `,
+      }
+      const result = await execute(modules)
+      expect(result).toEqual({ from_var: true })
+    })
+
+    test('subquery', async () => {
+      const modules = {
+        Call,
+        Home: `
+          set called = |false|
+          extract {
+            subquery: (
+              extract @Call({ $called })
+            ) -> called
+          }
+        `,
+      }
+      const result = await execute(modules)
+      expect(result).toEqual({ subquery: true })
+    })
+
+    test('from subquery', async () => {
+      const modules = {
+        Call,
+        Home: `
+        set called = |false|
         set as_subquery = ( extract @Call({ $called }) )
 
         extract {
-          select: @Call({ $called }) -> called
-          from_var: $as_var -> called
-          subquery: ( extract @Call({ $called }) ) -> called
           from_subquery: $as_subquery -> called
         }
       `,
-    }
-    const result = await execute(modules)
-    expect(result).toEqual({
-      select: true,
-      from_var: true,
-      subquery: true,
-      from_subquery: true,
+      }
+      const result = await execute(modules)
+      expect(result).toEqual({ from_subquery: true })
     })
-  })
 
-  test.skip('semantics - object key', async () => {
-    const modules = {
-      Call: `
-        inputs { called }
-        extract { called: \`true\` }
-      `,
-      Home: `
-        set called = \`false\`
+    test.skip('object key', async () => {
+      const modules = {
+        Call,
+        Home: `
+        set called = |false|
         extract {
           object: as_entry = { key: @Call({ $called }) } -> key -> called
         }
       `,
-    }
-    const result = await execute(modules)
-    expect(result).toEqual({ object: true })
+      }
+      const result = await execute(modules)
+      expect(result).toEqual({ object: true })
+    })
   })
 
   test('drill return value', async () => {
@@ -173,7 +210,7 @@ describe('calls', () => {
       `,
       Link: `
         extract {
-          _module: \`'Link'\`
+          _module: |'Link'|
         }
       `,
     }
@@ -205,8 +242,8 @@ describe('calls', () => {
         GET http://stub
 
         extract {
-          a: @Data({text: \`'first'\`})
-          b: @Data({text: \`'second'\`})
+          a: @Data({ text: |'first'| })
+          b: @Data({ text: |'second'| })
         }
       `,
       Data: `
@@ -240,7 +277,7 @@ describe('calls', () => {
       Home: `
         GET http://stub
 
-        extract @Data({text: \`'first'\`})
+        extract @Data({text: |'first'|})
           -> xpath:@data-json
           -> @json
       `,
@@ -290,7 +327,7 @@ describe('calls', () => {
       Page: `
         extract {
           value: @Home({
-            called: \`false\`
+            called: |false|
           })
         }
       `,

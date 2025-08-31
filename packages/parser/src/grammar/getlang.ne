@@ -11,7 +11,7 @@ program -> _ (inputs line_sep):? statements _ {% p.program %}
 statements -> statement (line_sep statement):* {% p.statements %}
 statement -> (request | assignment | extract) {% p.idd %}
 
-# keyswords
+# keywords
 inputs -> "inputs" __ "{" _ input_decl (_ "," _ input_decl):* _ "}" {% p.declInputs %}
 assignment -> "set" __ %identifier "?":? _ "=" _ expression {% p.assignment %}
 extract -> "extract" __ expression {% p.extract %}
@@ -24,17 +24,16 @@ input_default -> slice {% id %}
 request -> %request_verb template (line_sep request_block):? request_blocks {% p.request %}
 request_blocks -> (line_sep request_block_named):* (line_sep request_block_body):? {% p.requestBlocks %}
 request_block_named -> %request_block_name line_sep request_block {% p.requestBlockNamed %}
-request_block_body -> %request_block_body template %request_block_body_end {% p.requestBlockBody %}
 request_block -> request_entry (line_sep request_entry):* {% p.requestBlock %}
 request_entry -> template ":" (__ template):? {% p.requestEntry %}
+request_block_body -> %request_block_body template %request_block_body_end {% p.requestBlockBody %}
 
 # expression
 expression -> drill {% id %}
 expression -> (drill _ %drill_arrow _):? %link _ drill {% p.link %}
 
 # drill
-drill -> drill _ %drill_arrow _ bit {% p.drill %} # left-associativity
-drill -> (%drill_arrow _):? bit {% p.drillContext %}
+drill -> (%drill_arrow _):? bit (_ %drill_arrow _ bit):* {% p.drill %}
 
 # drill bit
 bit -> (template | slice | call | object | subquery) {% p.idd %}

@@ -1,36 +1,37 @@
-import type { Program } from '../ast/ast.js'
-import type { TransformVisitor } from '../visitor/visitor.js'
-import { visit } from '../visitor/visitor.js'
+import type { Program } from '@getlang/ast'
+import { transform } from '@getlang/walker'
 import { resolveContext } from './desugar/context.js'
+import { dropDrills } from './desugar/dropdrill.js'
 import { settleLinks } from './desugar/links.js'
 import { RequestParsers } from './desugar/reqparse.js'
 import { insertSliceDeps } from './desugar/slicedeps.js'
 import { registerCalls } from './inference/calls.js'
 
-export type DesugarPass = (tools: {
-  parsers: RequestParsers
-  macros: string[]
-}) => TransformVisitor
+export type DesugarPass = (
+  ast: Program,
+  tools: {
+    parsers: RequestParsers
+    macros: string[]
+  },
+) => Program
 
 function listCalls(ast: Program) {
   const calls = new Set<string>()
-  visit(ast, {
+  transform(ast, {
     ModuleExpr(node) {
-      if (node.call) {
-        calls.add(node.module.value)
-      }
+      node.call && calls.add(node.module.value)
     },
-  } as TransformVisitor)
+  })
   return calls
 }
 
+const visitors = [resolveContext, settleLinks, insertSliceDeps, dropDrills]
+
 export function desugar(ast: Program, macros: string[] = []) {
   const parsers = new RequestParsers()
-  const visitors = [resolveContext, settleLinks, insertSliceDeps]
   let program = visitors.reduce((ast, pass) => {
     parsers.reset()
-    const visitor = pass({ parsers, macros })
-    return visit(ast, visitor)
+    return pass(ast, { parsers, macros })
   }, ast)
 
   // inference pass `registerCalls` is included in the desugar phase

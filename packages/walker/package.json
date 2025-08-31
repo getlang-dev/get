@@ -1,0 +1,25 @@
+{
+  "name": "@getlang/walker",
+  "version": "0.0.1",
+  "license": "Apache-2.0",
+  "type": "module",
+  "exports": {
+    ".": {
+      "bun": "./src/index.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "bugs": {
+    "url": "https://github.com/getlang-dev/get/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/getlang-dev/get.git",
+    "directory": "packages/walker"
+  },
+  "homepage": "https://getlang.dev",
+  "dependencies": {
+    "@getlang/ast": "workspace:^0.0.1",
+    "@getlang/utils": "workspace:^0.1.6"
+  }
+}

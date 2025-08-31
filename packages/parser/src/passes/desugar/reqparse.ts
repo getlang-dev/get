@@ -1,7 +1,7 @@
+import type { RequestExpr, Stmt } from '@getlang/ast'
+import { t } from '@getlang/ast'
 import { invariant } from '@getlang/utils'
 import { QuerySyntaxError } from '@getlang/utils/errors'
-import type { Expr, RequestExpr, Stmt } from '../../ast/ast.js'
-import { NodeKind, t } from '../../ast/ast.js'
 import { getContentField, tx } from '../../utils.js'
 
 type Parsers = Record<string, { written: boolean }>
@@ -37,33 +37,41 @@ export class RequestParsers {
   }
 
   private writeParser(idx: number, field: string): Stmt {
-    function expr() {
-      const reqId = tx.ident('')
-      let context: Expr
-      switch (field) {
-        case 'url':
-          return tx.select('url', reqId)
-        case 'headers':
-          return tx.select('headers', reqId)
-        case 'cookies': {
-          context = tx.select('set-cookie', tx.select('headers', reqId))
-          break
-        }
-        default: {
-          context = tx.select('body', reqId)
-        }
-      }
-      return t.modifierExpr(tx.token(field), undefined, context)
-    }
+    const req = t.drillIdentifierExpr(tx.token(''), false)
+    const id = tx.token(this.id(idx, field))
+    const modbit = t.modifierExpr(tx.token(field))
 
-    const id = this.id(idx, field)
-    const optional = field === 'cookies'
-    return t.assignmentStmt(tx.token(id), expr(), optional)
+    switch (field) {
+      case 'link': {
+        const expr = t.drillExpr([req, tx.select('url')])
+        return t.assignmentStmt(id, expr, false)
+      }
+
+      case 'headers': {
+        const expr = t.drillExpr([req, tx.select('headers')])
+        return t.assignmentStmt(id, expr, false)
+      }
+
+      case 'cookies': {
+        const expr = t.drillExpr([
+          req,
+          tx.select('headers'),
+          tx.select('set-cookie'),
+          modbit,
+        ])
+        return t.assignmentStmt(id, expr, true)
+      }
+
+      default: {
+        const expr = t.drillExpr([req, tx.select('body'), modbit])
+        return t.assignmentStmt(id, expr, false)
+      }
+    }
   }
 
   insert(stmts: Stmt[]) {
     return stmts.flatMap(stmt => {
-      if (stmt.kind !== NodeKind.RequestStmt) {
+      if (stmt.kind !== 'RequestStmt') {
         return stmt
       }
       const idx = this.require(stmt.request)
