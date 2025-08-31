@@ -13,7 +13,6 @@ import { materialize } from './value.js'
 
 type Info = {
   ast: Program
-  inputs: Set<string>
   imports: Set<string>
   isMacro: boolean
 }
@@ -86,7 +85,7 @@ export class Modules {
     stack: string[],
     contextType?: TypeInfo,
   ): Promise<Entry> {
-    const { ast, inputs, imports } = await this.getInfo(module)
+    const { ast, imports } = await this.getInfo(module)
     const macros: string[] = []
     for (const i of imports) {
       const depInfo = await this.getInfo(i)
@@ -94,7 +93,12 @@ export class Modules {
         macros.push(i)
       }
     }
-    const { program: simplified, calls, modifiers } = desugar(ast, macros)
+    const {
+      program: simplified,
+      inputs,
+      calls,
+      modifiers,
+    } = desugar(ast, macros)
 
     const returnTypes: Record<string, TypeInfo> = {}
     for (const call of calls) {

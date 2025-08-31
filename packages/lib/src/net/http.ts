@@ -28,6 +28,25 @@ export const requestHook: RequestHook = async (url, opts) => {
   }
 }
 
+function constructUrl(start: string, query: StringMap = {}) {
+  let url: URL
+  let stripProtocol = false
+
+  try {
+    url = new URL(start)
+  } catch (_) {
+    url = new URL(`http://${start}`)
+    stripProtocol = true
+  }
+
+  for (const entry of Object.entries(query)) {
+    url.searchParams.append(...entry)
+  }
+
+  const str = url.toString()
+  return stripProtocol ? str.slice(7) : str
+}
+
 export const request = async (
   method: string,
   url: string,
@@ -36,14 +55,7 @@ export const request = async (
   bodyRaw: string,
   hook: RequestHook,
 ) => {
-  // construct url
-  const finalUrl = new URL(url)
-  if (blocks.query) {
-    for (const entry of Object.entries(blocks.query)) {
-      finalUrl.searchParams.append(...entry)
-    }
-  }
-  const urlString = finalUrl.toString()
+  const urlString = constructUrl(url, blocks.query)
 
   // construct headers
   const headers = new Headers(_headers)

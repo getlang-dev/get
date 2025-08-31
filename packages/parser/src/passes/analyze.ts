@@ -3,15 +3,11 @@ import { ScopeTracker, transform } from '@getlang/walker'
 
 export function analyze(ast: Program) {
   const scope = new ScopeTracker()
-  const inputs = new Set<string>()
   const imports = new Set<string>()
   let isMacro = false
 
   transform(ast, {
     scope,
-    InputExpr(node) {
-      inputs.add(node.id.value)
-    },
     ModuleExpr(node) {
       imports.add(node.module.value)
     },
@@ -23,5 +19,5 @@ export function analyze(ast: Program) {
     },
   })
 
-  return { inputs, imports, isMacro }
+  return { imports, isMacro }
 }

@@ -48,7 +48,7 @@ type RequestStmt = {
 export type RequestExpr = {
   kind: 'RequestExpr'
   method: Token
-  url: Expr
+  url: TemplateExpr
   headers: RequestBlockExpr
   blocks: RequestBlockExpr[]
   body: Expr
@@ -214,7 +214,7 @@ const requestStmt = (request: RequestExpr): RequestStmt => ({
 
 const requestExpr = (
   method: Token,
-  url: Expr,
+  url: TemplateExpr,
   headers: RequestBlockExpr,
   blocks: RequestBlockExpr[],
   body: Expr,
