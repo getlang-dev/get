@@ -2,24 +2,26 @@ import { cookies, html, js, json } from '@getlang/lib'
 import { invariant } from '@getlang/utils'
 import { ValueReferenceError } from '@getlang/utils/errors'
 import type { RuntimeValue } from './value.js'
-import { toValue } from './value.js'
+import { materialize } from './value.js'
 
 export function callModifier(
   mod: string,
   args: Record<string, unknown>,
-  context: RuntimeValue,
+  context?: RuntimeValue,
 ) {
-  let { data, typeInfo } = context
-  if (mod === 'link') {
+  let ctx = context
+  if (context && mod === 'link') {
+    let { data, typeInfo } = context
     const tag = data.type === 'tag' ? data.name : undefined
     if (tag === 'a') {
       data = html.select(data, 'xpath:@href', false)
     } else if (tag === 'img') {
       data = html.select(data, 'xpath:@src', false)
     }
+    ctx = { data, typeInfo }
   }
 
-  const doc = toValue(data, typeInfo)
+  const doc = ctx && materialize(ctx)
 
   switch (mod) {
     case 'link':

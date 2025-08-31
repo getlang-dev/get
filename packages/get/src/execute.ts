@@ -10,7 +10,7 @@ import { callModifier } from './modifiers.js'
 import type { Execute } from './modules.js'
 import { Modules } from './modules.js'
 import type { RuntimeValue } from './value.js'
-import { assert, toValue } from './value.js'
+import { assert, materialize } from './value.js'
 
 const {
   NullInputError,
@@ -99,7 +99,7 @@ export async function execute(
           return isRoot ? firstNull : ''
         }
         const els = node.elements.map(el => {
-          return isToken(el) ? el.value : toValue(el.data, el.typeInfo)
+          return isToken(el) ? el.value : materialize(el)
         })
         const data = els.join('')
         return { data, typeInfo: node.typeInfo }
@@ -108,7 +108,7 @@ export async function execute(
       async SliceExpr({ slice, typeInfo }) {
         try {
           const ctx = scope.context
-          const deps = ctx && toValue(ctx.data, ctx.typeInfo)
+          const deps = ctx && materialize(ctx)
           const ret = await hooks.slice(slice.value, deps)
           const data = ret === undefined ? new NullSelection('<slice>') : ret
           return { data, typeInfo }
@@ -158,15 +158,14 @@ export async function execute(
         return { data, typeInfo: node.typeInfo }
       },
 
-      ModifierExpr(node) {
-        invariant(scope.context, 'Unresolved context')
+      async ModifierExpr(node) {
         const mod = node.modifier.value
         const args = node.args.data
-
-        return {
-          data: callModifier(mod, args, scope.context),
-          typeInfo: node.typeInfo,
-        }
+        const entry = await modules.importMod(mod)
+        const data = entry
+          ? entry.mod(scope.context?.data, args)
+          : callModifier(mod, args, scope.context)
+        return { data, typeInfo: node.typeInfo }
       },
 
       ModuleExpr(node) {
@@ -178,7 +177,7 @@ export async function execute(
           )
         }
         return {
-          data: toValue(node.args.data, node.args.typeInfo),
+          data: materialize(node.args),
           typeInfo: node.typeInfo,
         }
       },
@@ -259,5 +258,5 @@ export async function execute(
   const modules = new Modules(hooks, executeModule)
   const rootEntry = await modules.import(rootModule)
   const ex = await executeModule(rootEntry, rootInputs)
-  return ex && toValue(ex.data, ex.typeInfo)
+  return ex && materialize(ex)
 }

@@ -13,7 +13,7 @@ const mockFetch = mock<Fetch>(
 )
 
 const execute = (src: string, inputs: Inputs = {}, fetch: Fetch = mockFetch) =>
-  _exec(src, inputs, fetch)
+  _exec(src, inputs, { fetch })
 
 beforeEach(() => {
   mockFetch.mockClear()

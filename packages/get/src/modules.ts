@@ -1,7 +1,7 @@
 import type { Program, TypeInfo } from '@getlang/ast'
 import { Type } from '@getlang/ast'
 import { analyze, desugar, inference, parse } from '@getlang/parser'
-import type { Hooks, Inputs } from '@getlang/utils'
+import type { Hooks, Inputs, Modifier } from '@getlang/utils'
 import {
   ImportError,
   RecursiveCallError,
@@ -9,7 +9,7 @@ import {
 } from '@getlang/utils/errors'
 import { partition } from 'lodash-es'
 import type { RuntimeValue } from './value.js'
-import { toValue } from './value.js'
+import { materialize } from './value.js'
 
 type Info = {
   ast: Program
@@ -21,6 +21,11 @@ type Info = {
 type Entry = {
   program: Program
   inputs: Set<string>
+  returnType: TypeInfo
+}
+
+type ModEntry = {
+  mod: Modifier
   returnType: TypeInfo
 }
 
@@ -57,6 +62,7 @@ function buildImportKey(module: string, typeInfo?: TypeInfo) {
 export class Modules {
   private info: Record<string, Promise<Info>> = {}
   private entries: Record<string, Promise<Entry>> = {}
+  private modifiers: Record<string, Promise<ModEntry | null>> = {}
 
   constructor(
     private hooks: Required<Hooks>,
@@ -88,12 +94,18 @@ export class Modules {
         macros.push(i)
       }
     }
-    const { program: simplified, calls } = desugar(ast, macros)
+    const { program: simplified, calls, modifiers } = desugar(ast, macros)
 
     const returnTypes: Record<string, TypeInfo> = {}
     for (const call of calls) {
       const { returnType } = await this.import(call, stack)
       returnTypes[call] = returnType
+    }
+    for (const mod of modifiers) {
+      const entry = await this.importMod(mod)
+      if (entry) {
+        returnTypes[mod] = entry.returnType
+      }
     }
 
     const { program, returnType } = inference(simplified, {
@@ -112,6 +124,19 @@ export class Modules {
     const key = buildImportKey(module, contextType)
     this.entries[key] ??= this.compile(module, stack, contextType)
     return this.entries[key]
+  }
+
+  async compileMod(mod: string): Promise<ModEntry | null> {
+    const compiled = await this.hooks.modifier(mod)
+    if (!compiled) {
+      return null
+    }
+    return { mod: compiled.modifier, returnType: { type: Type.Value } }
+  }
+
+  importMod(mod: string) {
+    this.modifiers[mod] ??= this.compileMod(mod)
+    return this.modifiers[mod]
   }
 
   async call(module: string, args: RuntimeValue, contextType?: TypeInfo) {
@@ -153,8 +178,8 @@ export class Modules {
       return extracted
     }
 
-    const attrs = Object.fromEntries(attrArgs)
-    const raster = toValue(attrs, args.typeInfo)
+    const data = Object.fromEntries(attrArgs)
+    const raster = materialize({ data, typeInfo: args.typeInfo })
     return { ...raster, ...extracted }
   }
 }

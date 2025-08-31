@@ -303,7 +303,9 @@ describe('values', () => {
         }
       `,
       {},
-      () => new Response('<!doctype html><h1>test</h1>', { headers }),
+      {
+        fetch: () => new Response('<!doctype html><h1>test</h1>', { headers }),
+      },
     )
     expect(result).toEqual({
       all: expect.objectContaining({
@@ -442,7 +444,7 @@ describe('values', () => {
       const result = await execute(
         src,
         {},
-        () => new Response('<!doctype html><h1>test</h1>'),
+        { fetch: () => new Response('<!doctype html><h1>test</h1>') },
       )
       expect(result).toEqual({})
     })

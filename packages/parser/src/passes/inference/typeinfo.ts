@@ -209,7 +209,8 @@ export function resolveTypes(ast: Program, options: ResolveTypeOptions) {
         headers: { type: Type.Headers },
         cookies: { type: Type.Cookies },
       }
-      const typeInfo = modTypeMap[node.modifier.value]
+      const mod = node.modifier.value
+      const typeInfo = modTypeMap[mod] || returnTypes[mod]
       invariant(typeInfo, 'Modifier type lookup failed')
       return { ...node, typeInfo }
     },
