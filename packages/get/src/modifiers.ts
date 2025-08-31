@@ -1,5 +1,5 @@
 import { cookies, html, js, json } from '@getlang/lib'
-
+import { invariant } from '@getlang/utils'
 import { ValueReferenceError } from '@getlang/utils/errors'
 import type { RuntimeValue } from './value.js'
 import { toValue } from './value.js'
@@ -23,6 +23,7 @@ export function callModifier(
 
   switch (mod) {
     case 'link':
+      invariant(typeof args.base === 'string', '@link requires base url')
       return new URL(doc, args.base).toString()
     case 'html':
       return html.parse(doc)

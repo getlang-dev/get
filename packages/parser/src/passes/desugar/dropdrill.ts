@@ -1,10 +1,10 @@
 import type { Program } from '@getlang/ast'
-import { ScopeTracker, walk } from '@getlang/walker'
+import { ScopeTracker, transform } from '@getlang/walker'
 
 export function dropDrills(ast: Program) {
   const scope = new ScopeTracker()
 
-  return walk(ast, {
+  return transform(ast, {
     scope,
 
     DrillExpr(node) {

@@ -4,8 +4,8 @@ import { cookies, headers, html, http, js, json } from '@getlang/lib'
 import type { Hooks, Inputs } from '@getlang/utils'
 import { invariant, NullSelection } from '@getlang/utils'
 import * as errors from '@getlang/utils/errors'
-import type { Path, WalkOptions } from '@getlang/walker'
-import { ScopeTracker, walk } from '@getlang/walker'
+import type { Path, ReduceVisitor } from '@getlang/walker'
+import { reduce, ScopeTracker } from '@getlang/walker'
 import { callModifier } from './modifiers.js'
 import type { Execute } from './modules.js'
 import { Modules } from './modules.js'
@@ -20,7 +20,7 @@ const {
   ValueTypeError,
 } = errors
 
-class ExecutionTracker extends ScopeTracker {
+class ExecutionTracker extends ScopeTracker<RuntimeValue> {
   override exit(value: RuntimeValue, path: Path) {
     if ('typeInfo' in path.node) {
       assert(value)
@@ -44,7 +44,7 @@ export async function execute(
     async function withItemContext(expr: Expr): Promise<RuntimeValue> {
       const ctx = scope.context
       if (ctx?.typeInfo.type !== Type.List) {
-        return walk(expr, visitor)
+        return reduce(expr, options)
       }
       const list = []
       for (const data of ctx.data) {
@@ -56,9 +56,9 @@ export async function execute(
       return { data: list, typeInfo: expr.typeInfo }
     }
 
-    const visitor: WalkOptions = {
-      scope,
+    let ex: RuntimeValue | undefined
 
+    const visitor: ReduceVisitor<void, RuntimeValue> = {
       /**
        * Statement nodes
        */
@@ -83,7 +83,7 @@ export async function execute(
           scope.extracted = { data: null, typeInfo: { type: Type.Value } }
         },
         exit() {
-          return scope.extracted
+          ex = scope.extracted
         },
       },
 
@@ -92,7 +92,7 @@ export async function execute(
        */
       TemplateExpr(node, path) {
         const firstNull = node.elements.find(
-          el => el.data instanceof NullSelection,
+          el => 'data' in el && el.data instanceof NullSelection,
         )
         if (firstNull) {
           const isRoot = path.parent?.node.kind !== 'TemplateExpr'
@@ -127,6 +127,8 @@ export async function execute(
       },
 
       SelectorExpr(node) {
+        invariant(scope.context, 'Unresolved context')
+
         const selector = node.selector.data
         invariant(
           typeof selector === 'string',
@@ -157,8 +159,10 @@ export async function execute(
       },
 
       ModifierExpr(node) {
+        invariant(scope.context, 'Unresolved context')
         const mod = node.modifier.value
         const args = node.args.data
+
         return {
           data: callModifier(mod, args, scope.context),
           typeInfo: node.typeInfo,
@@ -167,7 +171,11 @@ export async function execute(
 
       ModuleExpr(node) {
         if (node.call) {
-          return modules.call(node, node.args.data, scope.context?.typeInfo)
+          return modules.call(
+            node.module.value,
+            node.args,
+            scope.context?.typeInfo,
+          )
         }
         return {
           data: toValue(node.args.data, node.args.typeInfo),
@@ -204,8 +212,7 @@ export async function execute(
               break
             }
           }
-          path.skip()
-          return scope.context
+          path.replace(scope.context)
         },
       },
 
@@ -244,7 +251,9 @@ export async function execute(
       },
     }
 
-    return walk(entry.program, visitor)
+    const options = { scope, ...visitor }
+    await reduce(entry.program, options)
+    return ex
   }
 
   const modules = new Modules(hooks, executeModule)

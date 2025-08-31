@@ -1,6 +1,6 @@
 import type { Expr, Program } from '@getlang/ast'
 import { isToken } from '@getlang/ast'
-import { walk } from '@getlang/walker'
+import { transform } from '@getlang/walker'
 import { LineageTracker } from '../lineage.js'
 
 export function registerCalls(ast: Program, macros: string[] = []) {
@@ -13,7 +13,7 @@ export function registerCalls(ast: Program, macros: string[] = []) {
     }
   }
 
-  return walk(ast, {
+  return transform(ast, {
     scope,
 
     TemplateExpr(node) {

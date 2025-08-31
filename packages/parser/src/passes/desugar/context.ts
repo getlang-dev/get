@@ -1,12 +1,12 @@
 import { invariant } from '@getlang/utils'
 import { QuerySyntaxError } from '@getlang/utils/errors'
-import { ScopeTracker, walk } from '@getlang/walker'
+import { ScopeTracker, transform } from '@getlang/walker'
 import type { DesugarPass } from '../desugar.js'
 
 export const resolveContext: DesugarPass = (ast, { parsers, macros }) => {
   const scope = new ScopeTracker()
 
-  const program = walk(ast, {
+  const program = transform(ast, {
     scope,
 
     Program(node) {
@@ -20,6 +20,8 @@ export const resolveContext: DesugarPass = (ast, { parsers, macros }) => {
     },
 
     RequestExpr(node) {
+      invariant(node.headers.kind === 'RequestBlockExpr', '')
+      node.headers
       parsers.visit(node)
     },
 

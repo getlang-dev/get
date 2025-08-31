@@ -1,7 +1,7 @@
 import { t } from '@getlang/ast'
 import { invariant } from '@getlang/utils'
 import { QuerySyntaxError } from '@getlang/utils/errors'
-import { walk } from '@getlang/walker'
+import { transform } from '@getlang/walker'
 import { render, tx } from '../../utils.js'
 import type { DesugarPass } from '../desugar.js'
 import { LineageTracker } from '../lineage.js'
@@ -9,7 +9,7 @@ import { LineageTracker } from '../lineage.js'
 export const settleLinks: DesugarPass = (ast, { parsers }) => {
   const scope = new LineageTracker()
 
-  const ret = walk(ast, {
+  const ret = transform(ast, {
     scope,
 
     ModifierExpr(node) {

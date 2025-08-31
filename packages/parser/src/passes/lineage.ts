@@ -2,7 +2,7 @@ import type { Expr, Node } from '@getlang/ast'
 import type { Path } from '@getlang/walker'
 import { ScopeTracker } from '@getlang/walker'
 
-export class LineageTracker extends ScopeTracker {
+export class LineageTracker extends ScopeTracker<Expr> {
   private lineage = new Map<Expr, Expr>()
 
   getLineage(expr: Expr) {
@@ -27,12 +27,12 @@ export class LineageTracker extends ScopeTracker {
         break
 
       case 'DrillExpr':
-        derive(node.body.at(-1))
+        derive(node.body.at(-1)!)
         break
 
       case 'ModifierExpr':
       case 'SelectorExpr':
-        derive(this.context)
+        derive(this.context!)
         break
 
       case 'SubqueryExpr':

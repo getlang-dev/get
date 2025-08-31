@@ -1,4 +1,4 @@
-import type { ModuleExpr, Program, TypeInfo } from '@getlang/ast'
+import type { Program, TypeInfo } from '@getlang/ast'
 import { Type } from '@getlang/ast'
 import { analyze, desugar, inference, parse } from '@getlang/parser'
 import type { Hooks, Inputs } from '@getlang/utils'
@@ -8,6 +8,7 @@ import {
   ValueTypeError,
 } from '@getlang/utils/errors'
 import { partition } from 'lodash-es'
+import type { RuntimeValue } from './value.js'
 import { toValue } from './value.js'
 
 type Info = {
@@ -113,8 +114,7 @@ export class Modules {
     return this.entries[key]
   }
 
-  async call(node: ModuleExpr, args: any, contextType?: TypeInfo) {
-    const module = node.module.value
+  async call(module: string, args: RuntimeValue, contextType?: TypeInfo) {
     let entry: Entry
     try {
       entry = await this.import(module, [], contextType)
@@ -122,7 +122,7 @@ export class Modules {
       const err = `Failed to import module: ${module}`
       throw new ImportError(err, { cause: e })
     }
-    const [inputArgs, attrArgs] = partition(Object.entries(args), e =>
+    const [inputArgs, attrArgs] = partition(Object.entries(args.data), e =>
       entry.inputs.has(e[0]),
     )
     const inputs = Object.fromEntries(inputArgs)
@@ -154,7 +154,7 @@ export class Modules {
     }
 
     const attrs = Object.fromEntries(attrArgs)
-    const raster = toValue(attrs, node.args.typeInfo)
+    const raster = toValue(attrs, args.typeInfo)
     return { ...raster, ...extracted }
   }
 }

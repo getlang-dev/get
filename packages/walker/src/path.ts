@@ -7,26 +7,26 @@ type Staging = {
 
 type Mutation = Map<Node, Staging>
 
-export class Path {
+export class Path<N extends Node = Node> {
   private staging: Staging = { before: [] }
   protected mutations: Mutation = new Map()
-  public skipped = false
+  public replacement: unknown
 
   constructor(
-    public node: Node,
+    public node: N,
     public parent?: Path,
   ) {}
 
-  add(node: Node) {
-    return new Path(node, this)
+  add<N extends Node>(node: N) {
+    return new Path<N>(node, this)
   }
 
   insertBefore(node: Node) {
     this.staging.before.push(node)
   }
 
-  skip() {
-    this.skipped = true
+  replace(value: any) {
+    this.replacement = value
   }
 
   private mutate(node: Node) {

@@ -3,12 +3,12 @@ import { invariant } from '@getlang/utils'
 import { ValueReferenceError } from '@getlang/utils/errors'
 import type { Path } from './index.js'
 
-class Scope {
-  extracted: any
+class Scope<T> {
+  extracted?: T
 
   constructor(
-    public vars: { [name: string]: any },
-    public context: any,
+    public vars: { [name: string]: T },
+    public context: T | undefined,
   ) {}
 
   lookup(id: string) {
@@ -18,10 +18,10 @@ class Scope {
   }
 }
 
-export class ScopeTracker {
-  scopeStack: Scope[] = []
+export class ScopeTracker<T = any> {
+  scopeStack: Scope<T>[] = []
 
-  push(context: any = this.head?.context) {
+  push(context: T | undefined = this.head?.context) {
     const vars = Object.create(this.head?.vars ?? null)
     this.scopeStack.push(new Scope(vars, context))
   }
@@ -39,11 +39,11 @@ export class ScopeTracker {
     return this.head
   }
 
-  set context(value: any) {
+  set context(value: T) {
     this.ensure.context = value
   }
 
-  get context() {
+  get context(): T | undefined {
     return this.ensure.context
   }
 
@@ -51,11 +51,11 @@ export class ScopeTracker {
     return this.ensure.vars
   }
 
-  get extracted() {
+  get extracted(): T | undefined {
     return this.ensure.extracted
   }
 
-  set extracted(data: any) {
+  set extracted(data: T) {
     this.ensure.extracted = data
   }
 

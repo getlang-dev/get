@@ -1,5 +1,5 @@
 import type { Program } from '@getlang/ast'
-import { walk } from '@getlang/walker'
+import { transform } from '@getlang/walker'
 import { resolveContext } from './desugar/context.js'
 import { dropDrills } from './desugar/dropdrill.js'
 import { settleLinks } from './desugar/links.js'
@@ -17,7 +17,7 @@ export type DesugarPass = (
 
 function listCalls(ast: Program) {
   const calls = new Set<string>()
-  walk(ast, {
+  transform(ast, {
     ModuleExpr(node) {
       node.call && calls.add(node.module.value)
     },

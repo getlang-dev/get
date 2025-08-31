@@ -1,7 +1,7 @@
 import type { Node } from '@getlang/ast'
 import { isToken } from '@getlang/ast'
-import type { Visitor } from '@getlang/walker'
-import { walk } from '@getlang/walker'
+import type { ReduceVisitor } from '@getlang/walker'
+import { reduce } from '@getlang/walker'
 import { builders, printer } from 'prettier/doc'
 import { render } from './utils.js'
 
@@ -12,7 +12,7 @@ type Doc = builders.Doc
 
 const { group, indent, join, line, hardline, softline, ifBreak } = builders
 
-const printVisitor: Visitor = {
+const printVisitor: ReduceVisitor<string> = {
   Program(node) {
     return join(hardline, node.body)
   },
@@ -84,19 +84,18 @@ const printVisitor: Visitor = {
   },
 
   DrillExpr(node, { node: orig }) {
-    const body = node.body.map((expr, i) => {
-      const og = orig.body[i]
+    return node.body.map((expr, i) => {
+      const og = orig.body[i]!
       let expand = false
       if (og.kind === 'SelectorExpr' || og.kind === 'DrillIdentifierExpr') {
         expand = og.expand
       }
+      if (i === 0) {
+        return expand ? ['=> ', expr] : expr
+      }
       const arrow = expand ? '=> ' : '-> '
       return indent([line, arrow, expr])
     })
-    const [first, ...rest] = body
-    const [, arrow, bit] = first.contents
-    const lead = arrow === '=> ' ? [arrow, bit] : bit
-    return [lead, ...rest]
   },
 
   ObjectEntryExpr(node, { node: orig }) {
@@ -138,7 +137,7 @@ const printVisitor: Visitor = {
         case 'SelectorExpr':
           return true
         case 'DrillExpr':
-          return e.value.body.at(-1).kind === 'SelectorExpr'
+          return e.value.body.at(-1)!.kind === 'SelectorExpr'
         default:
           return false
       }
@@ -223,7 +222,7 @@ export function print(ast: Node) {
   if (!(ast.kind === 'Program')) {
     throw new Error(`Non-program AST node provided: ${ast}`)
   }
-  const doc = walk(ast, printVisitor)
+  const doc = reduce(ast, printVisitor)
   // propagateBreaks(doc)
   return printer.printDocToString(doc, {
     printWidth: 70,

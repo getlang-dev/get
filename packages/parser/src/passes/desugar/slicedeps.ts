@@ -1,7 +1,8 @@
+import type { Expr } from '@getlang/ast'
 import { t } from '@getlang/ast'
 import { invariant } from '@getlang/utils'
 import { SliceSyntaxError } from '@getlang/utils/errors'
-import { ScopeTracker, walk } from '@getlang/walker'
+import { ScopeTracker, transform } from '@getlang/walker'
 import { parse as acorn } from 'acorn'
 import { traverse } from 'estree-toolkit'
 import globals from 'globals'
@@ -68,8 +69,8 @@ const analyzeSlice = (slice: string) => {
 }
 
 export const insertSliceDeps: DesugarPass = ast => {
-  const scope = new ScopeTracker()
-  return walk(ast, {
+  const scope = new ScopeTracker<Expr>()
+  return transform(ast, {
     scope,
 
     SliceExpr(node, path) {
@@ -97,7 +98,7 @@ export const insertSliceDeps: DesugarPass = ast => {
         }
       }
 
-      if (context !== scope.context) {
+      if (context && context !== scope.context) {
         invariant(
           path.parent?.node.kind === 'DrillExpr',
           'Slice dependencies require drill expression',

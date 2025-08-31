@@ -1,9 +1,9 @@
-import type { Node, Program, TypeInfo } from '@getlang/ast'
+import type { Expr, Node, Program, TypeInfo } from '@getlang/ast'
 import { Type, t } from '@getlang/ast'
 import { invariant } from '@getlang/utils'
 import { QuerySyntaxError } from '@getlang/utils/errors'
-import type { Path, WalkOptions } from '@getlang/walker'
-import { ScopeTracker, walk } from '@getlang/walker'
+import type { Path, TransformVisitor } from '@getlang/walker'
+import { ScopeTracker, transform } from '@getlang/walker'
 import { toPath } from 'lodash-es'
 import { render, tx } from '../../utils.js'
 
@@ -61,7 +61,7 @@ function specialize(macroType: TypeInfo, contextType?: TypeInfo) {
   return walk(macroType)
 }
 
-class ItemScopeTracker extends ScopeTracker {
+class ItemScopeTracker extends ScopeTracker<Expr> {
   optional = [false]
 
   override enter(node: Node) {
@@ -95,16 +95,18 @@ type ResolveTypeOptions = {
 export function resolveTypes(ast: Program, options: ResolveTypeOptions) {
   const { returnTypes, contextType = { type: Type.Context } } = options
   const scope = new ItemScopeTracker()
+  let ex: Expr | undefined
 
-  const visitor: WalkOptions = {
-    scope,
-
+  const visitor: TransformVisitor = {
     Program: {
       enter() {
         scope.context = {
           ...t.InputExpr(tx.token(''), false),
           typeInfo: contextType,
         }
+      },
+      exit() {
+        ex = scope.extracted
       },
     },
 
@@ -164,12 +166,12 @@ export function resolveTypes(ast: Program, options: ResolveTypeOptions) {
     },
 
     SelectorExpr(node) {
-      function selectorTypeInfo() {
+      function selectorTypeInfo(): TypeInfo {
         invariant(
           node.selector.kind === 'TemplateExpr',
           new QuerySyntaxError('Selector requires template'),
         )
-        const scopeT = scope.context.typeInfo
+        const scopeT = scope.context!.typeInfo
         switch (scopeT.type) {
           case Type.Headers:
           case Type.Cookies:
@@ -189,7 +191,7 @@ export function resolveTypes(ast: Program, options: ResolveTypeOptions) {
         }
       }
 
-      let typeInfo = structuredClone(selectorTypeInfo())
+      let typeInfo: TypeInfo = structuredClone(selectorTypeInfo())
       if (node.expand) {
         typeInfo = { type: Type.List, of: typeInfo }
       } else if (scope.optional.at(-1)) {
@@ -223,8 +225,7 @@ export function resolveTypes(ast: Program, options: ResolveTypeOptions) {
     },
 
     SubqueryExpr(node) {
-      const ex = node.body.findLast(s => s.kind === 'ExtractStmt')
-      const typeInfo = ex?.value.typeInfo || { type: Type.Never }
+      const typeInfo = scope.extracted?.typeInfo || { type: Type.Never }
       return { ...node, typeInfo: structuredClone(typeInfo) }
     },
 
@@ -261,9 +262,8 @@ export function resolveTypes(ast: Program, options: ResolveTypeOptions) {
     },
   }
 
-  const program = walk(ast, visitor)
-  const ex = program.body.find(s => s.kind === 'ExtractStmt')
-  const returnType = ex?.value.typeInfo ?? { type: Type.Never }
+  const program = transform(ast, { scope, ...visitor })
+  const returnType = ex?.typeInfo ?? { type: Type.Never }
 
-  return { program, returnType }
+  return { program, returnType: returnType }
 }
