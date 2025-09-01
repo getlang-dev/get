@@ -1,5 +1,4 @@
 import type { Program } from '@getlang/ast'
-import { transform } from '@getlang/walker'
 import { resolveContext } from './desugar/context.js'
 import { dropDrills } from './desugar/dropdrill.js'
 import { settleLinks } from './desugar/links.js'
@@ -16,26 +15,6 @@ export type DesugarPass = (
   },
 ) => Program
 
-function analyze2(ast: Program) {
-  const inputs = new Set<string>()
-  const calls = new Set<string>()
-  const modifiers = new Set<string>()
-
-  transform(ast, {
-    InputExpr(node) {
-      inputs.add(node.id.value)
-    },
-    ModuleExpr(node) {
-      node.call && calls.add(node.module.value)
-    },
-    ModifierExpr(node) {
-      modifiers.add(node.modifier.value)
-    },
-  })
-
-  return { inputs, calls, modifiers }
-}
-
 const visitors = [
   addUrlInputs,
   resolveContext,
@@ -46,14 +25,11 @@ const visitors = [
 
 export function desugar(ast: Program, macros: string[] = []) {
   const parsers = new RequestParsers()
-  let program = visitors.reduce((ast, pass) => {
+  const program = visitors.reduce((ast, pass) => {
     parsers.reset()
     return pass(ast, { parsers, macros })
   }, ast)
-
   // inference pass `registerCalls` is included in the desugar phase
   // it produces the list of called modules required for type inference
-  program = registerCalls(program, macros)
-  const info = analyze2(program)
-  return { program, ...info }
+  return registerCalls(program, macros)
 }

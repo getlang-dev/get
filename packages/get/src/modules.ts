@@ -93,12 +93,8 @@ export class Modules {
         macros.push(i)
       }
     }
-    const {
-      program: simplified,
-      inputs,
-      calls,
-      modifiers,
-    } = desugar(ast, macros)
+    const simplified = desugar(ast, macros)
+    const { inputs, calls, modifiers } = analyze(simplified)
 
     const returnTypes: Record<string, TypeInfo> = {}
     for (const call of calls) {
