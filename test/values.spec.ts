@@ -511,4 +511,14 @@ describe('values', () => {
       bool_off: 'pass',
     })
   })
+
+  test('literal string interpolation', async () => {
+    const result = await execute(`
+        set foo = "foo"
+        set bar = "bar"
+        set x = 12.34
+        extract "a = $foo, b = \${bar}baz$x"
+    `)
+    expect(result).toEqual('a = foo, b = barbaz12.34')
+  })
 })
