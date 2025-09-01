@@ -36,8 +36,9 @@ expression -> (drill _ %drill_arrow _):? %link _ drill {% p.link %}
 drill -> (%drill_arrow _):? bit (_ %drill_arrow _ bit):* {% p.drill %}
 
 # drill bit
-bit -> (template | slice | call | object | subquery) {% p.idd %}
-bit -> id_expr {% p.identifier %}
+bit -> (literal | slice | call | object | subquery) {% p.idd %}
+bit -> template {% p.selector %}
+bit -> %identifier_expr {% p.idbit %}
 
 # subqueries
 subquery -> "(" _ statements _ ")" {% p.subquery %}
@@ -49,14 +50,18 @@ call -> %call ("(" object ")"):? {% p.call %}
 object -> "{" _ (object_entry (_ ","):? _):* "}" {% p.object %}
 object_entry -> "@":? %identifier "?":? ":" _ expression {% p.objectEntry %}
 object_entry -> %identifier "?":? {% p.objectEntryShorthandSelect %}
-object_entry -> id_expr "?":? {% p.objectEntryShorthandIdent %}
+object_entry -> %identifier_expr "?":? {% p.objectEntryShorthandIdent %}
 
-# literals
-template -> (%literal | %interpvar | interp_expr | interp_tmpl):+ {% p.template %}
+# templates
+template -> (%str | %interpvar | interp_expr | interp_tmpl):+ {% p.template %}
 interp_expr -> "${" _ %identifier _ "}" {% p.interpExpr %}
 interp_tmpl -> "$[" _ template _ "]" {% p.interpTmpl %}
+
+# literals
+literal -> (%bool | %num) {% p.literal %}
+literal -> "'" template "'" {% p.string %}
+literal -> "\"" template "\"" {% p.string %}
 slice -> %slice {% p.slice %}
-id_expr -> %identifier_expr {% id %}
 
 # whitespace
 line_sep -> (%ws | %comment):* %nl _ {% p.ws %}

@@ -33,7 +33,7 @@ export const templateUntil = (
 
   return {
     term: {
-      defaultType: 'literal',
+      defaultType: 'str',
       match: new RegExp(`(?=${term.source})`),
       lineBreaks: true,
       ...(next ? { next } : { pop: 1 }),
@@ -56,7 +56,7 @@ export const templateUntil = (
       ),
       value: (text: string) => text.slice(1),
     },
-    literal: {
+    str: {
       match: until(new RegExp(`[${interpSymbols.join('')}]|${term.source}`)),
       value: (text: string) => text.replace(/\\(.)/g, '$1').replace(/\s/g, ' '),
       lineBreaks: true,
@@ -91,9 +91,27 @@ const interpTmplParams = {
   ...templateUntil(/]/, { interpParams: true }),
 }
 
+const stringS = {
+  squot: {
+    match: `'`,
+    pop: 1,
+  },
+  ...templateUntil(/'/),
+}
+
+const stringD = {
+  dquot: {
+    match: '"',
+    pop: 1,
+  },
+  ...templateUntil(/"/),
+}
+
 export const templateStates = {
   template: templateUntil(/\n|->|=>/, { interpTemplate: false }),
   interpExpr,
   interpTmpl,
   interpTmplParams,
+  stringS,
+  stringD,
 }

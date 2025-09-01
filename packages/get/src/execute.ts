@@ -78,6 +78,10 @@ export async function execute(
         return { data, typeInfo: node.typeInfo }
       },
 
+      LiteralExpr(node) {
+        return { data: node.value, typeInfo: node.typeInfo }
+      },
+
       Program: {
         enter() {
           scope.extracted = { data: null, typeInfo: { type: Type.Value } }

@@ -22,7 +22,7 @@ const main = {
   },
   drill_arrow: {
     match: ['->', '=>'],
-    push: 'expr',
+    push: 'drillExpr',
   },
   colon: {
     match: ':',
@@ -48,13 +48,12 @@ const main = {
   symbols: /[{}(),?@]/,
 }
 
-const expr = {
+const exprBase = {
   ws: patterns.ws,
   nl: {
     match: /\n/,
     lineBreaks: true,
   },
-  drill_arrow: ['->', '=>'],
   link: {
     match: patterns.link,
     value: (text: string) => text.slice(1, -1),
@@ -80,6 +79,40 @@ const expr = {
     value: (text: string) => text.slice(1),
     pop: 1,
   },
+  squot: {
+    match: `'`,
+    next: 'stringS',
+  },
+  dquot: {
+    match: `"`,
+    next: 'stringD',
+  },
+}
+
+const expr = {
+  ...exprBase,
+  drill_arrow: {
+    match: ['->', '=>'],
+    next: 'drillExpr',
+  },
+  num: {
+    match: /\d+(?:\.\d+)?/,
+    pop: 1,
+  },
+  bool: {
+    match: ['true', 'false'],
+    pop: 1,
+  },
+  template: {
+    defaultType: 'ws',
+    match: /(?=.)/,
+    next: 'template',
+  },
+}
+
+const drillExpr = {
+  ...exprBase,
+  drill_arrow: ['->', '=>'],
   template: {
     defaultType: 'ws',
     match: /(?=.)/,
@@ -91,6 +124,7 @@ const lexer: any = moo.states({
   $all: { err: moo.error },
   main,
   expr,
+  drillExpr,
   ...templateStates,
   ...requestStates,
 })

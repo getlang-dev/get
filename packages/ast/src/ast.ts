@@ -143,6 +143,13 @@ type SliceExpr = {
   typeInfo: TypeInfo
 }
 
+type LiteralExpr = {
+  kind: 'LiteralExpr'
+  value: boolean | number
+  raw: Token
+  typeInfo: TypeInfo
+}
+
 export type Stmt =
   | Program
   | ExtractStmt
@@ -166,6 +173,7 @@ export type Expr =
   | ObjectLiteralExpr
   | SliceExpr
   | DrillExpr
+  | LiteralExpr
 
 export type Node = Stmt | Expr
 
@@ -326,6 +334,13 @@ const sliceExpr = (slice: Token): SliceExpr => ({
   slice,
 })
 
+const literalExpr = (raw: Token): LiteralExpr => ({
+  kind: 'LiteralExpr',
+  typeInfo: { type: Type.Value },
+  raw,
+  value: JSON.parse(raw.value),
+})
+
 const templateExpr = (elements: (Expr | Token)[]): TemplateExpr => ({
   kind: 'TemplateExpr',
   typeInfo: { type: Type.Value },
@@ -353,4 +368,5 @@ export const t = {
   objectLiteralExpr,
   subqueryExpr,
   drillExpr,
+  literalExpr,
 }
