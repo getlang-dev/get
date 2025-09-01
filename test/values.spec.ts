@@ -460,4 +460,65 @@ describe('values', () => {
       expect(result).toEqual({})
     })
   })
+
+  test('literals', async () => {
+    const result = await execute(`
+      extract {
+        str_s: 'one'
+        str_d: "two"
+        int: 12
+        float: 12.34
+        bool_on: true
+        bool_off: false
+      }
+    `)
+
+    expect(result).toEqual({
+      str_s: 'one',
+      str_d: 'two',
+      int: 12,
+      float: 12.34,
+      bool_on: true,
+      bool_off: false,
+    })
+  })
+
+  test('literals drill escape', async () => {
+    const result = await execute(`
+      set ctx = |return {
+        '12': 'pass',
+        '12.34': 'pass',
+        'true': 'pass',
+        'false': 'pass',
+      }|
+
+      extract $ctx -> {
+        str_s: -> 'one'
+        str_d: -> "two"
+        int: -> 12
+        float: -> 12.34
+        bool_on: -> true
+        bool_off: -> false
+      }
+    `)
+
+    expect(result).toEqual({
+      str_s: 'one',
+      str_d: 'two',
+      int: 'pass',
+      float: 'pass',
+      bool_on: 'pass',
+      bool_off: 'pass',
+    })
+  })
+
+  test('literal string interpolation', async () => {
+    const result = await execute(`
+        set foo = "foo"
+        set bar = "bar"
+        set x = 12.34
+        extract "a = $foo, b = \${bar}baz$x"
+    `)
+    expect(result).toEqual('a = foo, b = barbaz12.34')
+  })
 })

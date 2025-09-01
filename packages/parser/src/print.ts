@@ -65,6 +65,10 @@ const printVisitor: ReduceVisitor<string> = {
     return group(parts)
   },
 
+  LiteralExpr(node) {
+    return String(node.value)
+  },
+
   RequestStmt(node) {
     return node.request
   },

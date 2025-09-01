@@ -10,11 +10,13 @@ declare var request_block_body: any;
 declare var request_block_body_end: any;
 declare var drill_arrow: any;
 declare var link: any;
-declare var call: any;
-declare var literal: any;
-declare var interpvar: any;
-declare var slice: any;
 declare var identifier_expr: any;
+declare var call: any;
+declare var str: any;
+declare var interpvar: any;
+declare var bool: any;
+declare var num: any;
+declare var slice: any;
 declare var ws: any;
 declare var comment: any;
 declare var nl: any;
@@ -91,7 +93,6 @@ const grammar: Grammar = {
     {"name": "request_blocks$ebnf$2", "symbols": [], "postprocess": () => null},
     {"name": "request_blocks", "symbols": ["request_blocks$ebnf$1", "request_blocks$ebnf$2"], "postprocess": p.requestBlocks},
     {"name": "request_block_named", "symbols": [(lexer.has("request_block_name") ? {type: "request_block_name"} : request_block_name), "line_sep", "request_block"], "postprocess": p.requestBlockNamed},
-    {"name": "request_block_body", "symbols": [(lexer.has("request_block_body") ? {type: "request_block_body"} : request_block_body), "template", (lexer.has("request_block_body_end") ? {type: "request_block_body_end"} : request_block_body_end)], "postprocess": p.requestBlockBody},
     {"name": "request_block$ebnf$1", "symbols": []},
     {"name": "request_block$ebnf$1$subexpression$1", "symbols": ["line_sep", "request_entry"]},
     {"name": "request_block$ebnf$1", "symbols": ["request_block$ebnf$1", "request_block$ebnf$1$subexpression$1"], "postprocess": (d) => d[0].concat([d[1]])},
@@ -100,6 +101,7 @@ const grammar: Grammar = {
     {"name": "request_entry$ebnf$1", "symbols": ["request_entry$ebnf$1$subexpression$1"], "postprocess": id},
     {"name": "request_entry$ebnf$1", "symbols": [], "postprocess": () => null},
     {"name": "request_entry", "symbols": ["template", {"literal":":"}, "request_entry$ebnf$1"], "postprocess": p.requestEntry},
+    {"name": "request_block_body", "symbols": [(lexer.has("request_block_body") ? {type: "request_block_body"} : request_block_body), "template", (lexer.has("request_block_body_end") ? {type: "request_block_body_end"} : request_block_body_end)], "postprocess": p.requestBlockBody},
     {"name": "expression", "symbols": ["drill"], "postprocess": id},
     {"name": "expression$ebnf$1$subexpression$1", "symbols": ["drill", "_", (lexer.has("drill_arrow") ? {type: "drill_arrow"} : drill_arrow), "_"]},
     {"name": "expression$ebnf$1", "symbols": ["expression$ebnf$1$subexpression$1"], "postprocess": id},
@@ -112,13 +114,14 @@ const grammar: Grammar = {
     {"name": "drill$ebnf$2$subexpression$1", "symbols": ["_", (lexer.has("drill_arrow") ? {type: "drill_arrow"} : drill_arrow), "_", "bit"]},
     {"name": "drill$ebnf$2", "symbols": ["drill$ebnf$2", "drill$ebnf$2$subexpression$1"], "postprocess": (d) => d[0].concat([d[1]])},
     {"name": "drill", "symbols": ["drill$ebnf$1", "bit", "drill$ebnf$2"], "postprocess": p.drill},
-    {"name": "bit$subexpression$1", "symbols": ["template"]},
+    {"name": "bit$subexpression$1", "symbols": ["literal"]},
     {"name": "bit$subexpression$1", "symbols": ["slice"]},
     {"name": "bit$subexpression$1", "symbols": ["call"]},
     {"name": "bit$subexpression$1", "symbols": ["object"]},
     {"name": "bit$subexpression$1", "symbols": ["subquery"]},
     {"name": "bit", "symbols": ["bit$subexpression$1"], "postprocess": p.idd},
-    {"name": "bit", "symbols": ["id_expr"], "postprocess": p.identifier},
+    {"name": "bit", "symbols": ["template"], "postprocess": p.selector},
+    {"name": "bit", "symbols": [(lexer.has("identifier_expr") ? {type: "identifier_expr"} : identifier_expr)], "postprocess": p.idbit},
     {"name": "subquery", "symbols": [{"literal":"("}, "_", "statements", "_", {"literal":")"}], "postprocess": p.subquery},
     {"name": "call$ebnf$1$subexpression$1", "symbols": [{"literal":"("}, "object", {"literal":")"}]},
     {"name": "call$ebnf$1", "symbols": ["call$ebnf$1$subexpression$1"], "postprocess": id},
@@ -141,13 +144,13 @@ const grammar: Grammar = {
     {"name": "object_entry", "symbols": [(lexer.has("identifier") ? {type: "identifier"} : identifier), "object_entry$ebnf$3"], "postprocess": p.objectEntryShorthandSelect},
     {"name": "object_entry$ebnf$4", "symbols": [{"literal":"?"}], "postprocess": id},
     {"name": "object_entry$ebnf$4", "symbols": [], "postprocess": () => null},
-    {"name": "object_entry", "symbols": ["id_expr", "object_entry$ebnf$4"], "postprocess": p.objectEntryShorthandIdent},
-    {"name": "template$ebnf$1$subexpression$1", "symbols": [(lexer.has("literal") ? {type: "literal"} : literal)]},
+    {"name": "object_entry", "symbols": [(lexer.has("identifier_expr") ? {type: "identifier_expr"} : identifier_expr), "object_entry$ebnf$4"], "postprocess": p.objectEntryShorthandIdent},
+    {"name": "template$ebnf$1$subexpression$1", "symbols": [(lexer.has("str") ? {type: "str"} : str)]},
     {"name": "template$ebnf$1$subexpression$1", "symbols": [(lexer.has("interpvar") ? {type: "interpvar"} : interpvar)]},
     {"name": "template$ebnf$1$subexpression$1", "symbols": ["interp_expr"]},
     {"name": "template$ebnf$1$subexpression$1", "symbols": ["interp_tmpl"]},
     {"name": "template$ebnf$1", "symbols": ["template$ebnf$1$subexpression$1"]},
-    {"name": "template$ebnf$1$subexpression$2", "symbols": [(lexer.has("literal") ? {type: "literal"} : literal)]},
+    {"name": "template$ebnf$1$subexpression$2", "symbols": [(lexer.has("str") ? {type: "str"} : str)]},
     {"name": "template$ebnf$1$subexpression$2", "symbols": [(lexer.has("interpvar") ? {type: "interpvar"} : interpvar)]},
     {"name": "template$ebnf$1$subexpression$2", "symbols": ["interp_expr"]},
     {"name": "template$ebnf$1$subexpression$2", "symbols": ["interp_tmpl"]},
@@ -155,8 +158,12 @@ const grammar: Grammar = {
     {"name": "template", "symbols": ["template$ebnf$1"], "postprocess": p.template},
     {"name": "interp_expr", "symbols": [{"literal":"${"}, "_", (lexer.has("identifier") ? {type: "identifier"} : identifier), "_", {"literal":"}"}], "postprocess": p.interpExpr},
     {"name": "interp_tmpl", "symbols": [{"literal":"$["}, "_", "template", "_", {"literal":"]"}], "postprocess": p.interpTmpl},
+    {"name": "literal$subexpression$1", "symbols": [(lexer.has("bool") ? {type: "bool"} : bool)]},
+    {"name": "literal$subexpression$1", "symbols": [(lexer.has("num") ? {type: "num"} : num)]},
+    {"name": "literal", "symbols": ["literal$subexpression$1"], "postprocess": p.literal},
+    {"name": "literal", "symbols": [{"literal":"'"}, "template", {"literal":"'"}], "postprocess": p.string},
+    {"name": "literal", "symbols": [{"literal":"\""}, "template", {"literal":"\""}], "postprocess": p.string},
     {"name": "slice", "symbols": [(lexer.has("slice") ? {type: "slice"} : slice)], "postprocess": p.slice},
-    {"name": "id_expr", "symbols": [(lexer.has("identifier_expr") ? {type: "identifier_expr"} : identifier_expr)], "postprocess": id},
     {"name": "line_sep$ebnf$1", "symbols": []},
     {"name": "line_sep$ebnf$1$subexpression$1", "symbols": [(lexer.has("ws") ? {type: "ws"} : ws)]},
     {"name": "line_sep$ebnf$1$subexpression$1", "symbols": [(lexer.has("comment") ? {type: "comment"} : comment)]},

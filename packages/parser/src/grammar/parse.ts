@@ -124,15 +124,12 @@ export const objectEntryShorthandIdent: PP = ([identifier, optional]) => {
 
 function drillBase(bit: Expr, arrow?: string): Expr {
   const expand = arrow === '=>'
-  switch (bit.kind) {
-    case 'TemplateExpr':
-      return t.selectorExpr(bit, expand)
-    case 'IdentifierExpr':
-      return t.drillIdentifierExpr(bit.id, expand)
-    default:
-      invariant(!expand, new QuerySyntaxError('Misplaced wide arrow drill'))
-      return bit
+  if (bit.kind === 'SelectorExpr' || bit.kind === 'DrillIdentifierExpr') {
+    bit.expand = expand
+  } else if (expand) {
+    throw new QuerySyntaxError('Misplaced wide arrow drill')
   }
+  return bit
 }
 
 export const drill: PP = ([arrow, bit, bits]) => {
@@ -143,9 +140,8 @@ export const drill: PP = ([arrow, bit, bits]) => {
   return t.drillExpr([expr, ...exprs])
 }
 
-export const identifier: PP = ([id]) => {
-  return t.identifierExpr(id)
-}
+export const selector: PP = ([template]) => t.selectorExpr(template, false)
+export const idbit: PP = ([id]) => t.drillIdentifierExpr(id, false)
 
 export const template: PP = d => {
   const elements = d[0].reduce((els: any, dd: any) => {
@@ -158,10 +154,10 @@ export const template: PP = d => {
       els.push(el)
     } else if (el.type === 'interpvar' || el.type === 'identifier') {
       els.push(t.identifierExpr(el))
-    } else if (el.type === 'literal') {
+    } else if (el.type === 'str') {
       if (el.value) {
         const prev = els.at(-1)
-        if (prev?.type === 'literal') {
+        if (prev?.type === 'str') {
           els.pop()
           els.push({ ...prev, value: prev.value + el.value })
         } else {
@@ -176,18 +172,21 @@ export const template: PP = d => {
   }, [])
 
   const first = elements.at(0)
-  if (first.type === 'literal') {
+  if (first.type === 'str') {
     elements[0] = { ...first, value: first.value.trimLeft() }
   }
 
   const lastIdx = elements.length - 1
   const last = elements[lastIdx]
-  if (last.type === 'literal') {
+  if (last.type === 'str') {
     elements[lastIdx] = { ...last, value: last.value.trimRight() }
   }
 
   return t.templateExpr(elements)
 }
+
+export const literal: PP = ([[token]]) => t.literalExpr(token)
+export const string: PP = ([, template]) => template
 
 export const interpExpr: PP = ([, , token]) => token
 export const interpTmpl: PP = ([, , template]) => template
