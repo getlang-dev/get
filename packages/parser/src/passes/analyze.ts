@@ -5,9 +5,9 @@ export function analyze(ast: Program) {
   const scope = new ScopeTracker()
   const inputs = new Set<string>()
   const calls = new Set<string>()
-  const modifiers = new Set<string>()
+  const modifiers = new Map<string, boolean>()
   const imports = new Set<string>()
-  let isMacro = false
+  let hasUnboundSelector = false
 
   transform(ast, {
     scope,
@@ -19,13 +19,20 @@ export function analyze(ast: Program) {
       node.call && calls.add(node.module.value)
     },
     SelectorExpr() {
-      isMacro ||= !scope.context
+      hasUnboundSelector ||= !scope.context
     },
     ModifierExpr(node) {
-      isMacro ||= !scope.context
-      modifiers.add(node.modifier.value)
+      const mod = node.modifier.value
+      const unbound = modifiers.get(mod) || !scope.context
+      modifiers.set(mod, unbound)
     },
   })
 
-  return { inputs, imports, calls, modifiers, isMacro }
+  return {
+    inputs,
+    imports,
+    calls,
+    modifiers,
+    hasUnboundSelector,
+  }
 }

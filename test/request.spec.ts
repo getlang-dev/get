@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, mock, test } from 'bun:test'
-import type { Inputs } from '@getlang/utils'
+import type { Inputs } from '@getlang/lib'
 import type { Fetch } from './helpers.js'
 import { execute as _exec } from './helpers.js'
 

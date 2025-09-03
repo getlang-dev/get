@@ -1,5 +1,5 @@
-import type { RequestHook } from '@getlang/utils'
-import { RequestError } from '@getlang/utils/errors'
+import { RequestError } from '../core/errors.js'
+import type { RequestHook } from '../core/hooks.js'
 
 type StringMap = Record<string, string>
 

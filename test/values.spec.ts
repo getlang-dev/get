@@ -3,7 +3,7 @@ import {
   ConversionError,
   NullSelectionError,
   SelectorSyntaxError,
-} from '@getlang/utils/errors'
+} from '@getlang/lib/errors'
 import { execute, SELSYN } from './helpers.js'
 
 describe('values', () => {

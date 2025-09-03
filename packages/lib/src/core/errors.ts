@@ -73,9 +73,9 @@ export class NullInputError extends RuntimeError {
 }
 
 export class UnknownInputsError extends RuntimeError {
-  public override name = 'UnknownInputError'
+  public override name = 'UnknownInputsError'
 
-  constructor(inputNames: string[], options?: ErrorOptions) {
+  constructor(inputNames: string[] = [], options?: ErrorOptions) {
     const noun = inputNames.length > 1 ? 'inputs' : 'input'
     super(`Unknown ${noun} provided: ${inputNames.join(', ')}`, options)
   }
@@ -98,4 +98,17 @@ export class RecursiveCallError extends RuntimeError {
   constructor(chain: string[], options?: ErrorOptions) {
     super(`Recursive call error: ${chain.join(' -> ')}`, options)
   }
+}
+
+export function invariant(
+  condition: unknown,
+  err: string | RuntimeError,
+): asserts condition {
+  if (!condition) {
+    throw typeof err === 'string' ? new FatalError({ cause: err }) : err
+  }
+}
+
+export class NullSelection {
+  constructor(public selector: string) {}
 }

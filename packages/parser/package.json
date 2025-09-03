@@ -24,7 +24,7 @@
   },
   "dependencies": {
     "@getlang/ast": "workspace:^0.0.1",
-    "@getlang/utils": "workspace:^0.1.6",
+    "@getlang/lib": "workspace:^0.1.5",
     "@getlang/walker": "workspace:^0.0.1",
     "@types/moo": "^0.5.10",
     "@types/nearley": "^2.11.5",

@@ -1,5 +1,4 @@
 import type { Node } from '@getlang/ast'
-import { wait, waitMap } from '@getlang/utils'
 import { Path } from './path.js'
 import type { ScopeTracker } from './scope.js'
 import type {
@@ -8,6 +7,7 @@ import type {
   ReduceVisitor,
   TransformVisitor,
 } from './visitor.js'
+import { wait, waitMap } from './wait.js'
 
 export { ScopeTracker } from './scope.js'
 export type { TransformVisitor, ReduceVisitor, Path }
@@ -50,8 +50,10 @@ function walk<N extends Node>(
 
   const path = parent?.add(node) || new Path(node)
   return wait(enter(node, path), () => {
-    let xnode: any = path.replacement
-    if (!xnode) {
+    let xnode: any
+    if (path.replacement) {
+      xnode = path.replacement.value
+    } else {
       const entries = waitMap(Object.entries(node), e => {
         const [key, value] = e
         let val = value

@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test'
-import { NullInputError, UnknownInputsError } from '@getlang/utils/errors'
+import { NullInputError, UnknownInputsError } from '@getlang/lib/errors'
 import { execute } from './helpers.js'
 
 describe('modules', () => {

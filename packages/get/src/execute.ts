@@ -1,14 +1,13 @@
 import type { Expr, TypeInfo } from '@getlang/ast'
 import { isToken, Type } from '@getlang/ast'
-import { cookies, headers, html, http, js, json } from '@getlang/lib'
-import type { Hooks, Inputs } from '@getlang/utils'
-import { invariant, NullSelection } from '@getlang/utils'
-import * as errors from '@getlang/utils/errors'
-import type { Path, ReduceVisitor } from '@getlang/walker'
+import type { Hooks, Inputs } from '@getlang/lib'
+import * as lib from '@getlang/lib'
+import * as errors from '@getlang/lib/errors'
+import type { ReduceVisitor } from '@getlang/walker'
 import { reduce, ScopeTracker } from '@getlang/walker'
-import { callModifier } from './modifiers.js'
-import type { Execute } from './modules.js'
-import { Modules } from './modules.js'
+import type { Execute } from './calls.js'
+import { callModifier, callModule } from './calls.js'
+import { Registry } from './registry.js'
 import type { RuntimeValue } from './value.js'
 import { assert, materialize } from './value.js'
 
@@ -18,51 +17,46 @@ const {
   SliceError,
   UnknownInputsError,
   ValueTypeError,
+  ValueReferenceError,
 } = errors
-
-class ExecutionTracker extends ScopeTracker<RuntimeValue> {
-  override exit(value: RuntimeValue, path: Path) {
-    if ('typeInfo' in path.node) {
-      assert(value)
-    }
-    super.exit(value, path)
-  }
-}
 
 export async function execute(
   rootModule: string,
   rootInputs: Inputs,
   hooks: Required<Hooks>,
 ) {
-  const scope = new ExecutionTracker()
+  const scope = new ScopeTracker<RuntimeValue>()
 
   const executeModule: Execute = async (entry, inputs) => {
     const provided = new Set(Object.keys(inputs))
     const unknown = provided.difference(entry.inputs)
-    invariant(unknown.size === 0, new UnknownInputsError([...unknown]))
+    lib.invariant(unknown.size === 0, new UnknownInputsError([...unknown]))
 
-    async function withItemContext(expr: Expr): Promise<RuntimeValue> {
+    async function withItemContext(expr: Expr): Promise<any> {
       const ctx = scope.context
       if (ctx?.typeInfo.type !== Type.List) {
-        return reduce(expr, options)
+        const { data } = await reduce(expr, options)
+        return data
       }
       const list = []
       for (const data of ctx.data) {
         scope.push({ data, typeInfo: ctx.typeInfo.of })
-        const value = await withItemContext(expr)
-        list.push(value.data)
+        const item = await withItemContext(expr)
+        list.push(item)
         scope.pop()
       }
-      return { data: list, typeInfo: expr.typeInfo }
+      return list
+    }
+
+    function lookup(id: string, typeInfo: TypeInfo) {
+      const value = scope.lookup(id)
+      lib.invariant(value, new ValueReferenceError(id))
+      return { data: value.data, typeInfo }
     }
 
     let ex: RuntimeValue | undefined
 
     const visitor: ReduceVisitor<void, RuntimeValue> = {
-      /**
-       * Statement nodes
-       */
-
       InputExpr(node) {
         const name = node.id.value
         let data = inputs[name]
@@ -72,10 +66,14 @@ export async function execute(
           } else if (node.defaultValue) {
             data = node.defaultValue.data
           } else {
-            data = new NullSelection(`input:${name}`)
+            data = new lib.NullSelection(`input:${name}`)
           }
         }
         return { data, typeInfo: node.typeInfo }
+      },
+
+      AssignmentStmt(node) {
+        assert(node.value)
       },
 
       LiteralExpr(node) {
@@ -91,12 +89,9 @@ export async function execute(
         },
       },
 
-      /**
-       * Expression nodes
-       */
       TemplateExpr(node, path) {
         const firstNull = node.elements.find(
-          el => 'data' in el && el.data instanceof NullSelection,
+          el => 'data' in el && el.data instanceof lib.NullSelection,
         )
         if (firstNull) {
           const isRoot = path.parent?.node.kind !== 'TemplateExpr'
@@ -114,7 +109,8 @@ export async function execute(
           const ctx = scope.context
           const deps = ctx && materialize(ctx)
           const ret = await hooks.slice(slice.value, deps)
-          const data = ret === undefined ? new NullSelection('<slice>') : ret
+          const data =
+            ret === undefined ? new lib.NullSelection('<slice>') : ret
           return { data, typeInfo }
         } catch (e) {
           throw new SliceError({ cause: e })
@@ -122,19 +118,18 @@ export async function execute(
       },
 
       IdentifierExpr(node) {
-        return scope.lookup(node.id.value)
+        return lookup(node.id.value, node.typeInfo)
       },
 
       DrillIdentifierExpr(node) {
-        const { data } = scope.lookup(node.id.value)
-        return { data, typeInfo: node.typeInfo }
+        return lookup(node.id.value, node.typeInfo)
       },
 
       SelectorExpr(node) {
-        invariant(scope.context, 'Unresolved context')
+        lib.invariant(scope.context, 'Unresolved context')
 
         const selector = node.selector.data
-        invariant(
+        lib.invariant(
           typeof selector === 'string',
           new ValueTypeError('Expected selector string'),
         )
@@ -146,15 +141,15 @@ export async function execute(
             case Type.Maybe:
               return select(typeInfo.option)
             case Type.Html:
-              return html.select(...args)
+              return lib.html.select(...args)
             case Type.Js:
-              return js.select(...args)
+              return lib.js.select(...args)
             case Type.Headers:
-              return headers.select(...args)
+              return lib.headers.select(...args)
             case Type.Cookies:
-              return cookies.select(...args)
+              return lib.cookies.select(...args)
             default:
-              return json.select(...args)
+              return lib.json.select(...args)
           }
         }
 
@@ -163,18 +158,21 @@ export async function execute(
       },
 
       async ModifierExpr(node) {
-        const mod = node.modifier.value
-        const args = node.args.data
-        const entry = await modules.importMod(mod)
-        const data = entry
-          ? entry.mod(scope.context?.data, args)
-          : callModifier(mod, args, scope.context)
+        const data = await callModifier(
+          registry,
+          node.modifier.value,
+          node.args.data,
+          scope.context,
+        )
         return { data, typeInfo: node.typeInfo }
       },
 
       ModuleExpr(node) {
         if (node.call) {
-          return modules.call(
+          return callModule(
+            registry,
+            executeModule,
+            hooks,
             node.module.value,
             node.args,
             scope.context?.typeInfo,
@@ -187,6 +185,7 @@ export async function execute(
       },
 
       ObjectEntryExpr(node) {
+        assert(node.value)
         const data = [node.key.data, node.value.data]
         return { data, typeInfo: { type: Type.Value } }
       },
@@ -195,24 +194,23 @@ export async function execute(
         const data = Object.fromEntries(
           node.entries
             .map(e => e.data)
-            .filter(e => !(e[1] instanceof NullSelection)),
+            .filter(e => !(e[1] instanceof lib.NullSelection)),
         )
         return { data, typeInfo: node.typeInfo }
       },
 
       SubqueryExpr() {
         const ex = scope.extracted
-        invariant(ex, new QuerySyntaxError('Subquery must extract a value'))
+        lib.invariant(ex, new QuerySyntaxError('Subquery must extract a value'))
         return ex
       },
 
       DrillExpr: {
         async enter(node, path) {
           for (const expr of node.body) {
-            scope.context = await withItemContext(expr)
-            const optional = expr.typeInfo.type === Type.Maybe
-            if (optional && scope.context.data instanceof NullSelection) {
-              break
+            if (!(scope.context?.data instanceof lib.NullSelection)) {
+              const data = await withItemContext(expr)
+              scope.context = { data, typeInfo: expr.typeInfo }
             }
           }
           path.replace(scope.context)
@@ -227,7 +225,7 @@ export async function execute(
         const headers = node.headers.data[1]
         const blocks = Object.fromEntries(node.blocks.map(v => v.data))
 
-        const data = await http.request(
+        const data = await lib.http.request(
           method,
           url,
           headers,
@@ -242,7 +240,7 @@ export async function execute(
         const value = Object.fromEntries(
           node.entries
             .map(e => e.data)
-            .filter(e => !(e[1] instanceof NullSelection)),
+            .filter(e => !(e[1] instanceof lib.NullSelection)),
         )
         const data = [node.name.value, value]
         return { data, typeInfo: node.typeInfo }
@@ -259,8 +257,8 @@ export async function execute(
     return ex
   }
 
-  const modules = new Modules(hooks, executeModule)
-  const rootEntry = await modules.import(rootModule)
+  const registry = new Registry(hooks)
+  const rootEntry = await registry.import(rootModule)
   const ex = await executeModule(rootEntry, rootInputs)
-  return ex && materialize(ex)
+  return ex && assert(ex) && materialize(ex)
 }

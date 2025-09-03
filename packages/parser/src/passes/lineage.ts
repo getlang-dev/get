@@ -1,4 +1,6 @@
 import type { Expr, Node } from '@getlang/ast'
+import { invariant } from '@getlang/lib'
+import { ValueReferenceError } from '@getlang/lib/errors'
 import type { Path } from '@getlang/walker'
 import { ScopeTracker } from '@getlang/walker'
 
@@ -22,9 +24,13 @@ export class LineageTracker extends ScopeTracker<Expr> {
 
     switch (node.kind) {
       case 'IdentifierExpr':
-      case 'DrillIdentifierExpr':
-        derive(this.lookup(node.id.value))
+      case 'DrillIdentifierExpr': {
+        const id = node.id.value
+        const value = this.lookup(id)
+        invariant(value, new ValueReferenceError(id))
+        derive(value)
         break
+      }
 
       case 'DrillExpr':
         derive(node.body.at(-1)!)

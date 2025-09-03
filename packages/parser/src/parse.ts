@@ -1,6 +1,6 @@
 import type { Program } from '@getlang/ast'
-import { invariant } from '@getlang/utils'
-import { QuerySyntaxError } from '@getlang/utils/errors'
+import { invariant } from '@getlang/lib'
+import { QuerySyntaxError } from '@getlang/lib/errors'
 import nearley from 'nearley'
 import lexer from './grammar/lexer.js'
 import grammar from './grammar.js'

@@ -1,5 +1,4 @@
 import type { Node } from '@getlang/ast'
-import { invariant } from '@getlang/utils'
 
 type Staging = {
   before: Node[]
@@ -10,7 +9,7 @@ type Mutation = Map<Node, Staging>
 export class Path<N extends Node = Node> {
   private staging: Staging = { before: [] }
   protected mutations: Mutation = new Map()
-  public replacement: unknown
+  public replacement?: { value: unknown }
 
   constructor(
     public node: N,
@@ -26,7 +25,7 @@ export class Path<N extends Node = Node> {
   }
 
   replace(value: any) {
-    this.replacement = value
+    this.replacement = { value }
   }
 
   private mutate(node: Node) {
@@ -53,7 +52,9 @@ export class Path<N extends Node = Node> {
   apply(node: Node) {
     const applied = this.mutate(node)
     if (this.staging.before.length) {
-      invariant(this.parent, 'Unable to apply path mutations')
+      if (!this.parent) {
+        throw new Error('Unable to apply path mutations')
+      }
       this.parent.mutations.set(applied, this.staging)
     }
     return applied
