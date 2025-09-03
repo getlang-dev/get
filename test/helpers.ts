@@ -1,9 +1,9 @@
 import { expect } from 'bun:test'
 import { executeModule } from '@getlang/get'
+import type { Hooks, Inputs, MaybePromise, ModifierHook } from '@getlang/lib'
+import { invariant } from '@getlang/lib'
+import { ImportError } from '@getlang/lib/errors'
 import { desugar, parse, print } from '@getlang/parser'
-import type { Hooks, Inputs, MaybePromise, ModifierHook } from '@getlang/utils'
-import { invariant } from '@getlang/utils'
-import { ImportError } from '@getlang/utils/errors'
 import dedent from 'dedent'
 import './expect.js'
 

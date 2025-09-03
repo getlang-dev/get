@@ -4,8 +4,8 @@
   "type": "module",
   "dependencies": {
     "@getlang/get": "workspace:*",
+    "@getlang/lib": "workspace:^0.1.5",
     "@getlang/parser": "workspace:*",
-    "@getlang/utils": "workspace:*",
     "dedent": "^1.6.0"
   },
   "devDependencies": {

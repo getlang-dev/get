@@ -1,9 +1,11 @@
 import type { TypeInfo } from '@getlang/ast'
 import { Type } from '@getlang/ast'
-import { cookies, headers, html, js } from '@getlang/lib'
-import { NullSelection } from '@getlang/utils'
-import { NullSelectionError, ValueTypeError } from '@getlang/utils/errors'
+import { cookies, headers, html, js, NullSelection } from '@getlang/lib'
 import { mapValues } from 'lodash-es'
+import {
+  NullSelectionError,
+  ValueTypeError,
+} from '../../lib/src/core/errors.js'
 
 export type RuntimeValue = {
   data: any

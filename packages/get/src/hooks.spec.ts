@@ -6,8 +6,8 @@ import type {
   ImportHook,
   RequestHook,
   SliceHook,
-} from '@getlang/utils'
-import { invariant } from '@getlang/utils'
+} from '@getlang/lib'
+import { invariant } from '@getlang/lib'
 import { execute } from './index.js'
 
 describe('hook', () => {

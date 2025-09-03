@@ -1,4 +1,4 @@
-export type MaybePromise<T> = T | Promise<T>
+type MaybePromise<T> = T | Promise<T>
 
 export function wait<V, X>(
   value: MaybePromise<V>,

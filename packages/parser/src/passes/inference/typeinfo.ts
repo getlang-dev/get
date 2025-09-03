@@ -1,7 +1,7 @@
 import type { Expr, Node, Program, TypeInfo } from '@getlang/ast'
 import { Type, t } from '@getlang/ast'
-import { invariant } from '@getlang/utils'
-import { QuerySyntaxError } from '@getlang/utils/errors'
+import { invariant } from '@getlang/lib'
+import { QuerySyntaxError, ValueReferenceError } from '@getlang/lib/errors'
 import type { Path, TransformVisitor } from '@getlang/walker'
 import { ScopeTracker, transform } from '@getlang/walker'
 import { toPath } from 'lodash-es'
@@ -128,13 +128,17 @@ export function resolveTypes(ast: Program, options: ResolveTypeOptions) {
     },
 
     IdentifierExpr(node) {
-      const value = scope.lookup(node.id.value)
+      const id = node.id.value
+      const value = scope.lookup(id)
+      invariant(value, new ValueReferenceError(id))
       const typeInfo = structuredClone(value.typeInfo)
       return { ...node, typeInfo }
     },
 
     DrillIdentifierExpr(node) {
-      const value = scope.lookup(node.id.value)
+      const id = node.id.value
+      const value = scope.lookup(id)
+      invariant(value, new ValueReferenceError(id))
       let typeInfo = structuredClone(value.typeInfo)
       if (node.expand) {
         typeInfo = { type: Type.List, of: typeInfo }

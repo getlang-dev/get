@@ -1,6 +1,6 @@
 import { t } from '@getlang/ast'
-import { invariant } from '@getlang/utils'
-import { QuerySyntaxError } from '@getlang/utils/errors'
+import { invariant } from '@getlang/lib'
+import { QuerySyntaxError } from '@getlang/lib/errors'
 import { transform } from '@getlang/walker'
 import { render, tx } from '../../utils.js'
 import type { DesugarPass } from '../desugar.js'

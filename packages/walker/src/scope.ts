@@ -1,6 +1,4 @@
 import type { Node } from '@getlang/ast'
-import { invariant } from '@getlang/utils'
-import { ValueReferenceError } from '@getlang/utils/errors'
 import type { Path } from './index.js'
 
 class Scope<T> {
@@ -13,8 +11,7 @@ class Scope<T> {
 
   lookup(id: string) {
     const value = id ? this.vars[id] : this.context
-    invariant(value !== undefined, new ValueReferenceError(id))
-    return value
+    return value ?? null
   }
 }
 
@@ -35,7 +32,9 @@ export class ScopeTracker<T = any> {
   }
 
   private get ensure() {
-    invariant(this.head, new ValueReferenceError('Invalid scope stack'))
+    if (!this.head) {
+      throw new Error('Invalid scope stack')
+    }
     return this.head
   }
 

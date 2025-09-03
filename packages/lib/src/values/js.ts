@@ -1,12 +1,13 @@
-import { invariant, NullSelection } from '@getlang/utils'
-import {
-  ConversionError,
-  SelectorSyntaxError,
-  SliceSyntaxError,
-} from '@getlang/utils/errors'
 import type { AnyNode } from 'acorn'
 import { parse as acorn } from 'acorn'
 import esquery from 'esquery'
+import {
+  ConversionError,
+  invariant,
+  NullSelection,
+  SelectorSyntaxError,
+  SliceSyntaxError,
+} from '../core/errors.js'
 
 export const parse = (js: string): AnyNode => {
   try {

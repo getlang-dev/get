@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test'
-import { RecursiveCallError } from '@getlang/utils/errors'
+import { RecursiveCallError } from '@getlang/lib/errors'
 import { execute } from './helpers.js'
 
 describe('calls', () => {

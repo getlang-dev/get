@@ -1,7 +1,7 @@
 import type { Expr } from '@getlang/ast'
 import { isToken, t } from '@getlang/ast'
-import { invariant } from '@getlang/utils'
-import { QuerySyntaxError } from '@getlang/utils/errors'
+import { invariant } from '@getlang/lib'
+import { QuerySyntaxError } from '@getlang/lib/errors'
 import { tx } from '../utils.js'
 
 type PP = nearley.Postprocessor
