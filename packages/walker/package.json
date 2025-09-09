@@ -1,6 +1,6 @@
 {
   "name": "@getlang/walker",
-  "version": "0.0.1",
+  "version": "0.1.0",
   "license": "Apache-2.0",
   "type": "module",
   "exports": {
@@ -19,6 +19,6 @@
   },
   "homepage": "https://getlang.dev",
   "dependencies": {
-    "@getlang/ast": "workspace:^0.0.1"
+    "@getlang/ast": "workspace:^0.1.0"
   }
 }

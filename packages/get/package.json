@@ -1,6 +1,6 @@
 {
   "name": "@getlang/get",
-  "version": "0.2.5",
+  "version": "0.3.0",
   "license": "Apache-2.0",
   "type": "module",
   "exports": {
@@ -17,10 +17,10 @@
   },
   "homepage": "https://getlang.dev",
   "dependencies": {
-    "@getlang/ast": "workspace:^0.0.1",
-    "@getlang/lib": "workspace:^0.1.5",
-    "@getlang/parser": "workspace:^0.3.4",
-    "@getlang/walker": "workspace:^0.0.1",
+    "@getlang/ast": "workspace:^0.1.0",
+    "@getlang/lib": "workspace:^0.2.0",
+    "@getlang/parser": "workspace:^0.4.0",
+    "@getlang/walker": "workspace:^0.1.0",
     "acorn": "^8.15.0",
     "estree-toolkit": "^1.7.13",
     "lodash-es": "^4.17.21"
