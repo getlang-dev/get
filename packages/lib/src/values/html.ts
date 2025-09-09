@@ -77,9 +77,9 @@ export const findLink = (el: AnyHtmlNode) => {
   const tag = el.type === 'tag' && el.name
   switch (tag) {
     case 'a':
-      return select(el, 'xpath:@href', false)
+      return selectXpath(el, '@href', false)
     case 'img':
-      return select(el, 'xpath:@src', false)
+      return selectXpath(el, '@src', false)
     default:
       return el
   }

@@ -113,7 +113,7 @@ export const objectEntry: PP = ([callkey, identifier, optional, , , value]) => {
 
 export const objectEntryShorthandSelect: PP = ([identifier, optional]) => {
   const value = t.templateExpr([identifier])
-  const selector = t.selectorExpr(value, false)
+  const selector = t.drillExpr([t.selectorExpr(value, false)])
   return objectEntry([null, identifier, optional, null, null, selector])
 }
 

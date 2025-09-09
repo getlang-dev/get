@@ -212,7 +212,10 @@ describe('calls', () => {
       Home: `
         GET http://stub/x/y/z
 
-        extract #a -> >#b -> @Link) >#c -> >#d
+        extract #a
+          -> :scope > #b
+          -> @Link) :scope > #c
+            -> :scope > #d
       `,
       Link: `
         extract {

@@ -24,7 +24,7 @@ export class Path<N extends Node = Node> {
     this.staging.before.push(node)
   }
 
-  replace(value: any) {
+  replace(value?: any) {
     this.replacement = { value }
   }
 

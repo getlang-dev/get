@@ -16,7 +16,7 @@ class Scope<T> {
 }
 
 export class ScopeTracker<T = any> {
-  scopeStack: Scope<T>[] = []
+  private scopeStack: Scope<T>[] = []
 
   push(context: T | undefined = this.head?.context) {
     const vars = Object.create(this.head?.vars ?? null)

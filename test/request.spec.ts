@@ -171,6 +171,18 @@ describe('request', () => {
       )
     })
 
+    test('querystring merge', async () => {
+      await execute(`
+        GET http://example.com/?a=1
+        [query]
+        a: 2
+        b: 4
+      `)
+      await expect(mockFetch).toHaveServed('http://example.com/?a=1&a=2&b=4', {
+        method: 'GET',
+      })
+    })
+
     test('cookies, encoded', async () => {
       await execute(`
         GET https://example.com
@@ -501,5 +513,14 @@ describe('request', () => {
 
       expect(result).toEqual('jZDE5MDBhNzczNDMzMTk4')
     })
+  })
+
+  test('selector object shorthand', async () => {
+    const result = await execute(`
+        GET http://get.com
+
+        extract { h1 }
+      `)
+    expect(result).toEqual({ h1: 'test' })
   })
 })
