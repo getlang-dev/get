@@ -21,6 +21,8 @@
     "@getlang/lib": "workspace:^0.1.5",
     "@getlang/parser": "workspace:^0.3.4",
     "@getlang/walker": "workspace:^0.0.1",
+    "acorn": "^8.15.0",
+    "estree-toolkit": "^1.7.13",
     "lodash-es": "^4.17.21"
   },
   "devDependencies": {
