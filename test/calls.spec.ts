@@ -260,8 +260,8 @@ describe('calls', () => {
       Data: `
         inputs { text }
 
-        extract xpath://div[p[contains(text(), '$text')]]
-          -> xpath:@data-json
+        extract //div[p[contains(text(), '$text')]]
+          -> ./@data-json
           -> @json
       `,
     }
@@ -291,13 +291,13 @@ describe('calls', () => {
         GET http://stub
 
         extract @Data({text: |'first'|})
-          -> xpath:@data-json
+          -> ./@data-json
           -> @json
       `,
       Data: `
         inputs { text }
 
-        extract xpath://div[p[contains(text(), '$text')]]
+        extract //div[p[contains(text(), '$text')]]
       `,
     }
 

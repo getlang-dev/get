@@ -196,7 +196,7 @@ describe('values', () => {
     test('xpath selector', async () => {
       const result = await execute(`
         set html = |"<html><h1>unweb</h1><p class='intro'>welcome</p><html>"|
-        extract $html -> @html -> xpath://p/@class
+        extract $html -> @html -> //p/@class
       `)
       expect(result).toEqual('intro')
     })
@@ -204,10 +204,10 @@ describe('values', () => {
     test.if(SELSYN)('xpath parsing error', async () => {
       const result = execute(`
         set html = |'<div>test</div>'|
-        extract $html -> @html -> xpath:p/*&@#^
+        extract $html -> @html -> ./p/*&@#^
       `)
       return expect(result).rejects.toThrow(
-        new SelectorSyntaxError('XPath', 'p/*&@#^'),
+        new SelectorSyntaxError('XPath', './p/*&@#^'),
       )
     })
 
@@ -354,7 +354,7 @@ describe('values', () => {
         -> @json -> docHtml
         -> @html -> pre
         -> @js -> Literal
-        -> @html -> xpath://p/@cooked
+        -> @html -> //p/@cooked
         -> @cookies -> patientZero
     `
 
