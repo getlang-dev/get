@@ -396,7 +396,7 @@ describe('request', () => {
         extract {
           link1: link -> @link
           link2: anchor -> @html -> a -> @link
-          link3: attr -> @html -> i -> xpath:@data-url -> @link
+          link3: attr -> @html -> i -> ./@data-url -> @link
           link4: img -> @html -> img -> @link
         }
       `,

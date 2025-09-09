@@ -85,7 +85,7 @@ describe('slice', () => {
   it('converts context to value prior to run', async () => {
     const result = await execute(`
       set html = |'<ul><li>one</li><li>two</li></ul>'|
-      extract $html -> @html -> xpath://li -> |$|
+      extract $html -> @html -> //li -> |$|
     `)
     expect(result).toEqual('one')
   })

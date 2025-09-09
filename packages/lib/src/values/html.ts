@@ -58,8 +58,8 @@ const selectCss = (el: AnyHtmlNode, selector: string, expand: boolean) => {
 }
 
 export const select = (el: AnyHtmlNode, selector: string, expand: boolean) => {
-  return selector.startsWith('xpath:')
-    ? selectXpath(el, selector.slice(6), expand)
+  return /^(\/|\.\/)/.test(selector)
+    ? selectXpath(el, selector, expand)
     : selectCss(el, selector, expand)
 }
 
