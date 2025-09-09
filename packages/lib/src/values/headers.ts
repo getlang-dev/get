@@ -1,4 +1,4 @@
-import { NullSelection } from '@getlang/utils'
+import { NullSelection } from '../core/errors.js'
 
 export const select = (headers: Headers, selector: string, expand: boolean) => {
   if (expand && selector === 'set-cookie') {

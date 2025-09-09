@@ -1,7 +1,5 @@
 /// <reference types="./html/types.d.ts" />
 
-import { invariant, NullSelection } from '@getlang/utils'
-import { NullSelectionError, SelectorSyntaxError } from '@getlang/utils/errors'
 import xpath from '@getlang/xpath'
 import { selectAll, selectOne } from 'css-select'
 import { parse as parseCss } from 'css-what'
@@ -9,6 +7,12 @@ import type { AnyHtmlNode } from 'domhandler'
 import { textContent } from 'domutils'
 import { parse as parse5 } from 'parse5'
 import { adapter } from 'parse5-htmlparser2-tree-adapter'
+import {
+  invariant,
+  NullSelection,
+  NullSelectionError,
+  SelectorSyntaxError,
+} from '../core/errors.js'
 import './html/patch-dom.js'
 
 export { Element } from 'domhandler'
@@ -67,4 +71,16 @@ export const toValue = (el: AnyHtmlNode) => {
     str = textContent(el).replaceAll(/\s+/g, ' ')
   }
   return str.trim()
+}
+
+export const findLink = (el: AnyHtmlNode) => {
+  const tag = el.type === 'tag' && el.name
+  switch (tag) {
+    case 'a':
+      return selectXpath(el, '@href', false)
+    case 'img':
+      return selectXpath(el, '@src', false)
+    default:
+      return el
+  }
 }

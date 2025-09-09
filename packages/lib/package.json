@@ -4,8 +4,14 @@
   "license": "Apache-2.0",
   "type": "module",
   "exports": {
-    "bun": "./src/index.ts",
-    "default": "./dist/index.js"
+    ".": {
+      "bun": "./src/index.ts",
+      "default": "./dist/index.js"
+    },
+    "./errors": {
+      "bun": "./src/core/errors.ts",
+      "default": "./dist/core/errors.js"
+    }
   },
   "bugs": {
     "url": "https://github.com/getlang-dev/get/issues"
@@ -17,7 +23,7 @@
   },
   "homepage": "https://getlang.dev",
   "dependencies": {
-    "@getlang/utils": "workspace:^0.1.5",
+    "@getlang/ast": "workspace:^0.0.1",
     "@getlang/xpath": "0.0.35-0",
     "@types/esquery": "^1.5.4",
     "@types/lodash-es": "^4.17.12",

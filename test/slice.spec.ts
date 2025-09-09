@@ -1,5 +1,5 @@
 import { describe, expect, it, test } from 'bun:test'
-import { SliceError } from '@getlang/utils/errors'
+import { SliceError } from '@getlang/lib/errors'
 import { execute } from './helpers.js'
 
 describe('slice', () => {

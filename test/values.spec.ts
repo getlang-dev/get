@@ -3,7 +3,7 @@ import {
   ConversionError,
   NullSelectionError,
   SelectorSyntaxError,
-} from '@getlang/utils/errors'
+} from '@getlang/lib/errors'
 import { execute, SELSYN } from './helpers.js'
 
 describe('values', () => {
@@ -487,7 +487,7 @@ describe('values', () => {
     const result = await execute(`
       set ctx = |return {
         '12': 'pass',
-        '12.34': 'pass',
+        '123': { '4': 'pass' },
         'true': 'pass',
         'false': 'pass',
       }|
@@ -496,7 +496,7 @@ describe('values', () => {
         str_s: -> 'one'
         str_d: -> "two"
         int: -> 12
-        float: -> 12.34
+        float: -> 123.4
         bool_on: -> true
         bool_off: -> false
       }

@@ -4,11 +4,11 @@
   "type": "module",
   "dependencies": {
     "@getlang/get": "workspace:*",
+    "@getlang/lib": "workspace:^0.1.5",
     "@getlang/parser": "workspace:*",
-    "@getlang/utils": "workspace:*",
-    "dedent": "^1.6.0"
+    "dedent": "^1.7.0"
   },
   "devDependencies": {
-    "jest-diff": "^30.0.5"
+    "jest-diff": "^30.1.2"
   }
 }

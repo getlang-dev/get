@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test'
-import { RecursiveCallError } from '@getlang/utils/errors'
+import { RecursiveCallError } from '@getlang/lib/errors'
 import { execute } from './helpers.js'
 
 describe('calls', () => {
@@ -212,7 +212,10 @@ describe('calls', () => {
       Home: `
         GET http://stub/x/y/z
 
-        extract #a -> >#b -> @Link) >#c -> >#d
+        extract #a
+          -> :scope > #b
+          -> @Link) :scope > #c
+            -> :scope > #d
       `,
       Link: `
         extract {

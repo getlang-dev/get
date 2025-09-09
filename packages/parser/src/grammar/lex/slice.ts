@@ -1,5 +1,5 @@
-import { invariant } from '@getlang/utils'
-import { QuerySyntaxError } from '@getlang/utils/errors'
+import { invariant } from '@getlang/lib'
+import { QuerySyntaxError } from '@getlang/lib/errors'
 import { until } from './templates.js'
 
 const getSliceValue = (text: string) => {

@@ -1,10 +1,14 @@
 import { describe, expect, test } from 'bun:test'
-import type { Modifier } from '@getlang/utils'
-import { invariant } from '@getlang/utils'
-import { ValueTypeError } from '@getlang/utils/errors'
+import type { Modifier } from '@getlang/lib'
+import { invariant } from '@getlang/lib'
+import { ValueTypeError } from '@getlang/lib/errors'
 import { execute as exec } from './helpers.js'
 
-function execute(source: string, name: string, modifier: Modifier) {
+function execute(
+  source: string | Record<string, string>,
+  name: string,
+  modifier: Modifier,
+) {
   return exec(
     source,
     {},
@@ -25,7 +29,7 @@ describe('modifiers', () => {
 
   test('with context', async () => {
     const result = await execute(
-      'extract `1` -> @add_one',
+      'extract 1 -> @add_one',
       'add_one',
       (ctx: number) => {
         expect(ctx).toEqual(1)
@@ -37,7 +41,7 @@ describe('modifiers', () => {
 
   test('with args', async () => {
     const result = await execute(
-      'extract @product({ a: `7`, b: `6` })',
+      'extract @product({ a: 7, b: 6 })',
       'product',
       (_ctx, { a, b }) => {
         invariant(
@@ -50,5 +54,35 @@ describe('modifiers', () => {
       },
     )
     expect(result).toEqual(42)
+  })
+
+  test('in macros', async () => {
+    const result = await execute(
+      {
+        MyMacro: `extract @add_ten`,
+        Home: `extract 4 -> @MyMacro`,
+      },
+      'add_ten',
+      function mymod(ctx: number) {
+        expect(ctx).toEqual(4)
+        return ctx + 10
+      },
+    )
+    expect(result).toEqual(14)
+  })
+
+  test('in macros, arrow function', async () => {
+    const result = await execute(
+      {
+        MyMacro: `extract @add_ten`,
+        Home: `extract 4 -> @MyMacro`,
+      },
+      'add_ten',
+      (ctx: number) => {
+        expect(ctx).toEqual(4)
+        return ctx + 10
+      },
+    )
+    expect(result).toEqual(14)
   })
 })
