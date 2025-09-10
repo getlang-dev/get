@@ -11,6 +11,7 @@ type ExecuteOptions = Partial<{
   fetch: Fetch
   modifier: ModifierHook
   willThrow: boolean
+  hooks: Hooks
 }>
 
 export type Fetch = (url: string, opts: RequestInit) => MaybePromise<Response>
@@ -54,6 +55,7 @@ export async function execute(
         body: await res.text(),
       }
     },
+    ...options.hooks,
   }
 
   return executeModule('Home', inputs, hooks)

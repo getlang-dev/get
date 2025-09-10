@@ -8,7 +8,7 @@ import type {
   SliceHook,
 } from '@getlang/lib'
 import { invariant } from '@getlang/lib'
-import { execute } from './index.js'
+import { execute } from './helpers.js'
 
 describe('hook', () => {
   test('on request', async () => {
@@ -19,29 +19,27 @@ describe('hook', () => {
       extract -> h1
     `
 
-    const requestHook = mock<RequestHook>(async () => ({
+    const request = mock<RequestHook>(async () => ({
       status: 200,
       headers: new Headers({ 'content-type': 'text/html' }),
       body: '<!doctype html><h1>test</h1>',
     }))
 
-    const result = await execute(src, {}, { request: requestHook })
+    const result = await execute(src, {}, { hooks: { request } })
 
-    expect(requestHook).toHaveBeenCalledWith('http://get.com/', {
+    expect(request).toHaveServed('http://get.com/', {
       method: 'GET',
-      headers: expect.headers(
-        new globalThis.Headers({
-          Accept: 'text/html',
-        }),
-      ),
+      headers: new Headers({
+        Accept: 'text/html',
+      }),
     })
     expect(result).toEqual('test')
   })
 
   test('on slice', async () => {
-    const sliceHook = mock<SliceHook>(() => 3)
-    const result = await execute('extract `1 + 2`', {}, { slice: sliceHook })
-    expect(sliceHook).toHaveBeenCalledWith('return 1 + 2;;', undefined)
+    const slice = mock<SliceHook>(() => 3)
+    const result = await execute('extract `1 + 2`', {}, { hooks: { slice } })
+    expect(slice).toHaveBeenCalledWith('return 1 + 2;;', undefined)
     expect(result).toEqual(3)
   })
 
@@ -60,17 +58,16 @@ describe('hook', () => {
           }
         }
       `,
+      Home: `
+        set inputA = |"foo"|
+
+        extract {
+          topValue: @Top({ $inputA }) -> value
+          midValue: @Mid -> value
+          botValue: |"bot"|
+        }
+      `,
     }
-
-    const src = `
-      set inputA = |"foo"|
-
-      extract {
-        topValue: @Top({ $inputA }) -> value
-        midValue: @Mid -> value
-        botValue: |"bot"|
-      }
-    `
 
     const hooks: Hooks = {
       import: mock<ImportHook>(async (module: string) => {
@@ -81,7 +78,7 @@ describe('hook', () => {
       call: mock<CallHook>(() => {}),
       extract: mock<ExtractHook>(() => {}),
     }
-    const result = await execute(src, {}, hooks)
+    const result = await execute(modules, {}, { hooks })
 
     expect(result).toEqual({
       topValue: 'top::foo',
@@ -92,9 +89,10 @@ describe('hook', () => {
       botValue: 'bot',
     })
 
-    expect(hooks.import).toHaveBeenCalledTimes(2)
-    expect(hooks.import).toHaveBeenNthCalledWith(1, 'Top')
-    expect(hooks.import).toHaveBeenNthCalledWith(2, 'Mid')
+    expect(hooks.import).toHaveBeenCalledTimes(3)
+    expect(hooks.import).toHaveBeenNthCalledWith(1, 'Home')
+    expect(hooks.import).toHaveBeenNthCalledWith(2, 'Top')
+    expect(hooks.import).toHaveBeenNthCalledWith(3, 'Mid')
 
     expect(hooks.call).toHaveBeenCalledTimes(3)
     expect(hooks.call).toHaveBeenNthCalledWith(1, 'Top', { inputA: 'foo' })
@@ -126,23 +124,4 @@ describe('hook', () => {
       },
     )
   })
-})
-
-expect.extend({
-  headers(received: unknown, expected: Headers) {
-    if (!(received instanceof Headers)) {
-      return {
-        message: () => 'expected headers object',
-        pass: false,
-      }
-    }
-
-    const pass = this.equals(
-      Object.fromEntries(received as any),
-      Object.fromEntries(expected as any),
-    )
-
-    const message = () => 'todo'
-    return { pass, message }
-  },
 })
