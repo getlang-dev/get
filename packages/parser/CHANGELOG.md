@@ -1,5 +1,14 @@
 # @getlang/parser
 
+## 0.4.1
+
+### Patch Changes
+
+- [#51](https://github.com/getlang-dev/get/pull/51) [`e9df7de`](https://github.com/getlang-dev/get/commit/e9df7dec6fc3f5424a680146d881938cea4a249a) Thanks [@mattfysh](https://github.com/mattfysh)! - modifier flags: `useContext` and `materialize`
+
+- Updated dependencies [[`e9df7de`](https://github.com/getlang-dev/get/commit/e9df7dec6fc3f5424a680146d881938cea4a249a)]:
+  - @getlang/lib@0.2.1
+
 ## 0.4.0
 
 ### Minor Changes
