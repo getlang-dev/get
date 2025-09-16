@@ -39,7 +39,7 @@ describe('hook', () => {
   test('on slice', async () => {
     const slice = mock<SliceHook>(() => 3)
     const result = await execute('extract `1 + 2`', {}, { hooks: { slice } })
-    expect(slice).toHaveBeenCalledWith('return 1 + 2;;', undefined)
+    expect(slice).toHaveBeenCalledWith('return 1 + 2;;', {})
     expect(result).toEqual(3)
   })
 

@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test'
-import type { Modifier } from '@getlang/lib'
+import type { Modifier, ModifierHook } from '@getlang/lib'
 import { invariant } from '@getlang/lib'
 import { ValueTypeError } from '@getlang/lib/errors'
 import { execute as exec } from './helpers.js'
@@ -7,18 +7,14 @@ import { execute as exec } from './helpers.js'
 function execute(
   source: string | Record<string, string>,
   name: string,
-  modifier: Modifier,
+  fn: Modifier,
+  useContext?: boolean,
 ) {
-  return exec(
-    source,
-    {},
-    {
-      modifier(mod) {
-        expect(mod).toEqual(name)
-        return { modifier }
-      },
-    },
-  )
+  const modifier: ModifierHook = mod => {
+    expect(mod).toEqual(name)
+    return { modifier: fn, useContext }
+  }
+  return exec(source, {}, { hooks: { modifier } })
 }
 
 describe('modifiers', () => {
@@ -67,6 +63,7 @@ describe('modifiers', () => {
         expect(ctx).toEqual(4)
         return ctx + 10
       },
+      true,
     )
     expect(result).toEqual(14)
   })
@@ -82,6 +79,7 @@ describe('modifiers', () => {
         expect(ctx).toEqual(4)
         return ctx + 10
       },
+      true,
     )
     expect(result).toEqual(14)
   })

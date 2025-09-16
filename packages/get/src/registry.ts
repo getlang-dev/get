@@ -3,13 +3,11 @@ import { Type } from '@getlang/ast'
 import type { Hooks, Modifier } from '@getlang/lib'
 import { RecursiveCallError, ValueTypeError } from '@getlang/lib/errors'
 import { analyze, desugar, inference, parse } from '@getlang/parser'
-import type { Pattern } from 'acorn'
-import { parse as acorn } from 'acorn'
-import { traverse } from 'estree-toolkit'
 
 type ModEntry = {
   mod: Modifier
   useContext: boolean
+  materialize: boolean
   returnType: TypeInfo
 }
 
@@ -53,31 +51,6 @@ function buildImportKey(module: string, typeInfo?: TypeInfo) {
   return key
 }
 
-function inferContext(mod: Modifier) {
-  const src = mod.toString()
-  const ast = acorn(src, { ecmaVersion: 'latest' })
-  let useContext = false
-  traverse(ast, {
-    $: { scope: true },
-    Program(path) {
-      const fn = ast.body[0]
-      let ctxParam: Pattern | undefined
-      if (fn?.type === 'FunctionDeclaration') {
-        ctxParam = fn.params[0]
-      } else if (fn?.type === 'ExpressionStatement') {
-        if (fn.expression.type === 'ArrowFunctionExpression') {
-          ctxParam = fn.expression.params[0]
-        }
-      }
-      const fnScope = path.scope?.children[0]
-      const bindings = Object.values(fnScope?.bindings || {})
-      const ctxBinding = bindings.find(b => b?.identifierPath.node === ctxParam)
-      useContext = Boolean(ctxBinding?.references.length)
-    },
-  })
-  return useContext
-}
-
 export class Registry {
   private info: Record<string, Promise<Info>> = {}
   private entries: Record<string, Promise<Entry>> = {}
@@ -91,10 +64,20 @@ export class Registry {
       if (!compiled) {
         return null
       }
-      const fn = compiled.modifier
-      const useContext = inferContext(fn)
-      const returnType = compiled.typeInfo || { type: Type.Value }
-      return { mod: fn, useContext, returnType }
+
+      const {
+        modifier: fn,
+        useContext = false,
+        materialize = true,
+        returnType = { type: Type.Value },
+      } = compiled
+
+      return {
+        mod: fn,
+        useContext,
+        materialize,
+        returnType,
+      }
     })
     return this.modifiers[mod]
   }

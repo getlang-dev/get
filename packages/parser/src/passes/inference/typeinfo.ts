@@ -267,7 +267,7 @@ export function resolveTypes(ast: Program, options: ResolveTypeOptions) {
     },
   }
 
-  const program = transform(ast, { scope, ...visitor })
+  const program: Program = transform(ast, { scope, ...visitor })
   const returnType = ex?.typeInfo ?? { type: Type.Never }
 
   return { program, returnType: returnType }

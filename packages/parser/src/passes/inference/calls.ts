@@ -3,7 +3,7 @@ import { isToken } from '@getlang/ast'
 import { transform } from '@getlang/walker'
 import { LineageTracker } from '../lineage.js'
 
-export function registerCalls(ast: Program, macros: string[] = []) {
+export function registerCalls(ast: Program, macros: string[] = []): Program {
   const scope = new LineageTracker()
 
   function registerCall(node: Expr) {

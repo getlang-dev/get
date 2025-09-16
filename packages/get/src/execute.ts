@@ -107,7 +107,7 @@ export async function execute(
       async SliceExpr({ slice, typeInfo }) {
         try {
           const ctx = scope.context
-          const deps = ctx && materialize(ctx)
+          const deps = ctx ? materialize(ctx) : {}
           const ret = await hooks.slice(slice.value, deps)
           const data =
             ret === undefined ? new lib.NullSelection('<slice>') : ret
@@ -158,12 +158,9 @@ export async function execute(
       },
 
       async ModifierExpr(node) {
-        const data = await callModifier(
-          registry,
-          node.modifier.value,
-          node.args.data,
-          scope.context,
-        )
+        const mod = node.modifier.value
+        const args = materialize(node.args)
+        const data = await callModifier(registry, mod, args, scope.context)
         return { data, typeInfo: node.typeInfo }
       },
 

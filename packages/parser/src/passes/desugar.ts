@@ -23,7 +23,7 @@ const visitors = [
   dropDrills,
 ]
 
-export function desugar(ast: Program, macros: string[] = []) {
+export function desugar(ast: Program, macros: string[] = []): Program {
   const parsers = new RequestParsers()
   const program = visitors.reduce((ast, pass) => {
     parsers.reset()

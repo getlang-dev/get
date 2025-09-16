@@ -16,7 +16,9 @@ export async function callModifier(
 ) {
   const entry = await registry.importMod(mod)
   if (entry) {
-    return entry.mod(context?.data, args)
+    const ctx =
+      context && entry.materialize ? materialize(context) : context?.data
+    return entry.mod(ctx, args)
   }
 
   invariant(context, 'Modifier requires context')

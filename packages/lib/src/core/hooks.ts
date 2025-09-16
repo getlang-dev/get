@@ -28,7 +28,9 @@ export type Modifier = (context: any, options: Record<string, unknown>) => any
 export type ModifierHook = (modifier: string) => MaybePromise<
   | {
       modifier: Modifier
-      typeInfo?: TypeInfo
+      useContext?: boolean
+      materialize?: boolean
+      returnType?: TypeInfo
     }
   | undefined
 >
