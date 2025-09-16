@@ -1,6 +1,6 @@
 {
   "name": "@getlang/parser",
-  "version": "0.4.0",
+  "version": "0.4.1",
   "license": "Apache-2.0",
   "type": "module",
   "exports": {
@@ -24,7 +24,7 @@
   },
   "dependencies": {
     "@getlang/ast": "workspace:^0.1.0",
-    "@getlang/lib": "workspace:^0.2.0",
+    "@getlang/lib": "workspace:^0.2.1",
     "@getlang/walker": "workspace:^0.1.0",
     "@types/moo": "^0.5.10",
     "@types/nearley": "^2.11.5",
