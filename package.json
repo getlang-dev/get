@@ -2,7 +2,7 @@
   "name": "get",
   "license": "Apache-2.0",
   "private": true,
-  "packageManager": "bun@1.2.21",
+  "packageManager": "bun@1.2.22",
   "scripts": {
     "fmt": "biome check --write",
     "lint": "bun lint:check && bun lint:types && bun lint:unused && bun lint:repo",
@@ -18,10 +18,10 @@
     "test"
   ],
   "devDependencies": {
-    "@biomejs/biome": "^2.2.3",
+    "@biomejs/biome": "^2.2.4",
     "@changesets/changelog-github": "^0.5.1",
-    "@changesets/cli": "^2.29.6",
-    "@types/bun": "^1.2.21",
+    "@changesets/cli": "^2.29.7",
+    "@types/bun": "^1.2.22",
     "knip": "^5.63.1",
     "sherif": "^1.6.1",
     "typescript": "^5.9.2"

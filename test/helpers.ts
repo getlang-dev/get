@@ -1,6 +1,6 @@
 import { expect } from 'bun:test'
 import { executeModule } from '@getlang/get'
-import type { Hooks, Inputs, MaybePromise, ModifierHook } from '@getlang/lib'
+import type { Hooks, Inputs, MaybePromise } from '@getlang/lib'
 import { invariant } from '@getlang/lib'
 import { ImportError } from '@getlang/lib/errors'
 import { desugar, parse, print } from '@getlang/parser'
@@ -9,8 +9,8 @@ import './expect.js'
 
 type ExecuteOptions = Partial<{
   fetch: Fetch
-  modifier: ModifierHook
   willThrow: boolean
+  hooks: Hooks
 }>
 
 export type Fetch = (url: string, opts: RequestInit) => MaybePromise<Response>
@@ -28,7 +28,7 @@ export async function execute(
   inputs?: Inputs,
   options: ExecuteOptions = {},
 ): Promise<any> {
-  const { fetch, modifier, willThrow } = options
+  const { fetch, willThrow } = options
   const normalized = typeof program === 'string' ? { Home: program } : program
   const modules: Record<string, string> = {}
   for (const [name, source] of Object.entries(normalized)) {
@@ -39,7 +39,6 @@ export async function execute(
   }
 
   const hooks: Hooks = {
-    modifier,
     import(module) {
       const src = modules[module]
       invariant(src, new ImportError(`Failed to import module: ${module}`))
@@ -54,6 +53,7 @@ export async function execute(
         body: await res.text(),
       }
     },
+    ...options.hooks,
   }
 
   return executeModule('Home', inputs, hooks)
