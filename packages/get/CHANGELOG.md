@@ -1,5 +1,14 @@
 # @getlang/get
 
+## 0.3.2
+
+### Patch Changes
+
+- [#53](https://github.com/getlang-dev/get/pull/53) [`ecd87ab`](https://github.com/getlang-dev/get/commit/ecd87ab290fbccc7d61bc82950f82d8ed8b974d5) Thanks [@mattfysh](https://github.com/mattfysh)! - fix modifier context
+
+- Updated dependencies [[`ecd87ab`](https://github.com/getlang-dev/get/commit/ecd87ab290fbccc7d61bc82950f82d8ed8b974d5)]:
+  - @getlang/parser@0.4.2
+
 ## 0.3.1
 
 ### Patch Changes
