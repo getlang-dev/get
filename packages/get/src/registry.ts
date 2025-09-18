@@ -13,7 +13,8 @@ type ModEntry = {
 
 type Info = {
   ast: Program
-  imports: Set<string>
+  imports: string[]
+  contextMods: string[]
   isMacro: boolean
 }
 
@@ -86,15 +87,17 @@ export class Registry {
     this.info[module] ??= Promise.resolve().then(async () => {
       const source = await this.hooks.import(module)
       const ast = parse(source)
-      const { imports, ...info } = analyze(ast)
-      let isMacro = info.hasUnboundSelector
-      for (const [mod, unbound] of info.modifiers) {
-        if (unbound && !isMacro) {
-          const entry = await this.importMod(mod)
-          isMacro = entry?.useContext || false
+      const info = analyze(ast)
+      const imports = [...info.imports]
+      const contextMods: string[] = []
+      for (const mod of info.modifiers) {
+        const entry = await this.importMod(mod)
+        if (entry?.useContext ?? true) {
+          contextMods.push(mod)
         }
       }
-      return { ast, imports, isMacro }
+      const isMacro = info.hasUnboundSelector || contextMods.length > 0
+      return { ast, imports, contextMods, isMacro }
     })
     return this.info[module]
   }
@@ -106,15 +109,15 @@ export class Registry {
     }
     const key = buildImportKey(module, contextType)
     this.entries[key] ??= Promise.resolve().then(async () => {
-      const { ast, imports } = await this.getInfo(module)
-      const macros: string[] = []
+      const { ast, imports, contextMods } = await this.getInfo(module)
+      const contextual = [...contextMods]
       for (const i of imports) {
         const depInfo = await this.getInfo(i)
         if (depInfo.isMacro) {
-          macros.push(i)
+          contextual.push(i)
         }
       }
-      const simplified = desugar(ast, macros)
+      const simplified = desugar(ast, contextual)
       const { inputs, calls, modifiers } = analyze(simplified)
 
       const returnTypes: Record<string, TypeInfo> = {}

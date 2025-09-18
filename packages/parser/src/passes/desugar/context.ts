@@ -3,7 +3,7 @@ import { QuerySyntaxError } from '@getlang/lib/errors'
 import { ScopeTracker, transform } from '@getlang/walker'
 import type { DesugarPass } from '../desugar.js'
 
-export const resolveContext: DesugarPass = (ast, { parsers, macros }) => {
+export const resolveContext: DesugarPass = (ast, { parsers, contextual }) => {
   const scope = new ScopeTracker()
 
   const program = transform(ast, {
@@ -34,8 +34,8 @@ export const resolveContext: DesugarPass = (ast, { parsers, macros }) => {
 
     ModifierExpr(node) {
       const ctx = scope.context
-      if (ctx?.kind === 'RequestExpr') {
-        const mod = node.modifier.value
+      const mod = node.modifier.value
+      if (contextual.includes(mod) && ctx?.kind === 'RequestExpr') {
         // replace modifier with shared parser
         return parsers.lookup(ctx, mod)
       }
@@ -43,7 +43,8 @@ export const resolveContext: DesugarPass = (ast, { parsers, macros }) => {
 
     ModuleExpr(node, path) {
       const ctx = scope.context
-      if (macros.includes(node.module.value) && ctx?.kind === 'RequestExpr') {
+      const module = node.module.value
+      if (contextual.includes(module) && ctx?.kind === 'RequestExpr') {
         path.insertBefore(parsers.lookup(ctx))
       }
     },

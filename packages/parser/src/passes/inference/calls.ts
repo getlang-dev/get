@@ -3,7 +3,10 @@ import { isToken } from '@getlang/ast'
 import { transform } from '@getlang/walker'
 import { LineageTracker } from '../lineage.js'
 
-export function registerCalls(ast: Program, macros: string[] = []): Program {
+export function registerCalls(
+  ast: Program,
+  contextual: string[] = [],
+): Program {
   const scope = new LineageTracker()
 
   function registerCall(node: Expr) {
@@ -38,7 +41,7 @@ export function registerCalls(ast: Program, macros: string[] = []): Program {
     },
 
     ModuleExpr(node) {
-      if (macros.includes(node.module.value)) {
+      if (contextual.includes(node.module.value)) {
         return { ...node, call: true }
       }
     },

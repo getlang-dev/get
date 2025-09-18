@@ -2,6 +2,7 @@ import { describe, expect, test } from 'bun:test'
 import type { Modifier, ModifierHook } from '@getlang/lib'
 import { invariant } from '@getlang/lib'
 import { ValueTypeError } from '@getlang/lib/errors'
+import type { Fetch } from './helpers.js'
 import { execute as exec } from './helpers.js'
 
 function execute(
@@ -9,12 +10,13 @@ function execute(
   name: string,
   fn: Modifier,
   useContext?: boolean,
+  fetch?: Fetch,
 ) {
   const modifier: ModifierHook = mod => {
     expect(mod).toEqual(name)
     return { modifier: fn, useContext }
   }
-  return exec(source, {}, { hooks: { modifier } })
+  return exec(source, {}, { fetch, hooks: { modifier } })
 }
 
 describe('modifiers', () => {
@@ -31,8 +33,35 @@ describe('modifiers', () => {
         expect(ctx).toEqual(1)
         return ctx + 1
       },
+      true,
     )
     expect(result).toEqual(2)
+  })
+
+  test('without context', async () => {
+    const result = await execute(
+      `
+      GET http://example.com
+
+      set url = $ -> url
+      set value = @nocontext
+
+      extract { $url, $value }
+    `,
+      'nocontext',
+      ctx => {
+        expect(ctx).toBeUndefined()
+        return 123
+      },
+      false,
+      () =>
+        new Response('<!doctype html><h1>test</h1>', {
+          headers: {
+            'content-type': 'text/html',
+          },
+        }),
+    )
+    expect(result).toEqual({ url: 'http://example.com/', value: 123 })
   })
 
   test('with args', async () => {
