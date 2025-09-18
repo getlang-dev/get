@@ -11,7 +11,7 @@ export type DesugarPass = (
   ast: Program,
   tools: {
     parsers: RequestParsers
-    macros: string[]
+    contextual: string[]
   },
 ) => Program
 
@@ -23,13 +23,13 @@ const visitors = [
   dropDrills,
 ]
 
-export function desugar(ast: Program, macros: string[] = []): Program {
+export function desugar(ast: Program, contextual: string[] = []): Program {
   const parsers = new RequestParsers()
   const program = visitors.reduce((ast, pass) => {
     parsers.reset()
-    return pass(ast, { parsers, macros })
+    return pass(ast, { parsers, contextual })
   }, ast)
   // inference pass `registerCalls` is included in the desugar phase
   // it produces the list of called modules required for type inference
-  return registerCalls(program, macros)
+  return registerCalls(program, contextual)
 }

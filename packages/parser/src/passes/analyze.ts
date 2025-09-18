@@ -5,7 +5,7 @@ export function analyze(ast: Program) {
   const scope = new ScopeTracker()
   const inputs = new Set<string>()
   const calls = new Set<string>()
-  const modifiers = new Map<string, boolean>()
+  const modifiers = new Set<string>()
   const imports = new Set<string>()
   let hasUnboundSelector = false
 
@@ -22,9 +22,7 @@ export function analyze(ast: Program) {
       hasUnboundSelector ||= !scope.context
     },
     ModifierExpr(node) {
-      const mod = node.modifier.value
-      const unbound = modifiers.get(mod) || !scope.context
-      modifiers.set(mod, unbound)
+      modifiers.add(node.modifier.value)
     },
   })
 
