@@ -1,5 +1,11 @@
 # @getlang/get
 
+## 0.3.4
+
+### Patch Changes
+
+- [#57](https://github.com/getlang-dev/get/pull/57) [`7b30853`](https://github.com/getlang-dev/get/commit/7b3085360825f8d17f7f5e09b05b86a6ec2a17ea) Thanks [@mattfysh](https://github.com/mattfysh)! - paint inputs
+
 ## 0.3.3
 
 ### Patch Changes
