@@ -68,7 +68,11 @@ export async function callModule(
   const [inputArgs, attrArgs] = partition(Object.entries(args.data), e =>
     entry.inputs.has(e[0]),
   )
-  const inputs = Object.fromEntries(inputArgs)
+  const inputs = materialize({
+    data: Object.fromEntries(inputArgs),
+    typeInfo: args.typeInfo,
+  })
+
   let extracted = await hooks.call(module, inputs)
   if (typeof extracted === 'undefined') {
     extracted = await execute(entry, inputs)
@@ -96,7 +100,10 @@ export async function callModule(
     return extracted
   }
 
-  const data = Object.fromEntries(attrArgs)
-  const raster = materialize({ data, typeInfo: args.typeInfo })
+  const raster = materialize({
+    data: Object.fromEntries(attrArgs),
+    typeInfo: args.typeInfo,
+  })
+
   return { ...raster, ...extracted }
 }
