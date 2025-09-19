@@ -90,13 +90,15 @@ export class Registry {
       const info = analyze(ast)
       const imports = [...info.imports]
       const contextMods: string[] = []
-      for (const mod of info.modifiers) {
+      for (const mod of info.modifiers.keys()) {
         const entry = await this.importMod(mod)
         if (entry?.useContext ?? true) {
           contextMods.push(mod)
         }
       }
-      const isMacro = info.hasUnboundSelector || contextMods.length > 0
+      const isMacro =
+        info.hasUnboundSelector ||
+        contextMods.some(mod => info.modifiers.get(mod))
       return { ast, imports, contextMods, isMacro }
     })
     return this.info[module]
