@@ -1,5 +1,14 @@
 # @getlang/get
 
+## 0.3.3
+
+### Patch Changes
+
+- [#55](https://github.com/getlang-dev/get/pull/55) [`194676e`](https://github.com/getlang-dev/get/commit/194676e34bd4311af898565e045aa88a4eb5292a) Thanks [@mattfysh](https://github.com/mattfysh)! - fix modifier context (ii)
+
+- Updated dependencies [[`194676e`](https://github.com/getlang-dev/get/commit/194676e34bd4311af898565e045aa88a4eb5292a)]:
+  - @getlang/parser@0.4.3
+
 ## 0.3.2
 
 ### Patch Changes
