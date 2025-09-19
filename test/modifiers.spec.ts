@@ -50,7 +50,7 @@ describe('modifiers', () => {
     `,
       'nocontext',
       ctx => {
-        expect(ctx).toBeUndefined()
+        expect(ctx).toEqual({})
         return 123
       },
       false,
