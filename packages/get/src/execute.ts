@@ -165,20 +165,19 @@ export async function execute(
       },
 
       ModuleExpr(node) {
-        if (node.call) {
-          return callModule(
-            registry,
-            executeModule,
-            hooks,
-            node.module.value,
-            node.args,
-            scope.context?.typeInfo,
-          )
-        }
-        return {
-          data: materialize(node.args),
-          typeInfo: node.typeInfo,
-        }
+        return node.call
+          ? callModule(
+              registry,
+              executeModule,
+              hooks,
+              node.module.value,
+              node.args,
+              scope.context?.typeInfo,
+            )
+          : {
+              data: materialize(node.args),
+              typeInfo: node.typeInfo,
+            }
       },
 
       ObjectEntryExpr(node) {

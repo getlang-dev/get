@@ -219,6 +219,23 @@ describe('modules', () => {
       })
     })
 
+    test('paint inputs', async () => {
+      const modules = {
+        Reverse: `
+          inputs { list }
+          set result = | list.map(x => Number(x) * 10).reverse() |
+          extract { $result }
+        `,
+        Home: `
+          set list = "<ul><li>1</li><li>2</li><li>3</li></ul>" -> @html => li
+          extract @Reverse({ $list }) -> result
+        `,
+      }
+
+      const result = await execute(modules)
+      expect(result).toEqual([30, 20, 10])
+    })
+
     test('drill return value', async () => {
       const modules = {
         Req: `
@@ -396,10 +413,10 @@ describe('modules', () => {
         {
           fetch: () =>
             new Response(`
-          <!doctype html>
-          <div data-json='{"x": 1}'><p>first</p></li>
-          <div data-json='{"y": 2}'><p>second</p></li>
-        `),
+              <!doctype html>
+              <div data-json='{"x": 1}'><p>first</p></li>
+              <div data-json='{"y": 2}'><p>second</p></li>
+            `),
         },
       )
 
