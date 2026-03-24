@@ -10,15 +10,6 @@ type Blocks = {
   form?: StringMap
 }
 
-// RFC 3986 compliance
-// https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/encodeURIComponent#description
-const fixedEncodeURIComponent = (str: string) => {
-  return encodeURIComponent(str).replace(
-    /[!'()*]/g,
-    c => `%${c.charCodeAt(0).toString(16).toUpperCase()}`,
-  )
-}
-
 export const requestHook: RequestHook = async (url, opts) => {
   const res = await fetch(url, opts)
   return {
@@ -60,9 +51,7 @@ export const request = async (
   // construct headers
   const headers = new Headers(_headers)
   if (blocks.cookies) {
-    const pairs = Object.entries(blocks.cookies).map(entry =>
-      entry.map(fixedEncodeURIComponent).join('='),
-    )
+    const pairs = Object.entries(blocks.cookies).map(entry => entry.join('='))
     const cookieHeader = pairs.join('; ')
     headers.set('cookie', cookieHeader)
   }

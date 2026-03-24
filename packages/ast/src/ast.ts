@@ -117,6 +117,14 @@ type SubqueryExpr = {
   typeInfo: TypeInfo
 }
 
+type TestExpr = {
+  kind: 'TestExpr'
+  test: Expr
+  t?: Expr
+  f: Expr
+  typeInfo: TypeInfo
+}
+
 type DrillExpr = {
   kind: 'DrillExpr'
   body: Expr[]
@@ -172,6 +180,7 @@ export type Expr =
   | ObjectEntryExpr
   | ObjectLiteralExpr
   | SliceExpr
+  | TestExpr
   | DrillExpr
   | LiteralExpr
 
@@ -257,6 +266,14 @@ const subqueryExpr = (body: Stmt[]): SubqueryExpr => ({
   kind: 'SubqueryExpr',
   typeInfo: { type: Type.Value },
   body,
+})
+
+const testExpr = (test: Expr, t: Expr | undefined, f: Expr): TestExpr => ({
+  kind: 'TestExpr',
+  typeInfo: { type: Type.Value },
+  test,
+  t,
+  f,
 })
 
 const drillExpr = (body: Expr[]): DrillExpr => ({
@@ -367,6 +384,7 @@ export const t = {
   objectEntryExpr,
   objectLiteralExpr,
   subqueryExpr,
+  testExpr,
   drillExpr,
   literalExpr,
 }

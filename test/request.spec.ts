@@ -183,7 +183,7 @@ describe('request', () => {
       })
     })
 
-    test('cookies, encoded', async () => {
+    test('cookies', async () => {
       await execute(`
         GET https://example.com
         [cookies]
@@ -195,7 +195,7 @@ describe('request', () => {
       await expect(mockFetch).toHaveServed('https://example.com/', {
         method: 'GET',
         headers: new Headers({
-          Cookie: 'a=A; b=123; c=%2Fhere%26we%21are%3F',
+          Cookie: 'a=A; b=123; c=/here&we!are?',
         }),
       })
     })

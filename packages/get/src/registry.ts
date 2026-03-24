@@ -1,7 +1,7 @@
 import type { Program, TypeInfo } from '@getlang/ast'
-import { Type } from '@getlang/ast'
+import { repr, Type } from '@getlang/ast'
 import type { Hooks, Modifier } from '@getlang/lib'
-import { RecursiveCallError, ValueTypeError } from '@getlang/lib/errors'
+import { RecursiveCallError } from '@getlang/lib/errors'
 import { analyze, desugar, inference, parse } from '@getlang/parser'
 
 type ModEntry = {
@@ -22,26 +22,6 @@ export type Entry = {
   program: Program
   inputs: Set<string>
   returnType: TypeInfo
-}
-
-function repr(ti: TypeInfo): string {
-  switch (ti.type) {
-    case Type.Maybe:
-      return `maybe<${repr(ti.option)}>`
-    case Type.List:
-      return `${repr(ti.of)}[]`
-    case Type.Struct: {
-      const fields = Object.entries(ti.schema)
-        .map(e => `${e[0]}: ${repr(e[1])};`)
-        .join(' ')
-      return `{ ${fields} }`
-    }
-    case Type.Context:
-    case Type.Never:
-      throw new ValueTypeError('Unsupported key type')
-    default:
-      return ti.type
-  }
 }
 
 function buildImportKey(module: string, typeInfo?: TypeInfo) {

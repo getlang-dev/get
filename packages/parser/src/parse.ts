@@ -2,7 +2,7 @@ import type { Program } from '@getlang/ast'
 import { invariant } from '@getlang/lib'
 import { QuerySyntaxError } from '@getlang/lib/errors'
 import nearley from 'nearley'
-import lexer from './grammar/lexer.js'
+import { lexer } from './grammar/lexer.js'
 import grammar from './grammar.js'
 
 export function parse(source: string): Program {

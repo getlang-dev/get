@@ -16,7 +16,9 @@ export function analyze(ast: Program) {
     },
     ModuleExpr(node) {
       imports.add(node.module.value)
-      node.call && calls.add(node.module.value)
+      if (node.call) {
+        calls.add(node.module.value)
+      }
     },
     SelectorExpr() {
       hasUnboundSelector ||= !scope.context

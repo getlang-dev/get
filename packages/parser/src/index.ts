@@ -1,4 +1,4 @@
-export { default as lexer } from './grammar/lexer.js'
+export { lexer } from './grammar/lexer.js'
 export { parse } from './parse.js'
 export { analyze } from './passes/analyze.js'
 export { desugar } from './passes/desugar.js'

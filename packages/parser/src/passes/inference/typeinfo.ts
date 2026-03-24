@@ -1,10 +1,14 @@
 import type { Expr, Node, Program, TypeInfo } from '@getlang/ast'
-import { Type, t } from '@getlang/ast'
+import { repr, Type, t } from '@getlang/ast'
 import { invariant } from '@getlang/lib'
-import { QuerySyntaxError, ValueReferenceError } from '@getlang/lib/errors'
+import {
+  QuerySyntaxError,
+  ValueReferenceError,
+  ValueTypeError,
+} from '@getlang/lib/errors'
 import type { Path, TransformVisitor } from '@getlang/walker'
 import { ScopeTracker, transform } from '@getlang/walker'
-import { toPath } from 'lodash-es'
+import { isEqual, toPath } from 'lodash-es'
 import { render, tx } from '../../utils.js'
 
 function unwrap(typeInfo: TypeInfo) {
@@ -237,6 +241,16 @@ export function resolveTypes(ast: Program, options: ResolveTypeOptions) {
     DrillExpr(node) {
       const typeInfo = structuredClone(node.body.at(-1)!.typeInfo)
       return { ...node, typeInfo }
+    },
+
+    TestExpr(node) {
+      const { t = node.test, f } = node
+      if (!isEqual(t.typeInfo, f.typeInfo)) {
+        const a = repr(t.typeInfo)
+        const b = repr(f.typeInfo)
+        throw new ValueTypeError(`Test expression type mismatch: ${a} !== ${b}`)
+      }
+      return { ...node, typeInfo: structuredClone(t.typeInfo) }
     },
 
     ObjectEntryExpr: {

@@ -10,9 +10,12 @@ export function registerCalls(
   const scope = new LineageTracker()
 
   function registerCall(node: Expr) {
-    const lineage = scope.traceLineageRoot(node) || node
-    if (lineage?.kind === 'ModuleExpr') {
-      lineage.call = true
+    const lineage = scope.traceLineageRoots(node) || node
+    const roots = Array.isArray(lineage) ? lineage : [lineage]
+    for (const root of roots) {
+      if (root?.kind === 'ModuleExpr') {
+        root.call = true
+      }
     }
   }
 

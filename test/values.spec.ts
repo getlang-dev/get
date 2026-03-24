@@ -84,7 +84,7 @@ describe('values', () => {
   test('thin arrow does not expand list', async () => {
     let result = await execute(`
       set list = |[{a: 1}, {a: 2}]|
-      extract $list -> 0
+      extract $list -> [0]
     `)
     expect(result).toEqual({ a: 1 })
 
@@ -495,10 +495,10 @@ describe('values', () => {
       extract $ctx -> {
         str_s: -> 'one'
         str_d: -> "two"
-        int: -> 12
-        float: -> 123.4
-        bool_on: -> true
-        bool_off: -> false
+        int: [12]
+        float: [123].4
+        bool_on: [true]
+        bool_off: [false]
       }
     `)
 

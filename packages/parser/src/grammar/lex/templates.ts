@@ -1,19 +1,4 @@
-import { patterns } from './shared.js'
-
-type UntilOptions = {
-  prefix?: RegExp
-  inclusive?: boolean
-}
-
-// creates a new regex that consumes characters until the
-// `term` regex has been reached. the regex is multiline
-export const until = (term: RegExp, opts: UntilOptions = {}) => {
-  const prefix = opts.prefix ? opts.prefix.source : ''
-  const finalGroup = opts.inclusive ? '?:' : '?='
-  return new RegExp(
-    `${prefix}[^]*?[^\\\\](${finalGroup}${term.source}|(?![^]))`,
-  )
-}
+import { patterns, until } from './shared.js'
 
 type TemplateUntilOptions = {
   interpTemplate?: boolean
@@ -91,7 +76,7 @@ const interpTmplParams = {
   ...templateUntil(/]/, { interpParams: true }),
 }
 
-const stringS = {
+const str_s = {
   squot: {
     match: `'`,
     pop: 1,
@@ -99,7 +84,7 @@ const stringS = {
   ...templateUntil(/'/),
 }
 
-const stringD = {
+const str_d = {
   dquot: {
     match: '"',
     pop: 1,
@@ -108,10 +93,9 @@ const stringD = {
 }
 
 export const templateStates = {
-  template: templateUntil(/\n|->|=>/, { interpTemplate: false }),
   interpExpr,
   interpTmpl,
   interpTmplParams,
-  stringS,
-  stringD,
+  str_s,
+  str_d,
 }

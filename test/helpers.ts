@@ -20,7 +20,7 @@ export const SELSYN = true
 function testIdempotency(source: string) {
   const print1 = print(desugar(parse(source)))
   const print2 = print(desugar(parse(print1)))
-  expect(print1).toEqual(print2)
+  expect(print2).toEqual(print1)
 }
 
 export async function execute(

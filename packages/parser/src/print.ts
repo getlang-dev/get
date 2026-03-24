@@ -102,6 +102,12 @@ const printVisitor: ReduceVisitor<string> = {
     })
   },
 
+  TestExpr(node) {
+    return node.t
+      ? group([node.test, ' ? ', node.t, ' : ', node.f])
+      : group([node.test, ' ?: ', node.f])
+  },
+
   ObjectEntryExpr(node, { node: orig }) {
     if (orig.value.kind === 'IdentifierExpr') {
       const key = render(orig.key)

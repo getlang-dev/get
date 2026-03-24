@@ -93,9 +93,13 @@ export const link: PP = ([context, callee, _, link]) => {
     callee,
     t.objectLiteralExpr([t.objectEntryExpr(tx.template('@link'), link, true)]),
   )
-  const [drill, , arrow] = context || []
-  const body = drill?.body || []
-  return t.drillExpr([...body, drillBase(bit, arrow)])
+  const [pre, , arrow] = context || []
+  const call = drillBase(bit, arrow)
+  if (!pre) {
+    return call
+  }
+  const body = pre.kind === 'DrillExpr' ? pre.body : [pre]
+  return t.drillExpr([...body, call])
 }
 
 export const object: PP = d => {
@@ -138,6 +142,19 @@ export const drill: PP = ([arrow, bit, bits]) => {
     return drillBase(bit, arrow.value)
   })
   return t.drillExpr([expr, ...exprs])
+}
+
+export const test: PP = d => {
+  const [test, , , , tBranch, , , , fBranch] = d
+  return t.testExpr(test, tBranch, fBranch)
+}
+
+export const fallback: PP = d => {
+  const [drill, , , , fBranch] = d
+  invariant(drill.kind === 'DrillExpr', 'Expected drill test')
+  const pre = drill.body.slice(0, -1)
+  const test = t.testExpr(drill.body.at(-1), undefined, fBranch)
+  return t.drillExpr([...pre, test])
 }
 
 export const selector: PP = ([template]) => t.selectorExpr(template, false)

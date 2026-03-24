@@ -204,13 +204,13 @@ describe('modules', () => {
         expect(result).toEqual({ from_subquery: true })
       })
 
-      test.skip('object key', async () => {
+      test('object key', async () => {
         const modules = {
           Call,
           Home: `
             set called = |false|
             extract {
-              object: as_entry = { key: @Call({ $called }) } -> key -> called
+              object: { key: @Call({ $called }) } -> key -> called
             }
           `,
         }
@@ -223,17 +223,19 @@ describe('modules', () => {
       const modules = {
         Reverse: `
           inputs { list }
-          set result = | list.map(x => Number(x) * 10).reverse() |
-          extract { $result }
+          set is_html? = $list -> b
+          set mapped = | list.map(x => Number(x) * 10).reverse() |
+          extract { result: { $is_html, $mapped } }
         `,
         Home: `
-          set list = "<ul><li>1</li><li>2</li><li>3</li></ul>" -> @html => li
+          set list = "<ul><li>1</li><li>2</li><li><b>3</b></li></ul>" -> @html => li
           extract @Reverse({ $list }) -> result
         `,
       }
 
       const result = await execute(modules)
-      expect(result).toEqual([30, 20, 10])
+      expect(result).toEqual({ mapped: [30, 20, 10] })
+      expect(result).not.toHaveProperty('is_html')
     })
 
     test('drill return value', async () => {
@@ -355,12 +357,12 @@ describe('modules', () => {
 
           extract #a
             -> :scope > #b
-            -> @Link) :scope > #c
+            -> @Next) :scope > #c
               -> :scope > #d
         `,
-        Link: `
+        Next: `
           extract {
-            _module: |'Link'|
+            _module: |'Next'|
           }
         `,
       }
@@ -431,7 +433,7 @@ describe('modules', () => {
         Home: `
           GET http://stub
 
-          extract @Data({text: |'first'|})
+          extract @Data({text: |'first'| })
             -> ./@data-json
             -> @json
         `,
