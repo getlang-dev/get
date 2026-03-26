@@ -28,13 +28,13 @@
     "@getlang/walker": "workspace:^0.1.0",
     "@types/moo": "^0.5.10",
     "@types/nearley": "^2.11.5",
-    "acorn": "^8.15.0",
+    "acorn": "^8.16.0",
     "estree-toolkit": "^1.7.13",
-    "globals": "^16.4.0",
-    "lodash-es": "^4.17.21",
-    "moo": "^0.5.2",
+    "globals": "^17.4.0",
+    "lodash-es": "^4.17.23",
+    "moo": "^0.5.3",
     "nearley": "^2.20.1",
-    "prettier": "^3.6.2"
+    "prettier": "^3.8.1"
   },
   "devDependencies": {
     "@types/lodash-es": "^4.17.12"

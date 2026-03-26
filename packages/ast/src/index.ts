@@ -2,8 +2,8 @@ import type { TypeInfo } from './typeinfo.js'
 import { Type } from './typeinfo.js'
 
 export * from './ast.js'
-export { Type }
 export type { TypeInfo }
+export { Type }
 
 export function repr(ti: TypeInfo): string {
   switch (ti.type) {

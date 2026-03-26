@@ -1,0 +1,18 @@
+-- Optional markers can attach to input declarations, assignments, object keys, and shorthand refs.
+-- The tokenizers do not distinguish all of these structural positions.
+
+inputs { title?, slug = |'coast'| }
+
+set value? = {
+  title?,
+  slug,
+  $slug,
+  $title?
+}
+
+extract {
+  title?,
+  slug,
+  $value?,
+  current: $
+}

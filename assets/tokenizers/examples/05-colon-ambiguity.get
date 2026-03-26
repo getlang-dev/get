@@ -1,0 +1,19 @@
+-- Colons appear in request params, object entries, ternaries, and plain templates.
+-- Tokenizers cannot fully recover expression context from punctuation alone.
+
+inputs { city = |'monterey'|, fallback? }
+
+set meta = {
+  route: |'/places/:city'|,
+  label: $city ? |'known'| : |'unknown'|,
+  fallback: $fallback ?: |'none'|
+}
+
+GET https://example.com/:city?label=${city}:${fallback}
+Accept: application/json; profile=:city
+
+extract {
+  route: $meta -> route,
+  label: $meta -> label,
+  fallback: $meta -> fallback
+}

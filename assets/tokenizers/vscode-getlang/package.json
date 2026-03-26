@@ -1,0 +1,45 @@
+{
+  "name": "getlang-vscode",
+  "displayName": "GetLang",
+  "description": "VS Code syntax highlighting for GetLang using the bundled TextMate grammar.",
+  "version": "0.0.1",
+  "publisher": "local",
+  "license": "Apache-2.0",
+  "engines": {
+    "vscode": "^1.85.0"
+  },
+  "categories": [
+    "Programming Languages"
+  ],
+  "keywords": [
+    "getlang",
+    "syntax",
+    "textmate"
+  ],
+  "contributes": {
+    "languages": [
+      {
+        "id": "getlang",
+        "aliases": [
+          "GetLang",
+          "getlang"
+        ],
+        "extensions": [
+          ".get"
+        ],
+        "configuration": "./language-configuration.json"
+      }
+    ],
+    "grammars": [
+      {
+        "language": "getlang",
+        "scopeName": "source.getlang",
+        "path": "./syntaxes/getlang.tmLanguage.json"
+      }
+    ]
+  },
+  "scripts": {
+    "package": "vsce package",
+    "package:pre-release": "vsce package --pre-release"
+  }
+}

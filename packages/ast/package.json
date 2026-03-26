@@ -19,6 +19,6 @@
   },
   "homepage": "https://getlang.dev",
   "dependencies": {
-    "moo": "^0.5.2"
+    "moo": "^0.5.3"
   }
 }

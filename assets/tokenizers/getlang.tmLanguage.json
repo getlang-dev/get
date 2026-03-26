@@ -1,0 +1,328 @@
+{
+  "$schema": "https://raw.githubusercontent.com/martinring/tmlanguage/master/tmlanguage.json",
+  "name": "GetLang",
+  "scopeName": "source.getlang",
+  "fileTypes": ["getlang"],
+  "patterns": [
+    { "include": "#comment" },
+    { "include": "#request" },
+    { "include": "#keywords" },
+    { "include": "#booleans" },
+    { "include": "#numbers" },
+    { "include": "#strings" },
+    { "include": "#slices" },
+    { "include": "#link" },
+    { "include": "#call" },
+    { "include": "#identifierExpr" },
+    { "include": "#operators" },
+    { "include": "#braces" },
+    { "include": "#identifier" }
+  ],
+  "repository": {
+    "comment": {
+      "patterns": [
+        {
+          "name": "comment.line.double-dash.getlang",
+          "match": "--.*$"
+        }
+      ]
+    },
+    "keywords": {
+      "patterns": [
+        {
+          "name": "keyword.control.getlang",
+          "match": "\\b(?:inputs|set|extract)\\b"
+        }
+      ]
+    },
+    "booleans": {
+      "patterns": [
+        {
+          "name": "constant.language.boolean.getlang",
+          "match": "\\b(?:true|false)\\b"
+        }
+      ]
+    },
+    "numbers": {
+      "patterns": [
+        {
+          "name": "constant.numeric.getlang",
+          "match": "\\b\\d+(?:\\.\\d+)?\\b"
+        }
+      ]
+    },
+    "operators": {
+      "patterns": [
+        {
+          "name": "keyword.operator.getlang",
+          "match": "(?:\\?:|->|=>|=|:|@|\\?|,)"
+        }
+      ]
+    },
+    "braces": {
+      "patterns": [
+        {
+          "name": "punctuation.section.braces.begin.getlang",
+          "match": "[\\{\\(]"
+        },
+        {
+          "name": "punctuation.section.braces.end.getlang",
+          "match": "[\\}\\)]"
+        }
+      ]
+    },
+    "identifier": {
+      "patterns": [
+        {
+          "name": "variable.other.getlang",
+          "match": "\\b[a-zA-Z_]\\w*\\b"
+        }
+      ]
+    },
+    "identifierExpr": {
+      "patterns": [
+        {
+          "name": "variable.language.getlang",
+          "match": "\\$(?:[a-zA-Z_]\\w*)?"
+        }
+      ]
+    },
+    "link": {
+      "patterns": [
+        {
+          "name": "entity.name.type.link.getlang",
+          "match": "@[a-zA-Z_]\\w*\\)"
+        }
+      ]
+    },
+    "call": {
+      "patterns": [
+        {
+          "name": "support.function.getlang",
+          "match": "@[a-zA-Z_]\\w*"
+        }
+      ]
+    },
+    "request": {
+      "patterns": [
+        {
+          "name": "meta.request.getlang",
+          "begin": "^(\\s*)(GET|PUT|POST|PATCH|DELETE)\\b",
+          "beginCaptures": {
+            "2": { "name": "keyword.control.http.getlang" }
+          },
+          "end": "^(?=\\s*$|\\s*(?:GET|PUT|POST|PATCH|DELETE)\\b|(?:inputs|set|extract)\\b)",
+          "patterns": [
+            { "include": "#comment" },
+            { "include": "#requestBody" },
+            { "include": "#requestBlockName" },
+            { "include": "#requestEntry" },
+            { "include": "#requestUrlTail" }
+          ]
+        }
+      ]
+    },
+    "requestUrlTail": {
+      "patterns": [
+        {
+          "name": "string.unquoted.request-url.getlang",
+          "begin": "(?<=\\b(?:GET|PUT|POST|PATCH|DELETE))(?:[ \t]+)",
+          "beginCaptures": {
+            "0": { "name": "white.space.getlang" }
+          },
+          "end": "$",
+          "patterns": [
+            { "include": "#templateWithParams" }
+          ]
+        }
+      ]
+    },
+    "requestBlockName": {
+      "patterns": [
+        {
+          "name": "keyword.control.block.getlang",
+          "match": "^\\s*\\[(?:query|cookies|json|form)\\]\\s*$"
+        }
+      ]
+    },
+    "requestEntry": {
+      "patterns": [
+        {
+          "name": "meta.request.entry.getlang",
+          "match": "^(\\s*)([^:\\n]+)(:)(?:([ \t]+)(.*))?$",
+          "captures": {
+            "2": { "name": "string.unquoted.request-key.getlang" },
+            "3": { "name": "keyword.operator.getlang" },
+            "5": { "name": "string.unquoted.request-value.getlang" }
+          }
+        }
+      ]
+    },
+    "requestBody": {
+      "patterns": [
+        {
+          "name": "meta.request.body.getlang",
+          "begin": "^\\s*(\\[body\\])\\s*$",
+          "beginCaptures": {
+            "1": { "name": "keyword.control.block.getlang" }
+          },
+          "end": "^\\s*(\\[/body\\])\\s*$",
+          "endCaptures": {
+            "1": { "name": "keyword.control.block.getlang" }
+          },
+          "patterns": [
+            { "include": "#comment" },
+            { "include": "#template" }
+          ]
+        }
+      ]
+    },
+    "strings": {
+      "patterns": [
+        {
+          "name": "string.quoted.single.getlang",
+          "begin": "'",
+          "beginCaptures": {
+            "0": { "name": "punctuation.definition.string.begin.getlang" }
+          },
+          "end": "'",
+          "endCaptures": {
+            "0": { "name": "punctuation.definition.string.end.getlang" }
+          },
+          "patterns": [
+            { "include": "#escapeGeneric" },
+            { "include": "#interpolations" }
+          ]
+        },
+        {
+          "name": "string.quoted.double.getlang",
+          "begin": "\"",
+          "beginCaptures": {
+            "0": { "name": "punctuation.definition.string.begin.getlang" }
+          },
+          "end": "\"",
+          "endCaptures": {
+            "0": { "name": "punctuation.definition.string.end.getlang" }
+          },
+          "patterns": [
+            { "include": "#escapeGeneric" },
+            { "include": "#interpolations" }
+          ]
+        }
+      ]
+    },
+    "slices": {
+      "patterns": [
+        {
+          "name": "string.quoted.other.slice.backtick.getlang",
+          "begin": "`",
+          "beginCaptures": {
+            "0": { "name": "punctuation.definition.string.begin.getlang" }
+          },
+          "end": "`",
+          "endCaptures": {
+            "0": { "name": "punctuation.definition.string.end.getlang" }
+          },
+          "patterns": [
+            { "include": "#escapeBacktick" },
+            { "include": "#interpolations" }
+          ]
+        },
+        {
+          "name": "string.quoted.other.slice.pipe.getlang",
+          "begin": "\\|",
+          "beginCaptures": {
+            "0": { "name": "punctuation.definition.string.begin.getlang" }
+          },
+          "end": "\\|",
+          "endCaptures": {
+            "0": { "name": "punctuation.definition.string.end.getlang" }
+          },
+          "patterns": [
+            { "include": "#interpolations" }
+          ]
+        }
+      ]
+    },
+    "template": {
+      "patterns": [
+        { "include": "#interpolations" },
+        {
+          "name": "variable.parameter.getlang",
+          "match": ":[a-zA-Z_]\\w*"
+        },
+        {
+          "name": "keyword.operator.getlang",
+          "match": "(?:->|=>|\\?:)"
+        }
+      ]
+    },
+    "templateWithParams": {
+      "patterns": [
+        { "include": "#interpolations" },
+        {
+          "name": "variable.parameter.getlang",
+          "match": ":[a-zA-Z_]\\w*"
+        }
+      ]
+    },
+    "interpolations": {
+      "patterns": [
+        {
+          "name": "meta.interpolation.expression.getlang",
+          "begin": "\\$\\{",
+          "beginCaptures": {
+            "0": { "name": "punctuation.section.interpolation.begin.getlang" }
+          },
+          "end": "\\}",
+          "endCaptures": {
+            "0": { "name": "punctuation.section.interpolation.end.getlang" }
+          },
+          "patterns": [
+            { "include": "#comment" },
+            { "include": "#keywords" },
+            { "include": "#booleans" },
+            { "include": "#numbers" },
+            { "include": "#link" },
+            { "include": "#call" },
+            { "include": "#identifier" }
+          ]
+        },
+        {
+          "name": "meta.interpolation.template.getlang",
+          "begin": "\\$\\[",
+          "beginCaptures": {
+            "0": { "name": "punctuation.section.interpolation.begin.getlang" }
+          },
+          "end": "\\]",
+          "endCaptures": {
+            "0": { "name": "punctuation.section.interpolation.end.getlang" }
+          },
+          "patterns": [
+            { "include": "#template" }
+          ]
+        },
+        {
+          "name": "variable.language.getlang",
+          "match": "\\$[a-zA-Z_]\\w*"
+        }
+      ]
+    },
+    "escapeGeneric": {
+      "patterns": [
+        {
+          "name": "constant.character.escape.getlang",
+          "match": "\\\\."
+        }
+      ]
+    },
+    "escapeBacktick": {
+      "patterns": [
+        {
+          "name": "constant.character.escape.getlang",
+          "match": "\\\\`"
+        }
+      ]
+    }
+  }
+}

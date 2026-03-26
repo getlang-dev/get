@@ -2,8 +2,8 @@ import type { Token as MooToken } from 'moo'
 import type { TypeInfo } from './typeinfo.js'
 import { Type } from './typeinfo.js'
 
-export { Type }
 export type { TypeInfo }
+export { Type }
 
 export type Token = Omit<MooToken, 'toString'>
 export function isToken(value: unknown): value is Token {
