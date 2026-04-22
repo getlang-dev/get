@@ -1,0 +1,6 @@
+-- monarch
+GET http://x
+
+extract {
+  title: title
+}

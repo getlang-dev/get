@@ -21,7 +21,7 @@
     "@getlang/lib": "workspace:^0.2.1",
     "@getlang/parser": "workspace:^0.4.3",
     "@getlang/walker": "workspace:^0.1.0",
-    "lodash-es": "^4.17.23"
+    "lodash-es": "^4.18.1"
   },
   "devDependencies": {
     "@types/lodash-es": "^4.17.12"

@@ -1,6 +1,9 @@
 {
-  "$schema": "https://unpkg.com/knip@5/schema.json",
+  "$schema": "./node_modules/knip/schema.json",
   "vitest": {},
+  "ignore": [
+    "assets/**/*.ts"
+  ],
   "ignoreDependencies": [
     "@changesets/cli"
   ],

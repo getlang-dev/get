@@ -1,4 +1,4 @@
-import { RequestError } from '../core/errors.js'
+import { invariant, QuerySyntaxError, RequestError } from '../core/errors.js'
 import type { RequestHook } from '../core/hooks.js'
 
 type StringMap = Record<string, string>
@@ -58,10 +58,25 @@ export const request = async (
 
   // construct body
   let body: string | undefined
+  const { json, form } = blocks
+  invariant(
+    [bodyRaw, json, form].filter(Boolean).length <= 1,
+    new QuerySyntaxError('Request accepts only one of: [body], [json], [form]'),
+  )
   if (bodyRaw) {
     body = bodyRaw
-  } else if (blocks.json) {
+  } else if (json) {
     body = JSON.stringify(blocks.json)
+  } else if (form) {
+    const fd = new FormData()
+    for (const [k, v] of Object.entries(form)) {
+      fd.append(k, v)
+    }
+    const req = new Request('http://dummy', { method: 'POST', body: fd })
+    const ct = req.headers.get('content-type')
+    invariant(ct, 'Form serialization error')
+    headers.append('content-type', ct)
+    body = await req.text()
   }
 
   // make request

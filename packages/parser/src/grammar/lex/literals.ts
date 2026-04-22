@@ -38,5 +38,3 @@ export function slice(delim: RegExp) {
     },
   }
 }
-
-export const literals: moo.Rules = {}

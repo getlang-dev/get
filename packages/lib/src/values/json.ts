@@ -1,7 +1,13 @@
 import { get, toPath } from 'lodash-es'
-import { NullSelection } from '../core/errors.js'
+import { NullSelection, ParseValueError } from '../core/errors.js'
 
-export const parse = (json: string) => JSON.parse(json)
+export const parse = (json: string) => {
+  try {
+    return JSON.parse(json)
+  } catch (_) {
+    throw new ParseValueError('JSON')
+  }
+}
 
 // only an `undefined` result is considered a null selection
 // if result itself is null, the key is present. This is a

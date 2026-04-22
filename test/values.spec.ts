@@ -2,6 +2,7 @@ import { describe, expect, test } from 'bun:test'
 import {
   ConversionError,
   NullSelectionError,
+  ParseValueError,
   SelectorSyntaxError,
 } from '@getlang/lib/errors'
 import { execute, SELSYN } from './helpers.js'
@@ -156,6 +157,13 @@ describe('values', () => {
       `)
       expect(result).toEqual(['item one', 'item two'])
     })
+
+    test('parsing error', async () => {
+      const result = execute(`extract "<doctype>" -> @json`)
+      return expect(result).rejects.toThrow(
+        new ParseValueError('JSON'),
+      )
+    })
   })
 
   describe('html', () => {
@@ -281,6 +289,13 @@ describe('values', () => {
         extract $js -> @js => Literal
       `)
       expect(result).toEqual([501, 'many'])
+    })
+
+    test('parsing error', async () => {
+      const result = execute(`extract "{x!}" -> @js`)
+      return expect(result).rejects.toThrow(
+        new ParseValueError('JavaScript'),
+      )
     })
   })
 

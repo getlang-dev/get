@@ -20,5 +20,8 @@
   "homepage": "https://getlang.dev",
   "dependencies": {
     "moo": "^0.5.3"
+  },
+  "devDependencies": {
+    "@types/moo": "^0.5.10"
   }
 }

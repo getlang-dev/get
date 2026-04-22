@@ -50,7 +50,7 @@ call -> %call ("(" object ")"):? {% p.call %}
 
 # object literals
 object -> "{" _ (object_entry (_ ","):? _):* "}" {% p.object %}
-object_entry -> "@":? %identifier "?":? ":" _ expression {% p.objectEntry %}
+object_entry -> ("@":? %identifier "?":? | literal) ":" _ expression {% p.objectEntry %}
 object_entry -> %identifier "?":? {% p.objectEntryShorthandSelect %}
 object_entry -> %identifier_expr "?":? {% p.objectEntryShorthandIdent %}
 

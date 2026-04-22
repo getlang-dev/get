@@ -1,12 +1,17 @@
 import type { Expr, RequestExpr } from '@getlang/ast'
 import { isToken, t } from '@getlang/ast'
 
-export const render = (template: Expr) => {
-  if (template.kind !== 'TemplateExpr') {
-    return null
+export const render = (template: Expr): string | null => {
+  switch (template.kind) {
+    case 'TemplateLiteralExpr':
+      return render(template.value)
+    case 'TemplateExpr': {
+      const els = template.elements
+      return els?.every(isToken) ? els.map(el => el.value).join('') : null
+    }
+    default:
+      return null
   }
-  const els = template.elements
-  return els?.every(isToken) ? els.map(el => el.value).join('') : null
 }
 
 export function getContentField(req: RequestExpr) {

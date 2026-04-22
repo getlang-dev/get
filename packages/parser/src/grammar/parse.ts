@@ -107,7 +107,12 @@ export const object: PP = d => {
   return t.objectLiteralExpr(entries)
 }
 
-export const objectEntry: PP = ([callkey, identifier, optional, , , value]) => {
+export const objectEntry: PP = ([keypart, , , value]) => {
+  if (keypart.length === 1) {
+    const [key] = keypart
+    return t.objectEntryExpr(key, value)
+  }
+  const [callkey, identifier, optional] = keypart
   const key = {
     ...identifier,
     value: `${callkey ? '@' : ''}${identifier.value || '$'}`,
@@ -118,12 +123,14 @@ export const objectEntry: PP = ([callkey, identifier, optional, , , value]) => {
 export const objectEntryShorthandSelect: PP = ([identifier, optional]) => {
   const value = t.templateExpr([identifier])
   const selector = t.drillExpr([t.selectorExpr(value, false)])
-  return objectEntry([null, identifier, optional, null, null, selector])
+  const keypart = [null, identifier, optional]
+  return objectEntry([keypart, null, null, selector])
 }
 
 export const objectEntryShorthandIdent: PP = ([identifier, optional]) => {
   const value = t.identifierExpr(identifier)
-  return objectEntry([null, identifier, optional, null, null, value])
+  const keypart = [null, identifier, optional]
+  return objectEntry([keypart, null, null, value])
 }
 
 function drillBase(bit: Expr, arrow?: string): Expr {
@@ -203,7 +210,7 @@ export const template: PP = d => {
 }
 
 export const literal: PP = ([[token]]) => t.literalExpr(token)
-export const string: PP = ([, template]) => template
+export const string: PP = ([, template]) => t.templateLiteralExpr(template)
 
 export const interpExpr: PP = ([, , token]) => token
 export const interpTmpl: PP = ([, , template]) => template

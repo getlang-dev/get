@@ -476,31 +476,10 @@ describe('modules', () => {
       )
     })
 
-    test('recursive link not called', async () => {
-      const modules = {
-        Home: `
-          extract {
-            page: @Page -> value
-          }
-        `,
-        Page: `
-          extract {
-            value: @Home({
-              called: |false|
-            })
-          }
-        `,
-      }
-
-      const result = await execute(modules)
-      expect(result).toEqual({
-        page: { called: false },
-      })
-    })
-
-    test('non-macro not called', async () => {
+    test('when no request data args', async () => {
       const modules = {
         NotMacro: `
+          inputs { num }
           extract "<p>100<p>" -> @html -> p
         `,
         Home: `
@@ -509,7 +488,28 @@ describe('modules', () => {
       }
 
       const result = await execute(modules)
-      expect(result).toEqual({ num: 0 })
+      expect(result).toEqual('100')
+    })
+
+    test('when args contain module data', async () => {
+      const modules = {
+        Echo: `
+          inputs { value }
+          extract { echoed: $value }
+        `,
+        Home: `
+          set first = @Echo({ value: "x" })
+          set value = $first -> echoed
+          set second = @Echo({ $value })
+          extract { $first, $second }
+        `,
+      }
+      const result = await execute(modules)
+      expect(result).toEqual({
+        first: { echoed: 'x' },
+        // second should not contain echoed wrapped produced by call
+        second: { value: 'x' },
+      })
     })
   })
 })

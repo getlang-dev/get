@@ -158,6 +158,12 @@ type LiteralExpr = {
   typeInfo: TypeInfo
 }
 
+type TemplateLiteralExpr = {
+  kind: 'TemplateLiteralExpr'
+  value: Expr
+  typeInfo: TypeInfo
+}
+
 export type Stmt =
   | Program
   | ExtractStmt
@@ -183,6 +189,7 @@ export type Expr =
   | TestExpr
   | DrillExpr
   | LiteralExpr
+  | TemplateLiteralExpr
 
 export type Node = Stmt | Expr
 
@@ -358,6 +365,12 @@ const literalExpr = (raw: Token): LiteralExpr => ({
   value: JSON.parse(raw.value),
 })
 
+const templateLiteralExpr = (value: Expr): TemplateLiteralExpr => ({
+  kind: 'TemplateLiteralExpr',
+  typeInfo: { type: Type.Value },
+  value,
+})
+
 const templateExpr = (elements: (Expr | Token)[]): TemplateExpr => ({
   kind: 'TemplateExpr',
   typeInfo: { type: Type.Value },
@@ -387,4 +400,5 @@ export const t = {
   testExpr,
   drillExpr,
   literalExpr,
+  templateLiteralExpr,
 }

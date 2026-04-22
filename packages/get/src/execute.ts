@@ -80,6 +80,10 @@ export async function execute(
         return { data: node.value, typeInfo: node.typeInfo }
       },
 
+      TemplateLiteralExpr(node) {
+        return node.value
+      },
+
       Program: {
         enter() {
           scope.extracted = { data: null, typeInfo: { type: Type.Value } }

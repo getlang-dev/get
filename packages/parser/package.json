@@ -31,7 +31,7 @@
     "acorn": "^8.16.0",
     "estree-toolkit": "^1.7.13",
     "globals": "^17.4.0",
-    "lodash-es": "^4.17.23",
+    "lodash-es": "^4.18.1",
     "moo": "^0.5.3",
     "nearley": "^2.20.1",
     "prettier": "^3.8.1"

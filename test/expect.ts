@@ -2,7 +2,7 @@ import { expect } from 'bun:test'
 import { diff } from 'jest-diff'
 
 expect.extend({
-  async toHaveServed(received: unknown, url: string, opts: RequestInit) {
+  toHaveServed(received: unknown, url: string, opts: RequestInit) {
     const calls: [unknown, any][] = (received as any)?.mock?.calls
     const { method, headers = {}, body } = opts
     const expObj = { url, method, headers, body }

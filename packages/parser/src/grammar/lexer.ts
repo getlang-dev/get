@@ -5,8 +5,20 @@ import { requestStates } from './lex/request.js'
 import { patterns, ws } from './lex/shared.js'
 import { templateStates, templateUntil } from './lex/templates.js'
 
+const strings = {
+  squot: {
+    match: `'`,
+    push: 'str_s',
+  },
+  dquot: {
+    match: '"',
+    push: 'str_d',
+  },
+}
+
 const main: Rules = {
   ...ws,
+  ...strings,
   symbol: /[,?@]/,
   lsymbol: {
     match: /[{(]/,
@@ -46,7 +58,7 @@ const main: Rules = {
 const expr: Rules = {
   ...ws,
   lsymbol: {
-    defaultType: 'ws',
+    type: () => 'ws',
     match: /(?=[{('"])/,
     next: 'chain',
   },
@@ -82,7 +94,7 @@ const expr: Rules = {
     next: 'chain',
   },
   template: {
-    defaultType: 'ws',
+    type: () => 'ws',
     match: /(?=.)/,
     next: 'template',
   },
@@ -106,16 +118,9 @@ const chain: Rules = {
     match: /[{(]/,
     push: 'main',
   },
-  squot: {
-    match: `'`,
-    push: 'str_s',
-  },
-  dquot: {
-    match: '"',
-    push: 'str_d',
-  },
+  ...strings,
   complete: {
-    defaultType: 'ws',
+    type: () => 'ws',
     match: /(?=.)/,
     next: 'main',
   },

@@ -158,9 +158,9 @@ const printVisitor: ReduceVisitor<string> = {
     })
   },
 
-  TemplateExpr(node, { node: orig }) {
+  TemplateExpr(node, path) {
     return node.elements.map((el, i) => {
-      const og = orig.elements[i]!
+      const og = path.node.elements[i]!
       if (isToken(og)) {
         return og.value
       }
@@ -181,6 +181,10 @@ const printVisitor: ReduceVisitor<string> = {
       }
       return [og.isUrlComponent ? ':' : '$', id]
     })
+  },
+
+  TemplateLiteralExpr(node) {
+    return ['"', node.value, '"']
   },
 
   IdentifierExpr(node) {

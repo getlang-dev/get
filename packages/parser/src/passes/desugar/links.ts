@@ -18,11 +18,13 @@ export const settleLinks: DesugarPass = (ast, { parsers }) => {
         new QuerySyntaxError('Modifier options must be an object'),
       )
 
-      const ctx = scope.context
-      if (node.modifier.value === 'link' && ctx) {
+      if (node.modifier.value === 'link') {
         const hasBase = node.args.entries.some(e => render(e.key) === 'base')
         if (!hasBase) {
-          const lineage = scope.traceLineageRoots(ctx)
+          const ctx = scope.findContext(ctx =>
+            scope.traceLineageRoots(ctx) ? true : ctx?.kind === 'RequestExpr',
+          )
+          const lineage = ctx && (scope.traceLineageRoots(ctx) || ctx)
           if (!Array.isArray(lineage) && lineage?.kind === 'RequestExpr') {
             node.args.entries.push(
               t.objectEntryExpr(

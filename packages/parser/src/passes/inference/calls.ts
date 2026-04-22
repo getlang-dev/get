@@ -45,7 +45,18 @@ export function registerCalls(
 
     ModuleExpr(node) {
       if (contextual.includes(node.module.value)) {
-        return { ...node, call: true }
+        node.call = true
+      } else {
+        const usesResponse = node.args.entries.some(e => {
+          const lineage = scope.traceLineageRoots(e.value)
+          const roots = Array.isArray(lineage) ? lineage : [lineage]
+          return roots
+            .map(r => r?.kind)
+            .some(k => k === 'RequestExpr' || k === 'ModuleExpr')
+        })
+        if (!usesResponse) {
+          node.call = true
+        }
       }
     },
   })

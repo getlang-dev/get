@@ -83,4 +83,11 @@ describe('objects', () => {
       },
     })
   })
+
+  test('template literals as key', async () => {
+    const result = await execute(`
+      extract {"foo":"bar"}
+    `)
+    expect(result).toEqual({ foo: 'bar' })
+  })
 })
