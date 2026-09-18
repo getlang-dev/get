@@ -1,5 +1,5 @@
-import ds from 'dom-serializer'
 // @sideEffects
+import ds from 'dom-serializer'
 import type { ElementType } from 'domelementtype'
 import type { AnyNode } from 'domhandler'
 import { Element, Node } from 'domhandler'
@@ -19,39 +19,54 @@ function main() {
     return ds(this)
   }
 
-  Object.defineProperty(Node.prototype, 'nodeName', {
-    get: function () {
-      return this.name
-    },
-  })
-
-  Object.defineProperty(Node.prototype, 'localName', {
-    get: function () {
-      return this.name
-    },
-  })
-
-  const origAttributes = Object.getOwnPropertyDescriptor(
-    Element.prototype,
-    'attributes',
-  )?.get
-
-  if (origAttributes) {
-    Object.defineProperty(Element.prototype, 'attributes', {
-      get: function (...args) {
-        const attrs = origAttributes.call(this, ...args)
-        attrs.item = (idx: number) => {
-          const el = attrs[idx]
-          return { ...el, nodeType: 2, localName: el.name }
-        }
-        return attrs
+  if (!Object.hasOwn(Node.prototype, 'nodeName')) {
+    Object.defineProperty(Node.prototype, 'nodeName', {
+      get: function () {
+        return this.name
       },
     })
-  } else {
-    console.warn(
-      '[WARN] Unable to patch DOM: Element.attributes property descriptor not found',
-    )
+  }
+
+  if (!Object.hasOwn(Node.prototype, 'localName')) {
+    Object.defineProperty(Node.prototype, 'localName', {
+      get: function () {
+        return this.name
+      },
+    })
+  }
+
+  const attributesPatched = Symbol.for('your-package.Element.attributesPatched')
+
+  if (!(attributesPatched in Element.prototype)) {
+    const origAttributes = Object.getOwnPropertyDescriptor(
+      Element.prototype,
+      'attributes',
+    )?.get
+
+    if (origAttributes) {
+      Object.defineProperty(Element.prototype, 'attributes', {
+        get(...args) {
+          const attrs = origAttributes.call(this, ...args)
+
+          attrs.item = (idx: number) => {
+            const el = attrs[idx]
+            return { ...el, nodeType: 2, localName: el.name }
+          }
+
+          return attrs
+        },
+      })
+
+      Object.defineProperty(Element.prototype, attributesPatched, {
+        value: true,
+      })
+    } else {
+      console.warn(
+        '[WARN] Unable to patch DOM: Element.attributes property descriptor not found',
+      )
+    }
   }
 }
+
 
 main()

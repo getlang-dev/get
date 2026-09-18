@@ -16,6 +16,26 @@ describe('optionality', () => {
       `)
       expect(result).toEqual(56)
     })
+    test('context sharing on true', async () => {
+      const result = await execute(`
+        set ctx = { a: 1, b: 2, c: 3}
+        extract $ctx
+          -> a
+            ? b
+            : c
+      `)
+      expect(result).toEqual(2)
+    })
+    test('context sharing on false', async () => {
+      const result = await execute(`
+        set ctx = { a: 1, b: 2, c: 3}
+        extract $ctx
+          -> x
+            ? b
+            : c
+      `)
+      expect(result).toEqual(3)
+    })
   })
 
   describe('ternary drill', () => {

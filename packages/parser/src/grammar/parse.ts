@@ -151,17 +151,21 @@ export const drill: PP = ([arrow, bit, bits]) => {
   return t.drillExpr([expr, ...exprs])
 }
 
+function ternary(cond: any, tBranch: any, fBranch: any) {
+  invariant(cond.kind === 'DrillExpr', 'Expected drill test')
+  const pre = cond.body.slice(0, -1)
+  const test = t.testExpr(cond.body.at(-1), tBranch, fBranch)
+  return t.drillExpr([...pre, test])
+}
+
 export const test: PP = d => {
-  const [test, , , , tBranch, , , , fBranch] = d
-  return t.testExpr(test, tBranch, fBranch)
+  const [cond, , , , tBranch, , , , fBranch] = d
+  return ternary(cond, tBranch, fBranch)
 }
 
 export const fallback: PP = d => {
   const [drill, , , , fBranch] = d
-  invariant(drill.kind === 'DrillExpr', 'Expected drill test')
-  const pre = drill.body.slice(0, -1)
-  const test = t.testExpr(drill.body.at(-1), undefined, fBranch)
-  return t.drillExpr([...pre, test])
+  return ternary(drill, undefined, fBranch)
 }
 
 export const selector: PP = ([template]) => t.selectorExpr(template, false)

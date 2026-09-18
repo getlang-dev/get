@@ -221,7 +221,7 @@ describe('request', () => {
       const hdrs: Headers = call[1].headers
       const ct = hdrs.get('content-type')
       expect(ct).toMatch(
-        /multipart\/form-data; boundary=-WebkitFormBoundary[0-9a-f]{32}/,
+        /multipart\/form-data; boundary=----WebKitFormBoundary[0-9a-f]{32}/,
       )
 
       const boundary = ct?.split('boundary=-')[1]
