@@ -1,132 +1,142 @@
+import type { Rules } from 'moo'
 import moo from 'moo'
+import { slice } from './lex/literals.js'
 import { requestStates } from './lex/request.js'
-import { patterns } from './lex/shared.js'
-import { slice, slice_block } from './lex/slice.js'
-import { templateStates } from './lex/templates.js'
+import { patterns, ws } from './lex/shared.js'
+import { templateStates, templateUntil } from './lex/templates.js'
 
-const verbs = ['GET', 'PUT', 'POST', 'PATCH', 'DELETE']
-const keywords = ['inputs', 'set']
+const strings = {
+  squot: {
+    match: `'`,
+    push: 'str_s',
+  },
+  dquot: {
+    match: '"',
+    push: 'str_d',
+  },
+}
 
-const keywordsObj = Object.fromEntries(keywords.map(k => [`kw_${k}`, k]))
-
-const main = {
-  ws: patterns.ws,
-  nl: {
-    match: /\n/,
-    lineBreaks: true,
+const main: Rules = {
+  ...ws,
+  ...strings,
+  symbol: /[,?@]/,
+  lsymbol: {
+    match: /[{(]/,
+    push: 'main',
   },
-  comment: /--.*/,
-  kw_extract: {
-    match: /extract(?=\s)/,
-    push: 'expr',
-  },
-  drill_arrow: {
-    match: ['->', '=>'],
-    push: 'drillExpr',
-  },
-  colon: {
-    match: ':',
-    push: 'expr',
-  },
-  assignment: {
-    match: '=',
-    push: 'expr',
+  rsymbol: {
+    match: /[})]/,
+    pop: 1,
   },
   request_verb: {
-    match: new RegExp(`(?:${verbs.join('|')}) `),
-    push: 'requestUrl',
+    match: /(?:GET|PUT|POST|PATCH|DELETE)\b/,
+    push: 'requrl',
     value: (text: string) => text.trim(),
+  },
+  expr: {
+    match: /(?:extract\b|=|:)/,
+    next: 'expr',
+    type: moo.keywords({
+      kw_extract: 'extract',
+      assignment: '=',
+      colon: ':',
+    }),
   },
   identifier: {
     match: patterns.identifier,
-    type: moo.keywords(keywordsObj),
+    type: moo.keywords({
+      kw_inputs: 'inputs',
+      kw_set: 'set',
+    }),
   },
   identifier_expr: {
     match: patterns.identifierExpr,
     value: (text: string) => text.slice(1),
   },
-  symbols: /[{}(),?@]/,
 }
 
-const exprBase = {
-  ws: patterns.ws,
-  nl: {
-    match: /\n/,
-    lineBreaks: true,
+const expr: Rules = {
+  ...ws,
+  lsymbol: {
+    type: () => 'ws',
+    match: /(?=[{('"])/,
+    next: 'chain',
+  },
+  drill_arrow: ['->', '=>', '?:'],
+  slice_block: {
+    ...slice(/\|/),
+    next: 'chain',
+  },
+  slice: {
+    ...slice(/`/),
+    next: 'chain',
+  },
+  num: {
+    match: /\d+(?:\.\d+)?/,
+    next: 'chain',
+  },
+  bool: {
+    match: ['true', 'false'],
+    next: 'chain',
+  },
+  identifier_expr: {
+    match: patterns.identifierExpr,
+    value: (text: string) => text.slice(1),
+    next: 'chain',
   },
   link: {
     match: patterns.link,
     value: (text: string) => text.slice(1, -1),
   },
-  symbols: {
-    match: /[{(]/,
-    pop: 1,
-  },
-  template_interp: {
-    defaultType: 'ws',
-    match: /(?=\${)/,
-    next: 'template',
-  },
-  identifier_expr: {
-    match: patterns.identifierExpr,
-    value: (text: string) => text.slice(1),
-    pop: 1,
-  },
-  slice_block,
-  slice,
   call: {
     match: patterns.call,
     value: (text: string) => text.slice(1),
-    pop: 1,
+    next: 'chain',
   },
-  squot: {
-    match: `'`,
-    next: 'stringS',
-  },
-  dquot: {
-    match: `"`,
-    next: 'stringD',
+  template: {
+    type: () => 'ws',
+    match: /(?=.)/,
+    next: 'template',
   },
 }
 
-const expr = {
-  ...exprBase,
+const chain: Rules = {
+  ...ws,
   drill_arrow: {
     match: ['->', '=>'],
-    next: 'drillExpr',
+    next: 'expr',
   },
-  num: {
-    match: /\d+(?:\.\d+)?/,
-    pop: 1,
+  fallback: {
+    match: '?:',
+    next: 'expr',
   },
-  bool: {
-    match: ['true', 'false'],
-    pop: 1,
+  test: {
+    match: '?',
+    next: 'expr',
   },
-  template: {
-    defaultType: 'ws',
+  lsymbol: {
+    match: /[{(]/,
+    push: 'main',
+  },
+  ...strings,
+  complete: {
+    type: () => 'ws',
     match: /(?=.)/,
-    next: 'template',
+    next: 'main',
   },
 }
 
-const drillExpr = {
-  ...exprBase,
-  drill_arrow: ['->', '=>'],
-  template: {
-    defaultType: 'ws',
-    match: /(?=.)/,
-    next: 'template',
-  },
-}
+const template = templateUntil(/\n|->|=>|\?:/, {
+  interpTemplate: false,
+  next: 'chain',
+})
 
-const lexer: any = moo.states({
+export const lexer = moo.states({
   $all: { err: moo.error },
   main,
   expr,
-  drillExpr,
+  template,
+  chain,
   ...templateStates,
   ...requestStates,
 })
-
-export default lexer

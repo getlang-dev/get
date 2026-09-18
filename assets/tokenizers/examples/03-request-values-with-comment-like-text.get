@@ -1,0 +1,13 @@
+-- In request headers and block entries, -- is just text.
+-- TextMate and Monarch may over-highlight these as comments because they are line-oriented.
+
+GET https://example.com/search/:term
+Authorization: Bearer token--not-a-comment
+X-Trace: value -- still part of the header value
+[query]
+q: literal--value
+explain: left -- right
+[cookies]
+session: abc--123
+
+extract |'ok'|

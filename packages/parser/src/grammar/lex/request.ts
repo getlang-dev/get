@@ -2,7 +2,7 @@ import { templateUntil } from './templates.js'
 
 const requestBlockNames = ['query', 'cookies', 'json', 'form']
 
-const request = {
+const req = {
   request_term: {
     defaultType: 'nl',
     match: /\n\s*$/,
@@ -24,24 +24,24 @@ const request = {
   request_block_body: {
     match: /^\s*\[body\]\n/,
     lineBreaks: true,
-    push: 'requestBody',
+    push: 'reqbody',
   },
   start_of_line_incl_ws: {
     defaultType: 'ws',
     match: /^\s*(?=.)/,
-    push: 'requestKey',
+    push: 'reqkey',
   },
   colon: ':',
   ws: {
     match: ' ',
-    push: 'requestValue',
+    push: 'reqval',
   },
 }
 
 export const requestStates = {
-  request,
-  requestUrl: templateUntil(/\n/, { interpParams: true, next: 'request' }),
-  requestKey: templateUntil(/:/),
-  requestValue: templateUntil(/\n/),
-  requestBody: templateUntil(/\n[^\S\r\n]*\[\/body\]/),
+  req,
+  requrl: templateUntil(/\n/, { interpParams: true, next: 'req' }),
+  reqkey: templateUntil(/:/),
+  reqval: templateUntil(/\n/),
+  reqbody: templateUntil(/\n[^\S\r\n]*\[\/body\]/),
 }

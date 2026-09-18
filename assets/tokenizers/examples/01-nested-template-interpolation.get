@@ -1,0 +1,14 @@
+-- Nested template interpolation and mixed interpolation forms.
+-- Recursive interpolation is valid in the lexer, but both tokenizers only approximate it.
+
+set slug = |'big-sur'|
+set suffix = |'guide'|
+set path = |'travel'|
+
+GET https://example.com/$path/$[$slug-$[$suffix]]/${slug}_overview
+
+extract {
+  direct: $slug,
+  nested: $[$slug-$[$suffix]],
+  embedded: |'/${slug}/$[$suffix]'|
+}

@@ -1,0 +1,21 @@
+-- Backtick slices support escaped backticks.
+-- Pipe slices allow raw backticks and multiline content.
+-- A tokenizer can struggle when the slice body itself looks like source code or delimiters.
+
+set js_inline = `({
+  label: \`inner\`,
+  value: 42,
+})`
+
+set js_block = |
+return {
+  template: `raw backtick survives here`,
+  regexy: /a|b|c/,
+  note: '$[not interpolation in JS unless parsed by the host]',
+}
+|
+
+extract {
+  $js_inline,
+  $js_block
+}

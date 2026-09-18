@@ -16,11 +16,11 @@ jobs:
       pull-requests: write
       issues: read
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: oven-sh/setup-bun@v2
       - run: bun install --frozen-lockfile
       - run: bun --filter @getlang/parser compile
-      - uses: changesets/action@v1
+      - uses: changesets/action@v2.1.2
         with:
           title: 'chore: version packages'
           commit: 'chore: version packages'

@@ -1,0 +1,6 @@
+-- Selectors after -> are lexed as template text, not parsed CSS/XPath in the tokenizer.
+-- This stresses parentheses, @, ?, :, and // in selector-like regions.
+
+set doc = |"<main><a href='/road'><span>Road</span></a><a href='/sea'><span>Sea</span></a></main>"|
+
+extract $doc -> @html => main a[href^='/'] -> span:nth-child(1) ?: //a[@href='/fallback']/span

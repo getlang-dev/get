@@ -1,4 +1,4 @@
-import { RequestError } from '../core/errors.js'
+import { invariant, QuerySyntaxError, RequestError } from '../core/errors.js'
 import type { RequestHook } from '../core/hooks.js'
 
 type StringMap = Record<string, string>
@@ -8,15 +8,6 @@ type Blocks = {
   cookies?: StringMap
   json?: StringMap
   form?: StringMap
-}
-
-// RFC 3986 compliance
-// https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/encodeURIComponent#description
-const fixedEncodeURIComponent = (str: string) => {
-  return encodeURIComponent(str).replace(
-    /[!'()*]/g,
-    c => `%${c.charCodeAt(0).toString(16).toUpperCase()}`,
-  )
 }
 
 export const requestHook: RequestHook = async (url, opts) => {
@@ -60,19 +51,32 @@ export const request = async (
   // construct headers
   const headers = new Headers(_headers)
   if (blocks.cookies) {
-    const pairs = Object.entries(blocks.cookies).map(entry =>
-      entry.map(fixedEncodeURIComponent).join('='),
-    )
+    const pairs = Object.entries(blocks.cookies).map(entry => entry.join('='))
     const cookieHeader = pairs.join('; ')
     headers.set('cookie', cookieHeader)
   }
 
   // construct body
   let body: string | undefined
+  const { json, form } = blocks
+  invariant(
+    [bodyRaw, json, form].filter(Boolean).length <= 1,
+    new QuerySyntaxError('Request accepts only one of: [body], [json], [form]'),
+  )
   if (bodyRaw) {
     body = bodyRaw
-  } else if (blocks.json) {
+  } else if (json) {
     body = JSON.stringify(blocks.json)
+  } else if (form) {
+    const fd = new FormData()
+    for (const [k, v] of Object.entries(form)) {
+      fd.append(k, v)
+    }
+    const req = new Request('http://dummy', { method: 'POST', body: fd })
+    const ct = req.headers.get('content-type')
+    invariant(ct, 'Form serialization error')
+    headers.append('content-type', ct)
+    body = await req.text()
   }
 
   // make request

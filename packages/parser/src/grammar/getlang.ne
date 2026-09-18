@@ -1,5 +1,5 @@
 @{%
-import lexer from './grammar/lexer.js'
+import { lexer } from './grammar/lexer.js'
 import * as p from './grammar/parse.js'
 %}
 
@@ -12,9 +12,9 @@ statements -> statement (line_sep statement):* {% p.statements %}
 statement -> (request | assignment | extract) {% p.idd %}
 
 # keywords
-inputs -> "inputs" __ "{" _ input_decl (_ "," _ input_decl):* _ "}" {% p.declInputs %}
-assignment -> "set" __ %identifier "?":? _ "=" _ expression {% p.assignment %}
-extract -> "extract" __ expression {% p.extract %}
+inputs -> %kw_inputs __ "{" _ input_decl (_ "," _ input_decl):* _ "}" {% p.declInputs %}
+assignment -> %kw_set __ %identifier "?":? _ "=" _ expression {% p.assignment %}
+extract -> %kw_extract __ expression {% p.extract %}
 
 # inputs
 input_decl -> %identifier "?":? (_ "=" _ input_default):? {% p.inputDecl %}
@@ -29,11 +29,13 @@ request_entry -> template ":" (__ template):? {% p.requestEntry %}
 request_block_body -> %request_block_body template %request_block_body_end {% p.requestBlockBody %}
 
 # expression
-expression -> drill {% id %}
-expression -> (drill _ %drill_arrow _):? %link _ drill {% p.link %}
-
-# drill
-drill -> (%drill_arrow _):? bit (_ %drill_arrow _ bit):* {% p.drill %}
+expression -> test {% id %}
+expression -> (test _ %drill_arrow _):? %link _ test {% p.link %}
+test -> fallback _ "?" _ fallback _ ":" _ test {% p.test %}
+test -> fallback {% id %}
+fallback -> chain _ "?:" _ fallback {% p.fallback %}
+fallback -> chain {% id %}
+chain -> (%drill_arrow _):? bit (_ %drill_arrow _ bit):* {% p.drill %}
 
 # drill bit
 bit -> (literal | slice | call | object | subquery) {% p.idd %}
@@ -48,7 +50,7 @@ call -> %call ("(" object ")"):? {% p.call %}
 
 # object literals
 object -> "{" _ (object_entry (_ ","):? _):* "}" {% p.object %}
-object_entry -> "@":? %identifier "?":? ":" _ expression {% p.objectEntry %}
+object_entry -> ("@":? %identifier "?":? | literal) ":" _ expression {% p.objectEntry %}
 object_entry -> %identifier "?":? {% p.objectEntryShorthandSelect %}
 object_entry -> %identifier_expr "?":? {% p.objectEntryShorthandIdent %}
 

@@ -1,0 +1,14 @@
+-- In a real request body, lines are plain body text until [/body].
+-- A tokenizer may still try to color leading -- as comments.
+-- The sentinel-looking text below should remain body content until the actual closing line.
+
+POST https://example.com/submit
+[body]
+-- this line is body content, not a comment token in the real lexer
+payload starts here
+  [body] should not open a nested body block
+  [/body] inside an indented text line still looks delimiter-ish
+body ends only on the exact closing marker line
+[/body]
+
+extract |'done'|

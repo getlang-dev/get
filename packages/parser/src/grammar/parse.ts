@@ -93,9 +93,13 @@ export const link: PP = ([context, callee, _, link]) => {
     callee,
     t.objectLiteralExpr([t.objectEntryExpr(tx.template('@link'), link, true)]),
   )
-  const [drill, , arrow] = context || []
-  const body = drill?.body || []
-  return t.drillExpr([...body, drillBase(bit, arrow)])
+  const [pre, , arrow] = context || []
+  const call = drillBase(bit, arrow)
+  if (!pre) {
+    return call
+  }
+  const body = pre.kind === 'DrillExpr' ? pre.body : [pre]
+  return t.drillExpr([...body, call])
 }
 
 export const object: PP = d => {
@@ -103,7 +107,12 @@ export const object: PP = d => {
   return t.objectLiteralExpr(entries)
 }
 
-export const objectEntry: PP = ([callkey, identifier, optional, , , value]) => {
+export const objectEntry: PP = ([keypart, , , value]) => {
+  if (keypart.length === 1) {
+    const [key] = keypart
+    return t.objectEntryExpr(key, value)
+  }
+  const [callkey, identifier, optional] = keypart
   const key = {
     ...identifier,
     value: `${callkey ? '@' : ''}${identifier.value || '$'}`,
@@ -114,12 +123,14 @@ export const objectEntry: PP = ([callkey, identifier, optional, , , value]) => {
 export const objectEntryShorthandSelect: PP = ([identifier, optional]) => {
   const value = t.templateExpr([identifier])
   const selector = t.drillExpr([t.selectorExpr(value, false)])
-  return objectEntry([null, identifier, optional, null, null, selector])
+  const keypart = [null, identifier, optional]
+  return objectEntry([keypart, null, null, selector])
 }
 
 export const objectEntryShorthandIdent: PP = ([identifier, optional]) => {
   const value = t.identifierExpr(identifier)
-  return objectEntry([null, identifier, optional, null, null, value])
+  const keypart = [null, identifier, optional]
+  return objectEntry([keypart, null, null, value])
 }
 
 function drillBase(bit: Expr, arrow?: string): Expr {
@@ -138,6 +149,23 @@ export const drill: PP = ([arrow, bit, bits]) => {
     return drillBase(bit, arrow.value)
   })
   return t.drillExpr([expr, ...exprs])
+}
+
+function ternary(cond: any, tBranch: any, fBranch: any) {
+  invariant(cond.kind === 'DrillExpr', 'Expected drill test')
+  const pre = cond.body.slice(0, -1)
+  const test = t.testExpr(cond.body.at(-1), tBranch, fBranch)
+  return t.drillExpr([...pre, test])
+}
+
+export const test: PP = d => {
+  const [cond, , , , tBranch, , , , fBranch] = d
+  return ternary(cond, tBranch, fBranch)
+}
+
+export const fallback: PP = d => {
+  const [drill, , , , fBranch] = d
+  return ternary(drill, undefined, fBranch)
 }
 
 export const selector: PP = ([template]) => t.selectorExpr(template, false)
@@ -186,7 +214,7 @@ export const template: PP = d => {
 }
 
 export const literal: PP = ([[token]]) => t.literalExpr(token)
-export const string: PP = ([, template]) => template
+export const string: PP = ([, template]) => t.templateLiteralExpr(template)
 
 export const interpExpr: PP = ([, , token]) => token
 export const interpTmpl: PP = ([, , template]) => template

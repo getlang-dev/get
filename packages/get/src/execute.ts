@@ -80,6 +80,10 @@ export async function execute(
         return { data: node.value, typeInfo: node.typeInfo }
       },
 
+      TemplateLiteralExpr(node) {
+        return node.value
+      },
+
       Program: {
         enter() {
           scope.extracted = { data: null, typeInfo: { type: Type.Value } }
@@ -204,12 +208,26 @@ export async function execute(
       DrillExpr: {
         async enter(node, path) {
           for (const expr of node.body) {
-            if (!(scope.context?.data instanceof lib.NullSelection)) {
+            const isNull = scope.context?.data instanceof lib.NullSelection
+            if (!isNull) {
               const data = await withItemContext(expr)
               scope.context = { data, typeInfo: expr.typeInfo }
             }
           }
           path.replace(scope.context)
+        },
+      },
+
+      TestExpr: {
+        async enter(node, path) {
+          const test = await reduce(node.test, options)
+          const value =
+            test.data instanceof lib.NullSelection
+              ? await reduce(node.f, options)
+              : node.t
+                ? await reduce(node.t, options)
+                : test
+          path.replace(value)
         },
       },
 

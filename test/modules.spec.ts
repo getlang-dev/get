@@ -204,13 +204,13 @@ describe('modules', () => {
         expect(result).toEqual({ from_subquery: true })
       })
 
-      test.skip('object key', async () => {
+      test('object key', async () => {
         const modules = {
           Call,
           Home: `
             set called = |false|
             extract {
-              object: as_entry = { key: @Call({ $called }) } -> key -> called
+              object: { key: @Call({ $called }) } -> key -> called
             }
           `,
         }
@@ -223,17 +223,19 @@ describe('modules', () => {
       const modules = {
         Reverse: `
           inputs { list }
-          set result = | list.map(x => Number(x) * 10).reverse() |
-          extract { $result }
+          set is_html? = $list -> b
+          set mapped = | list.map(x => Number(x) * 10).reverse() |
+          extract { result: { $is_html, $mapped } }
         `,
         Home: `
-          set list = "<ul><li>1</li><li>2</li><li>3</li></ul>" -> @html => li
+          set list = "<ul><li>1</li><li>2</li><li><b>3</b></li></ul>" -> @html => li
           extract @Reverse({ $list }) -> result
         `,
       }
 
       const result = await execute(modules)
-      expect(result).toEqual([30, 20, 10])
+      expect(result).toEqual({ mapped: [30, 20, 10] })
+      expect(result).not.toHaveProperty('is_html')
     })
 
     test('drill return value', async () => {
@@ -355,12 +357,12 @@ describe('modules', () => {
 
           extract #a
             -> :scope > #b
-            -> @Link) :scope > #c
+            -> @Next) :scope > #c
               -> :scope > #d
         `,
-        Link: `
+        Next: `
           extract {
-            _module: |'Link'|
+            _module: |'Next'|
           }
         `,
       }
@@ -431,7 +433,7 @@ describe('modules', () => {
         Home: `
           GET http://stub
 
-          extract @Data({text: |'first'|})
+          extract @Data({text: |'first'| })
             -> ./@data-json
             -> @json
         `,
@@ -474,31 +476,10 @@ describe('modules', () => {
       )
     })
 
-    test('recursive link not called', async () => {
-      const modules = {
-        Home: `
-          extract {
-            page: @Page -> value
-          }
-        `,
-        Page: `
-          extract {
-            value: @Home({
-              called: |false|
-            })
-          }
-        `,
-      }
-
-      const result = await execute(modules)
-      expect(result).toEqual({
-        page: { called: false },
-      })
-    })
-
-    test('non-macro not called', async () => {
+    test('when no request data args', async () => {
       const modules = {
         NotMacro: `
+          inputs { num }
           extract "<p>100<p>" -> @html -> p
         `,
         Home: `
@@ -507,7 +488,28 @@ describe('modules', () => {
       }
 
       const result = await execute(modules)
-      expect(result).toEqual({ num: 0 })
+      expect(result).toEqual('100')
+    })
+
+    test('when args contain module data', async () => {
+      const modules = {
+        Echo: `
+          inputs { value }
+          extract { echoed: $value }
+        `,
+        Home: `
+          set first = @Echo({ value: "x" })
+          set value = $first -> echoed
+          set second = @Echo({ $value })
+          extract { $first, $second }
+        `,
+      }
+      const result = await execute(modules)
+      expect(result).toEqual({
+        first: { echoed: 'x' },
+        // second should not contain echoed wrapped produced by call
+        second: { value: 'x' },
+      })
     })
   })
 })

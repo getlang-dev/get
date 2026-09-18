@@ -5,8 +5,8 @@ import {
   ConversionError,
   invariant,
   NullSelection,
+  ParseValueError,
   SelectorSyntaxError,
-  SliceSyntaxError,
 } from '../core/errors.js'
 
 export const parse = (js: string): AnyNode => {
@@ -16,7 +16,7 @@ export const parse = (js: string): AnyNode => {
       allowAwaitOutsideFunction: true,
     })
   } catch (e) {
-    throw new SliceSyntaxError('Could not parse slice', { cause: e })
+    throw new ParseValueError('JavaScript', { cause: e })
   }
 }
 

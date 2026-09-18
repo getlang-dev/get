@@ -1,0 +1,17 @@
+-- Wide-arrow chains, subqueries, and @calls/@modifiers all reuse similar symbols.
+-- The real parser knows which @name is a call bit and where subqueries reopen statement parsing.
+
+set html = |'<ul><li><span>one</span></li><li><span>two</span></li></ul>'| -> @html
+set out = $html => li -> (
+  set value = span
+  extract {
+    text: $value,
+    maybe: $value ?: |'missing'|
+  }
+)
+
+extract {
+  $out,
+  transformed: @SomeModule({ items: $out }) -> result,
+  modified: $out -> @flatten
+}

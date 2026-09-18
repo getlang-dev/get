@@ -18,17 +18,21 @@ export const settleLinks: DesugarPass = (ast, { parsers }) => {
         new QuerySyntaxError('Modifier options must be an object'),
       )
 
-      const ctx = scope.context
-      if (node.modifier.value === 'link' && ctx) {
-        const lineage = scope.traceLineageRoot(ctx)
+      if (node.modifier.value === 'link') {
         const hasBase = node.args.entries.some(e => render(e.key) === 'base')
-        if (lineage?.kind === 'RequestExpr' && !hasBase) {
-          node.args.entries.push(
-            t.objectEntryExpr(
-              tx.template('base'),
-              parsers.lookup(lineage, 'link'),
-            ),
+        if (!hasBase) {
+          const ctx = scope.findContext(ctx =>
+            scope.traceLineageRoots(ctx) ? true : ctx?.kind === 'RequestExpr',
           )
+          const lineage = ctx && (scope.traceLineageRoots(ctx) || ctx)
+          if (!Array.isArray(lineage) && lineage?.kind === 'RequestExpr') {
+            node.args.entries.push(
+              t.objectEntryExpr(
+                tx.template('base'),
+                parsers.lookup(lineage, 'link'),
+              ),
+            )
+          }
         }
       }
     },
@@ -42,11 +46,14 @@ export const settleLinks: DesugarPass = (ast, { parsers }) => {
       invariant(value.kind === 'DrillExpr', 'Module links [1]')
       const base = scope.getLineage(value)
       invariant(base, 'Module links [2]')
-      if (base.kind === 'ModifierExpr') {
+      if (Array.isArray(base) || base.kind === 'ModifierExpr') {
         return
       }
-      const root = scope.traceLineageRoot(value)
-      invariant(root?.kind === 'RequestExpr', 'Module links [3]')
+      const root = scope.traceLineageRoots(value)
+      invariant(
+        !Array.isArray(root) && root?.kind === 'RequestExpr',
+        'Module links [3]',
+      )
       const mod = t.modifierExpr(
         tx.token('link'),
         t.objectLiteralExpr([

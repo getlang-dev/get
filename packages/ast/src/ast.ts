@@ -2,8 +2,8 @@ import type { Token as MooToken } from 'moo'
 import type { TypeInfo } from './typeinfo.js'
 import { Type } from './typeinfo.js'
 
-export { Type }
 export type { TypeInfo }
+export { Type }
 
 export type Token = Omit<MooToken, 'toString'>
 export function isToken(value: unknown): value is Token {
@@ -117,6 +117,14 @@ type SubqueryExpr = {
   typeInfo: TypeInfo
 }
 
+type TestExpr = {
+  kind: 'TestExpr'
+  test: Expr
+  t?: Expr
+  f: Expr
+  typeInfo: TypeInfo
+}
+
 type DrillExpr = {
   kind: 'DrillExpr'
   body: Expr[]
@@ -150,6 +158,12 @@ type LiteralExpr = {
   typeInfo: TypeInfo
 }
 
+type TemplateLiteralExpr = {
+  kind: 'TemplateLiteralExpr'
+  value: Expr
+  typeInfo: TypeInfo
+}
+
 export type Stmt =
   | Program
   | ExtractStmt
@@ -172,8 +186,10 @@ export type Expr =
   | ObjectEntryExpr
   | ObjectLiteralExpr
   | SliceExpr
+  | TestExpr
   | DrillExpr
   | LiteralExpr
+  | TemplateLiteralExpr
 
 export type Node = Stmt | Expr
 
@@ -259,6 +275,14 @@ const subqueryExpr = (body: Stmt[]): SubqueryExpr => ({
   body,
 })
 
+const testExpr = (test: Expr, t: Expr | undefined, f: Expr): TestExpr => ({
+  kind: 'TestExpr',
+  typeInfo: { type: Type.Value },
+  test,
+  t,
+  f,
+})
+
 const drillExpr = (body: Expr[]): DrillExpr => ({
   kind: 'DrillExpr',
   typeInfo: { type: Type.Value },
@@ -341,6 +365,12 @@ const literalExpr = (raw: Token): LiteralExpr => ({
   value: JSON.parse(raw.value),
 })
 
+const templateLiteralExpr = (value: Expr): TemplateLiteralExpr => ({
+  kind: 'TemplateLiteralExpr',
+  typeInfo: { type: Type.Value },
+  value,
+})
+
 const templateExpr = (elements: (Expr | Token)[]): TemplateExpr => ({
   kind: 'TemplateExpr',
   typeInfo: { type: Type.Value },
@@ -367,6 +397,8 @@ export const t = {
   objectEntryExpr,
   objectLiteralExpr,
   subqueryExpr,
+  testExpr,
   drillExpr,
   literalExpr,
+  templateLiteralExpr,
 }

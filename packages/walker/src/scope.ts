@@ -27,6 +27,12 @@ export class ScopeTracker<T = any> {
     this.scopeStack.pop()
   }
 
+  findContext(predicate: (ctx: T) => boolean): T | undefined {
+    return this.scopeStack.findLast(
+      s => s.context !== undefined && predicate(s.context),
+    )?.context
+  }
+
   private get head() {
     return this.scopeStack.at(-1)
   }

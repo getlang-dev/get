@@ -10,9 +10,12 @@ export function registerCalls(
   const scope = new LineageTracker()
 
   function registerCall(node: Expr) {
-    const lineage = scope.traceLineageRoot(node) || node
-    if (lineage?.kind === 'ModuleExpr') {
-      lineage.call = true
+    const lineage = scope.traceLineageRoots(node) || node
+    const roots = Array.isArray(lineage) ? lineage : [lineage]
+    for (const root of roots) {
+      if (root?.kind === 'ModuleExpr') {
+        root.call = true
+      }
     }
   }
 
@@ -42,7 +45,18 @@ export function registerCalls(
 
     ModuleExpr(node) {
       if (contextual.includes(node.module.value)) {
-        return { ...node, call: true }
+        node.call = true
+      } else {
+        const usesResponse = node.args.entries.some(e => {
+          const lineage = scope.traceLineageRoots(e.value)
+          const roots = Array.isArray(lineage) ? lineage : [lineage]
+          return roots
+            .map(r => r?.kind)
+            .some(k => k === 'RequestExpr' || k === 'ModuleExpr')
+        })
+        if (!usesResponse) {
+          node.call = true
+        }
       }
     },
   })

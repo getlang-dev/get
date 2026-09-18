@@ -2,6 +2,7 @@ import { describe, expect, test } from 'bun:test'
 import {
   ConversionError,
   NullSelectionError,
+  ParseValueError,
   SelectorSyntaxError,
 } from '@getlang/lib/errors'
 import { execute, SELSYN } from './helpers.js'
@@ -84,7 +85,7 @@ describe('values', () => {
   test('thin arrow does not expand list', async () => {
     let result = await execute(`
       set list = |[{a: 1}, {a: 2}]|
-      extract $list -> 0
+      extract $list -> [0]
     `)
     expect(result).toEqual({ a: 1 })
 
@@ -155,6 +156,11 @@ describe('values', () => {
         )
       `)
       expect(result).toEqual(['item one', 'item two'])
+    })
+
+    test('parsing error', async () => {
+      const result = execute(`extract "<doctype>" -> @json`)
+      return expect(result).rejects.toThrow(new ParseValueError('JSON'))
     })
   })
 
@@ -281,6 +287,11 @@ describe('values', () => {
         extract $js -> @js => Literal
       `)
       expect(result).toEqual([501, 'many'])
+    })
+
+    test('parsing error', async () => {
+      const result = execute(`extract "{x!}" -> @js`)
+      return expect(result).rejects.toThrow(new ParseValueError('JavaScript'))
     })
   })
 
@@ -495,10 +506,10 @@ describe('values', () => {
       extract $ctx -> {
         str_s: -> 'one'
         str_d: -> "two"
-        int: -> 12
-        float: -> 123.4
-        bool_on: -> true
-        bool_off: -> false
+        int: [12]
+        float: [123].4
+        bool_on: [true]
+        bool_off: [false]
       }
     `)
 

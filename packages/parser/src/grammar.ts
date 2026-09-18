@@ -3,7 +3,10 @@
 // Bypasses TS6133. Allow declared but unused functions.
 // @ts-ignore
 function id(d: any[]): any { return d[0]; }
+declare var kw_inputs: any;
+declare var kw_set: any;
 declare var identifier: any;
+declare var kw_extract: any;
 declare var request_verb: any;
 declare var request_block_name: any;
 declare var request_block_body: any;
@@ -21,7 +24,7 @@ declare var ws: any;
 declare var comment: any;
 declare var nl: any;
 
-import lexer from './grammar/lexer.js'
+import { lexer } from './grammar/lexer.js'
 import * as p from './grammar/parse.js'
 
 interface NearleyToken {
@@ -69,11 +72,11 @@ const grammar: Grammar = {
     {"name": "inputs$ebnf$1", "symbols": []},
     {"name": "inputs$ebnf$1$subexpression$1", "symbols": ["_", {"literal":","}, "_", "input_decl"]},
     {"name": "inputs$ebnf$1", "symbols": ["inputs$ebnf$1", "inputs$ebnf$1$subexpression$1"], "postprocess": (d) => d[0].concat([d[1]])},
-    {"name": "inputs", "symbols": [{"literal":"inputs"}, "__", {"literal":"{"}, "_", "input_decl", "inputs$ebnf$1", "_", {"literal":"}"}], "postprocess": p.declInputs},
+    {"name": "inputs", "symbols": [(lexer.has("kw_inputs") ? {type: "kw_inputs"} : kw_inputs), "__", {"literal":"{"}, "_", "input_decl", "inputs$ebnf$1", "_", {"literal":"}"}], "postprocess": p.declInputs},
     {"name": "assignment$ebnf$1", "symbols": [{"literal":"?"}], "postprocess": id},
     {"name": "assignment$ebnf$1", "symbols": [], "postprocess": () => null},
-    {"name": "assignment", "symbols": [{"literal":"set"}, "__", (lexer.has("identifier") ? {type: "identifier"} : identifier), "assignment$ebnf$1", "_", {"literal":"="}, "_", "expression"], "postprocess": p.assignment},
-    {"name": "extract", "symbols": [{"literal":"extract"}, "__", "expression"], "postprocess": p.extract},
+    {"name": "assignment", "symbols": [(lexer.has("kw_set") ? {type: "kw_set"} : kw_set), "__", (lexer.has("identifier") ? {type: "identifier"} : identifier), "assignment$ebnf$1", "_", {"literal":"="}, "_", "expression"], "postprocess": p.assignment},
+    {"name": "extract", "symbols": [(lexer.has("kw_extract") ? {type: "kw_extract"} : kw_extract), "__", "expression"], "postprocess": p.extract},
     {"name": "input_decl$ebnf$1", "symbols": [{"literal":"?"}], "postprocess": id},
     {"name": "input_decl$ebnf$1", "symbols": [], "postprocess": () => null},
     {"name": "input_decl$ebnf$2$subexpression$1", "symbols": ["_", {"literal":"="}, "_", "input_default"]},
@@ -102,18 +105,22 @@ const grammar: Grammar = {
     {"name": "request_entry$ebnf$1", "symbols": [], "postprocess": () => null},
     {"name": "request_entry", "symbols": ["template", {"literal":":"}, "request_entry$ebnf$1"], "postprocess": p.requestEntry},
     {"name": "request_block_body", "symbols": [(lexer.has("request_block_body") ? {type: "request_block_body"} : request_block_body), "template", (lexer.has("request_block_body_end") ? {type: "request_block_body_end"} : request_block_body_end)], "postprocess": p.requestBlockBody},
-    {"name": "expression", "symbols": ["drill"], "postprocess": id},
-    {"name": "expression$ebnf$1$subexpression$1", "symbols": ["drill", "_", (lexer.has("drill_arrow") ? {type: "drill_arrow"} : drill_arrow), "_"]},
+    {"name": "expression", "symbols": ["test"], "postprocess": id},
+    {"name": "expression$ebnf$1$subexpression$1", "symbols": ["test", "_", (lexer.has("drill_arrow") ? {type: "drill_arrow"} : drill_arrow), "_"]},
     {"name": "expression$ebnf$1", "symbols": ["expression$ebnf$1$subexpression$1"], "postprocess": id},
     {"name": "expression$ebnf$1", "symbols": [], "postprocess": () => null},
-    {"name": "expression", "symbols": ["expression$ebnf$1", (lexer.has("link") ? {type: "link"} : link), "_", "drill"], "postprocess": p.link},
-    {"name": "drill$ebnf$1$subexpression$1", "symbols": [(lexer.has("drill_arrow") ? {type: "drill_arrow"} : drill_arrow), "_"]},
-    {"name": "drill$ebnf$1", "symbols": ["drill$ebnf$1$subexpression$1"], "postprocess": id},
-    {"name": "drill$ebnf$1", "symbols": [], "postprocess": () => null},
-    {"name": "drill$ebnf$2", "symbols": []},
-    {"name": "drill$ebnf$2$subexpression$1", "symbols": ["_", (lexer.has("drill_arrow") ? {type: "drill_arrow"} : drill_arrow), "_", "bit"]},
-    {"name": "drill$ebnf$2", "symbols": ["drill$ebnf$2", "drill$ebnf$2$subexpression$1"], "postprocess": (d) => d[0].concat([d[1]])},
-    {"name": "drill", "symbols": ["drill$ebnf$1", "bit", "drill$ebnf$2"], "postprocess": p.drill},
+    {"name": "expression", "symbols": ["expression$ebnf$1", (lexer.has("link") ? {type: "link"} : link), "_", "test"], "postprocess": p.link},
+    {"name": "test", "symbols": ["fallback", "_", {"literal":"?"}, "_", "fallback", "_", {"literal":":"}, "_", "test"], "postprocess": p.test},
+    {"name": "test", "symbols": ["fallback"], "postprocess": id},
+    {"name": "fallback", "symbols": ["chain", "_", {"literal":"?:"}, "_", "fallback"], "postprocess": p.fallback},
+    {"name": "fallback", "symbols": ["chain"], "postprocess": id},
+    {"name": "chain$ebnf$1$subexpression$1", "symbols": [(lexer.has("drill_arrow") ? {type: "drill_arrow"} : drill_arrow), "_"]},
+    {"name": "chain$ebnf$1", "symbols": ["chain$ebnf$1$subexpression$1"], "postprocess": id},
+    {"name": "chain$ebnf$1", "symbols": [], "postprocess": () => null},
+    {"name": "chain$ebnf$2", "symbols": []},
+    {"name": "chain$ebnf$2$subexpression$1", "symbols": ["_", (lexer.has("drill_arrow") ? {type: "drill_arrow"} : drill_arrow), "_", "bit"]},
+    {"name": "chain$ebnf$2", "symbols": ["chain$ebnf$2", "chain$ebnf$2$subexpression$1"], "postprocess": (d) => d[0].concat([d[1]])},
+    {"name": "chain", "symbols": ["chain$ebnf$1", "bit", "chain$ebnf$2"], "postprocess": p.drill},
     {"name": "bit$subexpression$1", "symbols": ["literal"]},
     {"name": "bit$subexpression$1", "symbols": ["slice"]},
     {"name": "bit$subexpression$1", "symbols": ["call"]},
@@ -134,17 +141,19 @@ const grammar: Grammar = {
     {"name": "object$ebnf$1$subexpression$1", "symbols": ["object_entry", "object$ebnf$1$subexpression$1$ebnf$1", "_"]},
     {"name": "object$ebnf$1", "symbols": ["object$ebnf$1", "object$ebnf$1$subexpression$1"], "postprocess": (d) => d[0].concat([d[1]])},
     {"name": "object", "symbols": [{"literal":"{"}, "_", "object$ebnf$1", {"literal":"}"}], "postprocess": p.object},
-    {"name": "object_entry$ebnf$1", "symbols": [{"literal":"@"}], "postprocess": id},
+    {"name": "object_entry$subexpression$1$ebnf$1", "symbols": [{"literal":"@"}], "postprocess": id},
+    {"name": "object_entry$subexpression$1$ebnf$1", "symbols": [], "postprocess": () => null},
+    {"name": "object_entry$subexpression$1$ebnf$2", "symbols": [{"literal":"?"}], "postprocess": id},
+    {"name": "object_entry$subexpression$1$ebnf$2", "symbols": [], "postprocess": () => null},
+    {"name": "object_entry$subexpression$1", "symbols": ["object_entry$subexpression$1$ebnf$1", (lexer.has("identifier") ? {type: "identifier"} : identifier), "object_entry$subexpression$1$ebnf$2"]},
+    {"name": "object_entry$subexpression$1", "symbols": ["literal"]},
+    {"name": "object_entry", "symbols": ["object_entry$subexpression$1", {"literal":":"}, "_", "expression"], "postprocess": p.objectEntry},
+    {"name": "object_entry$ebnf$1", "symbols": [{"literal":"?"}], "postprocess": id},
     {"name": "object_entry$ebnf$1", "symbols": [], "postprocess": () => null},
+    {"name": "object_entry", "symbols": [(lexer.has("identifier") ? {type: "identifier"} : identifier), "object_entry$ebnf$1"], "postprocess": p.objectEntryShorthandSelect},
     {"name": "object_entry$ebnf$2", "symbols": [{"literal":"?"}], "postprocess": id},
     {"name": "object_entry$ebnf$2", "symbols": [], "postprocess": () => null},
-    {"name": "object_entry", "symbols": ["object_entry$ebnf$1", (lexer.has("identifier") ? {type: "identifier"} : identifier), "object_entry$ebnf$2", {"literal":":"}, "_", "expression"], "postprocess": p.objectEntry},
-    {"name": "object_entry$ebnf$3", "symbols": [{"literal":"?"}], "postprocess": id},
-    {"name": "object_entry$ebnf$3", "symbols": [], "postprocess": () => null},
-    {"name": "object_entry", "symbols": [(lexer.has("identifier") ? {type: "identifier"} : identifier), "object_entry$ebnf$3"], "postprocess": p.objectEntryShorthandSelect},
-    {"name": "object_entry$ebnf$4", "symbols": [{"literal":"?"}], "postprocess": id},
-    {"name": "object_entry$ebnf$4", "symbols": [], "postprocess": () => null},
-    {"name": "object_entry", "symbols": [(lexer.has("identifier_expr") ? {type: "identifier_expr"} : identifier_expr), "object_entry$ebnf$4"], "postprocess": p.objectEntryShorthandIdent},
+    {"name": "object_entry", "symbols": [(lexer.has("identifier_expr") ? {type: "identifier_expr"} : identifier_expr), "object_entry$ebnf$2"], "postprocess": p.objectEntryShorthandIdent},
     {"name": "template$ebnf$1$subexpression$1", "symbols": [(lexer.has("str") ? {type: "str"} : str)]},
     {"name": "template$ebnf$1$subexpression$1", "symbols": [(lexer.has("interpvar") ? {type: "interpvar"} : interpvar)]},
     {"name": "template$ebnf$1$subexpression$1", "symbols": ["interp_expr"]},

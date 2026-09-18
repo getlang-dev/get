@@ -2,7 +2,11 @@ import type { TypeInfo } from '@getlang/ast'
 import { Type } from '@getlang/ast'
 import type { Hooks, Inputs } from '@getlang/lib'
 import { cookies, html, invariant, js, json } from '@getlang/lib'
-import { ImportError, ValueReferenceError } from '@getlang/lib/errors'
+import {
+  ImportError,
+  SliceError,
+  ValueReferenceError,
+} from '@getlang/lib/errors'
 import { partition } from 'lodash-es'
 import type { Entry, Registry } from './registry.js'
 import type { RuntimeValue } from './value.js'
@@ -20,7 +24,11 @@ export async function callModifier(
     if (entry.useContext && context) {
       ctx = entry.materialize ? materialize(context) : context.data
     }
-    return entry.mod(ctx, args)
+    try {
+      return await entry.mod(ctx, args)
+    } catch (e) {
+      throw new SliceError({ cause: e })
+    }
   }
 
   invariant(context, 'Modifier requires context')

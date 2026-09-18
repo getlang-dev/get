@@ -4,23 +4,37 @@ import { ValueReferenceError } from '@getlang/lib/errors'
 import type { Path } from '@getlang/walker'
 import { ScopeTracker } from '@getlang/walker'
 
+type Parent = Expr | Expr[]
+
 export class LineageTracker extends ScopeTracker<Expr> {
-  private lineage = new Map<Expr, Expr>()
+  private lineage = new Map<Expr, Parent>()
 
   getLineage(expr: Expr) {
     return this.lineage.get(expr)
   }
 
-  traceLineageRoot(expr: Expr) {
-    let parent = this.lineage.get(expr)
-    while (parent && this.lineage.has(parent)) {
-      parent = this.lineage.get(parent)
+  traceLineageRoots(from: Expr): Parent | undefined {
+    const plan = new Set([from])
+    const roots = new Set<Expr>()
+
+    for (const expr of plan) {
+      const lineage = this.getLineage(expr)
+      if (lineage) {
+        const list = Array.isArray(lineage) ? lineage : [lineage]
+        for (const expr of list) {
+          plan.add(expr)
+        }
+      } else if (expr !== from) {
+        roots.add(expr)
+      }
     }
-    return parent
+
+    const [first, ...rest] = roots
+    return rest.length ? Array.from(roots) : first
   }
 
   override exit(node: Node, path: Path) {
-    const derive = (base: Expr) => this.lineage.set(node as Expr, base)
+    const derive = (base: Parent) => this.lineage.set(node as Expr, base)
 
     switch (node.kind) {
       case 'IdentifierExpr':
@@ -45,6 +59,10 @@ export class LineageTracker extends ScopeTracker<Expr> {
         if (this.extracted) {
           derive(this.extracted)
         }
+        break
+
+      case 'ObjectLiteralExpr':
+        derive(node.entries.map(x => x.value))
         break
     }
 

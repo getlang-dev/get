@@ -56,6 +56,14 @@ export class SelectorSyntaxError extends RuntimeError {
   }
 }
 
+export class ParseValueError extends RuntimeError {
+  public override name = 'SelectorSyntaxError'
+
+  constructor(type: string, options?: ErrorOptions) {
+    super(`Failed to parse value as ${type}`, options)
+  }
+}
+
 export class NullSelectionError extends RuntimeError {
   public override name = 'NullSelectionError'
 
@@ -105,7 +113,11 @@ export function invariant(
   err: string | RuntimeError,
 ): asserts condition {
   if (!condition) {
-    throw typeof err === 'string' ? new FatalError({ cause: err }) : err
+    if (typeof err === 'string') {
+      const cause = new Error(err)
+      throw new FatalError({ cause })
+    }
+    throw err
   }
 }
 
