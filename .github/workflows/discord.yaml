@@ -1,13 +1,13 @@
 on:
   release:
-    types: [published]
+    types: [ published ]
 
 jobs:
   discord-notify-release:
     if: startsWith(github.event.release.tag_name, '@getlang/get@')
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: SethCohen/github-releases-to-discord@v1
         with:
           webhook_url: ${{ secrets.RELEASE_DISCORD_WEBHOOK_URL }}

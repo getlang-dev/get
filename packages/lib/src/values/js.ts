@@ -7,7 +7,6 @@ import {
   NullSelection,
   ParseValueError,
   SelectorSyntaxError,
-  SliceSyntaxError,
 } from '../core/errors.js'
 
 export const parse = (js: string): AnyNode => {

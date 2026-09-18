@@ -160,9 +160,7 @@ describe('values', () => {
 
     test('parsing error', async () => {
       const result = execute(`extract "<doctype>" -> @json`)
-      return expect(result).rejects.toThrow(
-        new ParseValueError('JSON'),
-      )
+      return expect(result).rejects.toThrow(new ParseValueError('JSON'))
     })
   })
 
@@ -293,9 +291,7 @@ describe('values', () => {
 
     test('parsing error', async () => {
       const result = execute(`extract "{x!}" -> @js`)
-      return expect(result).rejects.toThrow(
-        new ParseValueError('JavaScript'),
-      )
+      return expect(result).rejects.toThrow(new ParseValueError('JavaScript'))
     })
   })
 

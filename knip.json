@@ -7,9 +7,6 @@
   "ignoreDependencies": [
     "@changesets/cli"
   ],
-  "ignoreBinaries": [
-    "open"
-  ],
   "exclude": [
     "enumMembers"
   ]

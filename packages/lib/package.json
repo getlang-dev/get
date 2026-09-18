@@ -27,17 +27,17 @@
     "@getlang/xpath": "0.0.35-0",
     "@types/esquery": "^1.5.4",
     "@types/lodash-es": "^4.17.12",
-    "acorn": "^8.16.0",
+    "acorn": "^8.18.0",
     "css-select": "^7.0.0",
     "css-what": "^8.0.0",
-    "dom-serializer": "^3.0.0",
+    "dom-serializer": "^3.1.1",
     "domelementtype": "*",
     "domhandler": "^6.0.1",
     "domutils": "^4.0.2",
     "esquery": "^1.7.0",
     "lodash-es": "^4.18.1",
-    "parse5": "^8.0.0",
-    "parse5-htmlparser2-tree-adapter": "^8.0.0",
-    "set-cookie-parser": "^3.1.0"
+    "parse5": "^8.0.1",
+    "parse5-htmlparser2-tree-adapter": "^8.0.1",
+    "set-cookie-parser": "^3.1.2"
   }
 }
