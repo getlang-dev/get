@@ -22,9 +22,9 @@ jobs:
       - run: bun --filter @getlang/parser compile
       - uses: changesets/action@v2.1.2
         with:
-          title: 'chore: version packages'
-          commit: 'chore: version packages'
-          publish: bun pub
+          pr-title: 'chore: version packages'
+          commit-message: 'chore: version packages'
+          publish-script: bun pub
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
