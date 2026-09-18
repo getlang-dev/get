@@ -18,6 +18,18 @@ jobs:
     steps:
       - uses: actions/checkout@v7
       - uses: oven-sh/setup-bun@v2
+
+
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          registry-url: https://registry.npmjs.org
+      - run: npm install -g npm@latest
+      - run: node -v && npm -v
+
+
+
       - run: bun install --frozen-lockfile
       - run: bun --filter @getlang/parser compile
       - uses: changesets/action@v2.1.2
@@ -27,4 +39,3 @@ jobs:
           publish-script: bun pub
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
