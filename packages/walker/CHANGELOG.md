@@ -1,5 +1,11 @@
 # @getlang/walker
 
+## 0.1.2
+
+### Patch Changes
+
+- [#61](https://github.com/getlang-dev/get/pull/61) [`36e5341`](https://github.com/getlang-dev/get/commit/36e5341350c7408efd29e45b4cd106dd6dccd05a) Thanks [@mattfysh](https://github.com/mattfysh)! - fix publishing
+
 ## 0.1.1
 
 ### Patch Changes
