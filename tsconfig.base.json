@@ -5,7 +5,7 @@
     "outDir": "${configDir}/dist",
 
     // Environment setup & latest features
-    "lib": ["ESNext"],
+    "lib": ["esnext", "dom", "dom.iterable"],
     "target": "ESNext",
     "module": "Preserve",
     "moduleDetection": "force",
