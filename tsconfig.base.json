@@ -1,9 +1,11 @@
 {
   "compilerOptions": {
     "customConditions": ["bun"],
+    "rootDir": "${configDir}/src",
+    "outDir": "${configDir}/dist",
 
     // Environment setup & latest features
-    "lib": ["esnext", "dom", "dom.iterable"],
+    "lib": ["ESNext"],
     "target": "ESNext",
     "module": "Preserve",
     "moduleDetection": "force",
@@ -14,7 +16,7 @@
     "moduleResolution": "bundler",
     "allowImportingTsExtensions": true,
     "verbatimModuleSyntax": true,
-    "noEmit": true,
+    "rewriteRelativeImportExtensions": true,
 
     // Best practices
     "strict": true,
