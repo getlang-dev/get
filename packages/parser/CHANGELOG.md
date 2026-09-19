@@ -1,5 +1,11 @@
 # @getlang/parser
 
+## 0.4.6
+
+### Patch Changes
+
+- [#64](https://github.com/getlang-dev/get/pull/64) [`fe49a54`](https://github.com/getlang-dev/get/commit/fe49a54406552f1a6d4f9cf3019590bfa431f98e) Thanks [@mattfysh](https://github.com/mattfysh)! - fix publishing again
+
 ## 0.4.5
 
 ### Patch Changes
