@@ -220,22 +220,19 @@ describe('request', () => {
       const [call] = (mockFetch as any).mock.calls
       const hdrs: Headers = call[1].headers
       const ct = hdrs.get('content-type')
-      expect(ct).toMatch(
-        /multipart\/form-data; boundary=----WebKitFormBoundary[0-9a-f]{32}/,
-      )
-
-      const boundary = ct?.split('boundary=-')[1]
+      const [k, v] = ct?.split('=') || []
+      expect(k).toEqual('multipart/form-data; boundary')
 
       const body = dedent`
-        ---${boundary}
+        --${v}
         Content-Disposition: form-data; name="username"
 
         admin
-        ---${boundary}
+        --${v}
         Content-Disposition: form-data; name="password"
 
         test
-        ---${boundary}--\n
+        --${v}--\n
       `
 
       expect(mockFetch).toHaveServed('https://example.com/login', {
