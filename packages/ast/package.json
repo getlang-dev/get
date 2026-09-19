@@ -23,5 +23,10 @@
   },
   "devDependencies": {
     "@types/moo": "^0.5.10"
-  }
+  },
+  "files": [
+    "CHANGELOG.md",
+    "src",
+    "dist"
+  ]
 }

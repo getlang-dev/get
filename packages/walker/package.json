@@ -20,5 +20,10 @@
   "homepage": "https://getlang.dev",
   "dependencies": {
     "@getlang/ast": "workspace:^0.1.0"
-  }
+  },
+  "files": [
+    "CHANGELOG.md",
+    "src",
+    "dist"
+  ]
 }

@@ -39,5 +39,10 @@
     "parse5": "^8.0.1",
     "parse5-htmlparser2-tree-adapter": "^8.0.1",
     "set-cookie-parser": "^3.1.2"
-  }
+  },
+  "files": [
+    "CHANGELOG.md",
+    "src",
+    "dist"
+  ]
 }
