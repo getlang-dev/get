@@ -9,7 +9,4 @@ for dir in packages/*; do
   rm "$dir/package.json.bak"
 done
 
-# changeset publish
-
-# rm -rf dist packages/*/dist
-# git restore packages
+changeset publish
