@@ -5,7 +5,7 @@ import { mapValues } from 'lodash-es'
 import {
   NullSelectionError,
   ValueTypeError,
-} from '../../lib/src/core/errors.js'
+} from '@getlang/lib/errors'
 
 export type RuntimeValue = {
   data: any
