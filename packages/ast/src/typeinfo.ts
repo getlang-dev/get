@@ -26,7 +26,7 @@ type Maybe = {
   option: TypeInfo
 }
 
-type ScalarType = {
+export type ScalarType = {
   type: Exclude<Type, Type.List | Type.Struct | Type.Maybe>
 }
 

@@ -13,15 +13,15 @@ export class FatalError extends RuntimeError {
 }
 
 export class QuerySyntaxError extends RuntimeError {
-  public override name = 'SyntaxError'
+  public override name = 'QuerySyntaxError'
 }
 
 export class ValueTypeError extends RuntimeError {
-  public override name = 'TypeError'
+  public override name = 'ValueTypeError'
 }
 
 export class ValueReferenceError extends RuntimeError {
-  public override name = 'ReferenceError'
+  public override name = 'ValueReferenceError'
 
   constructor(varName: string, options?: ErrorOptions) {
     super(`Unable to locate variable: ${varName}`, options)
@@ -57,7 +57,7 @@ export class SelectorSyntaxError extends RuntimeError {
 }
 
 export class ParseValueError extends RuntimeError {
-  public override name = 'SelectorSyntaxError'
+  public override name = 'ParseValueError'
 
   constructor(type: string, options?: ErrorOptions) {
     super(`Failed to parse value as ${type}`, options)

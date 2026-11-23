@@ -11,6 +11,7 @@ import { wait, waitMap } from './wait.js'
 
 export { ScopeTracker } from './scope.js'
 export type { Path, ReduceVisitor, TransformVisitor }
+export { wait }
 
 export type WalkOptions<Visitor> = Visitor & {
   scope?: ScopeTracker

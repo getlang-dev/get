@@ -10,6 +10,7 @@ import type { Path, TransformVisitor } from '@getlang/walker'
 import { ScopeTracker, transform } from '@getlang/walker'
 import { isEqual, toPath } from 'lodash-es'
 import { render, tx } from '../../utils.js'
+import type { InferenceOptions } from './inference.js'
 
 function unwrap(typeInfo: TypeInfo) {
   switch (typeInfo.type) {
@@ -91,13 +92,8 @@ class ItemScopeTracker extends ScopeTracker<Expr> {
   }
 }
 
-type ResolveTypeOptions = {
-  returnTypes: { [module: string]: TypeInfo }
-  contextType?: TypeInfo
-}
-
-export function resolveTypes(ast: Program, options: ResolveTypeOptions) {
-  const { returnTypes, contextType = { type: Type.Context } } = options
+export async function resolveTypes(ast: Program, options: InferenceOptions) {
+  const { contextType = { type: Type.Context } } = options
   const scope = new ItemScopeTracker()
   let ex: Expr | undefined
 
@@ -208,7 +204,7 @@ export function resolveTypes(ast: Program, options: ResolveTypeOptions) {
       return { ...node, typeInfo }
     },
 
-    ModifierExpr(node) {
+    async ModifierExpr(node) {
       const modTypeMap: Record<string, TypeInfo> = {
         html: { type: Type.Html },
         js: { type: Type.Js },
@@ -218,15 +214,19 @@ export function resolveTypes(ast: Program, options: ResolveTypeOptions) {
         cookies: { type: Type.Cookies },
       }
       const mod = node.modifier.value
-      const typeInfo = modTypeMap[mod] || returnTypes[mod]
+      let typeInfo = modTypeMap[mod]
+      if (!typeInfo) {
+        const { returnType } = await options.getModifier(mod)
+        typeInfo = returnType
+      }
       invariant(typeInfo, 'Modifier type lookup failed')
       return { ...node, typeInfo }
     },
 
-    ModuleExpr(node) {
+    async ModuleExpr(node) {
       let typeInfo: TypeInfo = { type: Type.Value }
       if (node.call) {
-        const returnType = returnTypes[node.module.value]
+        const { returnType } = await options.getInstance(node.module.value)
         invariant(returnType, 'Module return type lookup failed')
         typeInfo = specialize(returnType, scope.context?.typeInfo)
       }
@@ -281,7 +281,7 @@ export function resolveTypes(ast: Program, options: ResolveTypeOptions) {
     },
   }
 
-  const program: Program = transform(ast, { scope, ...visitor })
+  const program: Program = await transform(ast, { scope, ...visitor })
   const returnType = ex?.typeInfo ?? { type: Type.Never }
 
   return { program, returnType: returnType }

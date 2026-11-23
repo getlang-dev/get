@@ -11,6 +11,6 @@ export const select = (headers: Headers, selector: string, expand: boolean) => {
   return value === null ? new NullSelection(selector) : value
 }
 
-export const toValue = (headers: Headers) => {
+export const materialize = (headers: Headers) => {
   return Object.fromEntries(headers)
 }

@@ -1,10 +1,7 @@
 import type { TypeInfo } from '@getlang/ast'
 import type { Inputs, MaybePromise } from '../index.js'
-import { requestHook } from '../net/http.js'
-import { runSlice } from '../slice.js'
-import { ImportError, invariant } from './errors.js'
 
-export type ImportHook = (module: string) => MaybePromise<string>
+export type ImportHook = (module: string) => MaybePromise<string | undefined>
 
 export type CallHook = (module: string, inputs: Inputs) => MaybePromise<any>
 
@@ -25,15 +22,16 @@ export type ExtractHook = (
 ) => MaybePromise<any>
 
 export type Modifier = (context: any, options: Record<string, unknown>) => any
-export type ModifierHook = (modifier: string) => MaybePromise<
-  | {
-      modifier: Modifier
-      useContext?: boolean
-      materialize?: boolean
-      returnType?: TypeInfo
-    }
-  | undefined
->
+
+export type ModifierSpec = {
+  modifier: Modifier
+  useContext?: boolean
+  returnType?: TypeInfo
+}
+
+export type ModifierHook = (
+  modifier: string,
+) => MaybePromise<ModifierSpec | undefined>
 
 export type Hooks = Partial<{
   import: ImportHook
@@ -54,19 +52,4 @@ export type Response = {
   status: number
   headers: Headers
   body?: string
-}
-
-export function buildHooks(hooks: Hooks): Required<Hooks> {
-  return {
-    import: (module: string) => {
-      const err = 'Imports are not supported by the current runtime'
-      invariant(hooks.import, new ImportError(err))
-      return hooks.import(module)
-    },
-    modifier: modifier => hooks.modifier?.(modifier),
-    call: hooks.call ?? (() => {}),
-    request: hooks.request ?? requestHook,
-    slice: hooks.slice ?? runSlice,
-    extract: hooks.extract ?? (() => {}),
-  }
 }

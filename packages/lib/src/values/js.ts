@@ -36,7 +36,7 @@ export const select = (node: AnyNode, selector: string, expand: boolean) => {
   }
 }
 
-export const toValue = (node: AnyNode) => {
+export const materialize = (node: AnyNode) => {
   invariant(node.type === 'Literal', new ConversionError(node.type))
   return node.value
 }

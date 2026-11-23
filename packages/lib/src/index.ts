@@ -1,5 +1,6 @@
 export { invariant, NullSelection } from './core/errors.js'
 export * from './core/hooks.js'
+export * as modifiers from './modifiers.js'
 export * as http from './net/http.js'
 export * as slice from './slice.js'
 export * as cookies from './values/cookies.js'

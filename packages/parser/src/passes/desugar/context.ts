@@ -1,12 +1,16 @@
 import { invariant } from '@getlang/lib'
 import { QuerySyntaxError } from '@getlang/lib/errors'
 import { ScopeTracker, transform } from '@getlang/walker'
-import type { DesugarPass } from '../desugar.js'
+import type { DesugarPass } from './desugar.js'
 
-export const resolveContext: DesugarPass = (ast, { parsers, contextual }) => {
+export const resolveContext: DesugarPass = async (
+  ast,
+  parsers,
+  { usesContext },
+) => {
   const scope = new ScopeTracker()
 
-  const program = transform(ast, {
+  const program = await transform(ast, {
     scope,
 
     Program(node) {
@@ -20,8 +24,6 @@ export const resolveContext: DesugarPass = (ast, { parsers, contextual }) => {
     },
 
     RequestExpr(node) {
-      invariant(node.headers.kind === 'RequestBlockExpr', '')
-      node.headers
       parsers.visit(node)
     },
 
@@ -32,19 +34,19 @@ export const resolveContext: DesugarPass = (ast, { parsers, contextual }) => {
       }
     },
 
-    ModifierExpr(node) {
+    async ModifierExpr(node) {
       const ctx = scope.context
-      const mod = node.modifier.value
-      if (contextual.includes(mod) && ctx?.kind === 'RequestExpr') {
+      const modifier = node.modifier.value
+      if (ctx?.kind === 'RequestExpr' && (await usesContext({ modifier }))) {
         // replace modifier with shared parser
-        return parsers.lookup(ctx, mod)
+        return parsers.lookup(ctx, modifier)
       }
     },
 
-    ModuleExpr(node, path) {
+    async ModuleExpr(node, path) {
       const ctx = scope.context
       const module = node.module.value
-      if (contextual.includes(module) && ctx?.kind === 'RequestExpr') {
+      if (ctx?.kind === 'RequestExpr' && (await usesContext({ module }))) {
         path.insertBefore(parsers.lookup(ctx))
       }
     },

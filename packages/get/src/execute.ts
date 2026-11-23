@@ -7,7 +7,8 @@ import type { ReduceVisitor } from '@getlang/walker'
 import { reduce, ScopeTracker } from '@getlang/walker'
 import type { Execute } from './calls.js'
 import { callModifier, callModule } from './calls.js'
-import { Registry } from './registry.js'
+import { memodag } from './memodag.js'
+import { createRegistry } from './registry/index.js'
 import type { RuntimeValue } from './value.js'
 import { assert, materialize } from './value.js'
 
@@ -21,15 +22,17 @@ const {
 } = errors
 
 export async function execute(
-  rootModule: string,
-  rootInputs: Inputs,
-  hooks: Required<Hooks>,
+  mainModule: string,
+  mainInputs: Inputs,
+  hooks: Hooks,
 ) {
+  const registry = memodag(createRegistry(hooks)).graph
   const scope = new ScopeTracker<RuntimeValue>()
 
-  const executeModule: Execute = async (entry, inputs) => {
+  const executeModule: Execute = async (module, contextType, inputs) => {
+    const simplified = await registry.importModule(module).desugar()
     const provided = new Set(Object.keys(inputs))
-    const unknown = provided.difference(entry.inputs)
+    const unknown = provided.difference(simplified.inputs)
     lib.invariant(unknown.size === 0, new UnknownInputsError([...unknown]))
 
     async function withItemContext(expr: Expr): Promise<any> {
@@ -112,7 +115,8 @@ export async function execute(
         try {
           const ctx = scope.context
           const deps = ctx ? materialize(ctx) : {}
-          const ret = await hooks.slice(slice.value, deps)
+          const runSlice = hooks.slice || lib.slice.runSlice
+          const ret = await runSlice(slice.value, deps)
           const data =
             ret === undefined ? new lib.NullSelection('<slice>') : ret
           return { data, typeInfo }
@@ -267,12 +271,13 @@ export async function execute(
     }
 
     const options = { scope, ...visitor }
-    await reduce(entry.program, options)
+    const { program } = await registry
+      .importInstance(module, contextType)
+      .types()
+    await reduce(program, options)
     return ex
   }
 
-  const registry = new Registry(hooks)
-  const rootEntry = await registry.import(rootModule)
-  const ex = await executeModule(rootEntry, rootInputs)
+  const ex = await executeModule(mainModule, undefined, mainInputs)
   return ex && assert(ex) && materialize(ex)
 }

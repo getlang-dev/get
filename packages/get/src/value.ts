@@ -12,13 +12,13 @@ export type RuntimeValue = {
 export function materialize({ data, typeInfo }: RuntimeValue): any {
   switch (typeInfo.type) {
     case Type.Html:
-      return html.toValue(data)
+      return html.materialize(data)
     case Type.Js:
-      return js.toValue(data)
+      return js.materialize(data)
     case Type.Headers:
-      return headers.toValue(data)
+      return headers.materialize(data)
     case Type.Cookies:
-      return cookies.toValue(data)
+      return cookies.materialize(data)
     case Type.List:
       return data.map((item: any) =>
         materialize({ data: item, typeInfo: typeInfo.of }),

@@ -3,10 +3,10 @@ import { invariant } from '@getlang/lib'
 import { QuerySyntaxError } from '@getlang/lib/errors'
 import { transform } from '@getlang/walker'
 import { render, tx } from '../../utils.js'
-import type { DesugarPass } from '../desugar.js'
 import { LineageTracker } from '../lineage.js'
+import type { DesugarPass } from './desugar.js'
 
-export const settleLinks: DesugarPass = (ast, { parsers }) => {
+export const settleLinks: DesugarPass = (ast, parsers) => {
   const scope = new LineageTracker()
 
   const ret = transform(ast, {

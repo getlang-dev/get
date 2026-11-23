@@ -1,6 +1,5 @@
 export { lexer } from './grammar/lexer.js'
 export { parse } from './parse.js'
-export { analyze } from './passes/analyze.js'
-export { desugar } from './passes/desugar.js'
-export { inference } from './passes/inference.js'
+export { desugar } from './passes/desugar/desugar.js'
+export { inference } from './passes/inference/inference.js'
 export { print } from './print.js'

@@ -44,7 +44,7 @@ export const request = async (
   _headers: StringMap,
   blocks: Blocks,
   bodyRaw: string,
-  hook: RequestHook,
+  hook: RequestHook = requestHook,
 ) => {
   const urlString = constructUrl(url, blocks.query)
 

@@ -7,7 +7,7 @@ import { parse as acorn } from 'acorn'
 import { traverse } from 'estree-toolkit'
 import globals from 'globals'
 import { render, tx } from '../../utils.js'
-import type { DesugarPass } from '../desugar.js'
+import type { DesugarPass } from './desugar.js'
 
 const browserGlobals = [
   ...Object.keys(globals.browser),

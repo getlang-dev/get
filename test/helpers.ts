@@ -2,7 +2,6 @@ import { expect } from 'bun:test'
 import { executeModule } from '@getlang/get'
 import type { Hooks, Inputs, MaybePromise } from '@getlang/lib'
 import { invariant } from '@getlang/lib'
-import { ImportError } from '@getlang/lib/errors'
 import { desugar, parse, print } from '@getlang/parser'
 import dedent from 'dedent'
 import './expect.js'
@@ -17,9 +16,9 @@ export type Fetch = (url: string, opts: RequestInit) => MaybePromise<Response>
 
 export const SELSYN = true
 
-function testIdempotency(source: string) {
-  const print1 = print(desugar(parse(source)))
-  const print2 = print(desugar(parse(print1)))
+async function testIdempotency(source: string) {
+  const print1 = print(await desugar(parse(source)))
+  const print2 = print(await desugar(parse(print1)))
   expect(print2).toEqual(print1)
 }
 
@@ -34,15 +33,13 @@ export async function execute(
   for (const [name, source] of Object.entries(normalized)) {
     modules[name] = dedent(source)
     if (!willThrow) {
-      testIdempotency(source)
+      await testIdempotency(source)
     }
   }
 
   const hooks: Hooks = {
     import(module) {
-      const src = modules[module]
-      invariant(src, new ImportError(`Failed to import module: ${module}`))
-      return src
+      return modules[module]
     },
     async request(url, opts) {
       invariant(fetch, `Fetch required: ${url}`)

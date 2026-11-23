@@ -16,6 +16,6 @@ export const select = (
   return cookies[selector]?.value ?? new NullSelection(selector)
 }
 
-export const toValue = (cookies: scp.CookieMap) => {
+export const materialize = (cookies: scp.CookieMap) => {
   return mapValues(cookies, c => c.value)
 }

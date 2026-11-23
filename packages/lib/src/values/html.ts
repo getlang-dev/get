@@ -21,7 +21,11 @@ export const parse = (html: string): AnyHtmlNode => {
   return parse5(html, { treeAdapter: adapter })
 }
 
-const selectXpath = (el: AnyHtmlNode, selector: string, expand: boolean) => {
+export const selectXpath = (
+  el: AnyHtmlNode,
+  selector: string,
+  expand: boolean,
+) => {
   try {
     const parseXpath = new xpath.XPathParser()
     parseXpath.parse(selector)
@@ -41,7 +45,7 @@ const selectXpath = (el: AnyHtmlNode, selector: string, expand: boolean) => {
   if (expand) {
     return value
   }
-  return value.length ? value[0] : new NullSelection(selector)
+  return value[0] || new NullSelection(selector)
 }
 
 const selectCss = (el: AnyHtmlNode, selector: string, expand: boolean) => {
@@ -63,7 +67,7 @@ export const select = (el: AnyHtmlNode, selector: string, expand: boolean) => {
     : selectCss(el, selector, expand)
 }
 
-export const toValue = (el: AnyHtmlNode) => {
+export const materialize = (el: AnyHtmlNode) => {
   let str = ''
   if (el.nodeType === 2) {
     str = el.value
@@ -71,16 +75,4 @@ export const toValue = (el: AnyHtmlNode) => {
     str = textContent(el).replaceAll(/\s+/g, ' ')
   }
   return str.trim()
-}
-
-export const findLink = (el: AnyHtmlNode) => {
-  const tag = el.type === 'tag' && el.name
-  switch (tag) {
-    case 'a':
-      return selectXpath(el, '@href', false)
-    case 'img':
-      return selectXpath(el, '@src', false)
-    default:
-      return el
-  }
 }

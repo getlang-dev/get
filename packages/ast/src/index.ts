@@ -2,8 +2,8 @@ import type { TypeInfo } from './typeinfo.js'
 import { Type } from './typeinfo.js'
 
 export * from './ast.js'
-export type { TypeInfo }
-export { Type }
+export type { ScalarType, TypeInfo } from './typeinfo.js'
+export { Type } from './typeinfo.js'
 
 export function repr(ti: TypeInfo): string {
   switch (ti.type) {

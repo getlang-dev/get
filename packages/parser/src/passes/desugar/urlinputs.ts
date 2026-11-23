@@ -2,7 +2,7 @@ import type { TemplateExpr } from '@getlang/ast'
 import { isToken, t } from '@getlang/ast'
 import { ScopeTracker, transform } from '@getlang/walker'
 import { tx } from '../../utils.js'
-import type { DesugarPass } from '../desugar.js'
+import type { DesugarPass } from './desugar.js'
 
 export const addUrlInputs: DesugarPass = ast => {
   const scope = new ScopeTracker()
